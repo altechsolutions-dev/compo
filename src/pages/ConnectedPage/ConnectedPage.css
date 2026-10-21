@@ -1,0 +1,5 @@
+@layer components {
+  .connected-page {
+    min-height: 100svh;
+  }
+}

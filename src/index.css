@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: "DM Sans", sans-serif;
+  --bg-main: #23252f;
+  --bg-surface: #292c36;
+  --bg-elevated: #30333f;
+  --team-a-red: #ff3b4e;
+  --team-a-glow: rgba(255, 59, 78, 0.5);
+  --team-b-blue: #00c7d5;
+  --team-b-glow: rgba(0, 229, 255, 0.5);
+  --status-success: #00e676;
+  --text-primary: #ffffff;
+  --text-secondary: #a8a9b3;
+  --border-neutral: #494c58;
+
+  --ink: var(--text-primary);
+  --muted: var(--text-secondary);
+  --line: var(--border-neutral);
+  --accent: var(--team-a-red);
+  --lime: var(--team-b-blue);
+  --paper: var(--bg-elevated);
+  color: var(--text-primary);
+  background: var(--bg-main);
+  color-scheme: dark;
+  letter-spacing: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  font:
+    14px/1.5 "DM Sans",
+    sans-serif;
+  background-color: var(--bg-main);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--border-neutral) 28%, transparent) 0.65px,
+    transparent 0.65px
+  );
+  background-size: 19px 19px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "DM Sans", sans-serif;
+}
+
+button,
+input {
+  font-family: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

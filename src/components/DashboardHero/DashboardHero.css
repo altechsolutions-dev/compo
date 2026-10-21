@@ -1,0 +1,30 @@
+@layer components {
+  .dashboard-hero {
+    isolation: isolate;
+  }
+
+  .dashboard-hero > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .dashboard-hero::after {
+    position: absolute;
+    z-index: 0;
+    top: -165px;
+    right: 8%;
+    width: 280px;
+    aspect-ratio: 1;
+    border: 1px solid color-mix(in srgb, var(--team-b-blue) 8%, transparent);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+  }
+
+  @media (max-width: 680px) {
+    .dashboard-hero::after {
+      right: -28%;
+      width: 220px;
+    }
+  }
+}

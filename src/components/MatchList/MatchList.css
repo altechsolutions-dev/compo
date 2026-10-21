@@ -1,0 +1,9 @@
+@layer components {
+  .match-list__grid {
+    align-items: stretch;
+  }
+
+  .match-list__empty {
+    min-height: 8rem;
+  }
+}

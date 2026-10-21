@@ -1,0 +1,26 @@
+@layer components {
+  .match-card {
+    cursor: pointer;
+  }
+
+  @keyframes match-complete-glow {
+    0%,
+    100% {
+      box-shadow: 0 0 0 1px
+        color-mix(in srgb, var(--team-b-blue) 28%, transparent);
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--team-b-blue) 60%, transparent),
+        0 0 22px color-mix(in srgb, var(--team-b-blue) 16%, transparent);
+    }
+  }
+
+  .match-full-card {
+    animation: match-complete-glow 2.4s ease-in-out infinite;
+  }
+
+  .match-full-badge {
+    background: color-mix(in srgb, var(--team-b-blue) 7%, transparent);
+  }
+}

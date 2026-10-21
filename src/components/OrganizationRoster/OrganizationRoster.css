@@ -1,0 +1,31 @@
+@layer components {
+  .organization-roster__columns {
+    display: grid;
+    grid-template-columns:
+      minmax(170px, 1.6fr) minmax(95px, 1fr)
+      repeat(4, minmax(70px, 0.7fr));
+    gap: 15px;
+  }
+
+  .organization-roster__row > :first-child {
+    overflow: hidden;
+  }
+
+  @media (max-width: 900px) {
+    .organization-roster__columns {
+      grid-template-columns:
+        minmax(150px, 1.5fr) minmax(80px, 1fr)
+        repeat(4, minmax(55px, 0.7fr));
+      gap: 9px;
+    }
+  }
+
+  @media (max-width: 680px) {
+    .organization-roster__columns {
+      grid-template-columns:
+        minmax(90px, 1.5fr) minmax(49px, 0.9fr)
+        repeat(4, minmax(27px, 0.6fr));
+      gap: 5px;
+    }
+  }
+}

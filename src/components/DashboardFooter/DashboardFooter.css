@@ -1,0 +1,5 @@
+@layer components {
+  .dashboard-footer > span:last-child {
+    min-width: 0;
+  }
+}

@@ -1,0 +1,30 @@
+@layer components {
+  .oauth-consent-view__button {
+    min-height: 44px;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .oauth-consent-view__button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+  }
+
+  .oauth-consent-view__button--secondary {
+    border: 1px solid var(--border-neutral);
+    background: transparent;
+    color: white;
+  }
+
+  .oauth-consent-view__button--primary {
+    border: 0;
+    background: var(--team-b-blue);
+    color: var(--bg-main);
+  }
+
+  .oauth-consent-view__scopes li::marker {
+    color: var(--team-b-blue);
+  }
+}

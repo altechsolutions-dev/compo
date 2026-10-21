@@ -1,0 +1,31 @@
+@layer components {
+  .match-drawer-backdrop {
+    background: #11151fcc;
+    opacity: 0;
+    transition: opacity 280ms ease;
+  }
+
+  .match-drawer-backdrop.is-open {
+    opacity: 1;
+  }
+
+  .match-drawer-panel {
+    transform: translateX(100%);
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .match-drawer-panel.is-open {
+    transform: translateX(0);
+  }
+
+  .match-drawer-line {
+    border-color: color-mix(in srgb, var(--text-primary) 15%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .match-drawer-backdrop,
+    .match-drawer-panel {
+      transition-duration: 0.01ms;
+    }
+  }
+}

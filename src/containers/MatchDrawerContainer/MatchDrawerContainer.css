@@ -1,0 +1,5 @@
+@layer components {
+  .match-drawer-container {
+    display: contents;
+  }
+}

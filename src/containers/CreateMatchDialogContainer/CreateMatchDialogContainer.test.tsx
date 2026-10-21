@@ -1,0 +1,74 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { CreateMatchDialogContainer } from "./CreateMatchDialogContainer";
+
+function renderContainer() {
+  const callbacks = {
+    onClose: vi.fn(),
+    onDateChange: vi.fn(),
+    onTimeChange: vi.fn(),
+    onVenueChange: vi.fn(),
+    onMaxPlayersChange: vi.fn(),
+    onJoinOnCreateChange: vi.fn(),
+    onSubmit: vi.fn((event) => event.preventDefault()),
+  };
+  render(
+    <CreateMatchDialogContainer
+      date="2026-10-23"
+      minDate="2026-10-20"
+      time="19:30"
+      venue="Urban Soccer"
+      maxPlayers={10}
+      joinOnCreate
+      saving={false}
+      {...callbacks}
+    />,
+  );
+  return callbacks;
+}
+
+describe("CreateMatchDialogContainer", () => {
+  it("assemble la modale et transmet les changements de formulaire", () => {
+    const callbacks = renderContainer();
+
+    expect(
+      screen.getByRole("dialog", { name: "Nouveau créneau" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Date du match")).toHaveValue("2026-10-23");
+    fireEvent.change(screen.getByLabelText("Terrain"), {
+      target: { value: "Five Paris" },
+    });
+    fireEvent.change(screen.getByLabelText("Nombre de places"), {
+      target: { value: "12" },
+    });
+    fireEvent.click(screen.getByLabelText("M’inscrire à ce match"));
+
+    expect(callbacks.onVenueChange).toHaveBeenCalledWith("Five Paris");
+    expect(callbacks.onMaxPlayersChange).toHaveBeenCalledWith(12);
+    expect(callbacks.onJoinOnCreateChange).toHaveBeenCalledWith(false);
+  });
+
+  it("transmet la soumission et désactive l’action pendant l’enregistrement", () => {
+    const callbacks = renderContainer();
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Créer le créneau" }).closest("form")!,
+    );
+    expect(callbacks.onSubmit).toHaveBeenCalledOnce();
+
+    render(
+      <CreateMatchDialogContainer
+        date="2026-10-23"
+        minDate="2026-10-20"
+        time="19:30"
+        venue="Urban Soccer"
+        maxPlayers={10}
+        joinOnCreate={false}
+        saving
+        {...callbacks}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Enregistrement…" }),
+    ).toBeDisabled();
+  });
+});
