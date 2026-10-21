@@ -1,43 +1,50 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 import { ModalManager } from "../../components/ModalManager/ModalManager";
 import { useMatchActions } from "../../hooks/useMatchActions/useMatchActions";
 import { useMatches } from "../../hooks/useMatches/useMatches";
 import { useOrganizationWorkflow } from "../../hooks/useOrganizationWorkflow/useOrganizationWorkflow";
 import { useAuthContext } from "../../hooks/useAuth/AuthContext";
-import { ConnectedPage } from "../ConnectedPage/ConnectedPage";
+import { supabase } from "../../lib/supabase/supabase";
+import { DashboardLayout } from "../DashboardLayout/DashboardLayout";
+import type { WorkspaceRouteContext } from "./WorkspaceRouteContext";
 import { composeMatchTeams } from "../../lib/composeMatchTeams/composeMatchTeams";
 import { playerRating } from "../../lib/playerRating/playerRating";
 import { dateAfter } from "../../data/dateAfter/dateAfter";
 import { players } from "../../data/players/players";
 import type { DialogKind } from "../../types";
 
-type ConnectedAppProps = {
-  modal: DialogKind | null;
-  setModal: Dispatch<SetStateAction<DialogKind | null>>;
-};
-
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
-export function ConnectedApp({ modal, setModal }: ConnectedAppProps) {
-  const location = useLocation();
+export function WorkspaceLayout() {
   const navigate = useNavigate();
   const auth = useAuthContext();
-  const activeView =
-    location.pathname === "/app/organizations" ? "organization" : "matches";
   const {
     session,
     authLoading,
     setPendingCreateOrganization,
     pendingInviteCode,
     setPendingInviteCode,
+    createOrganizationIntentReady,
+    setCreateOrganizationIntentReady,
     setAuthNotice,
     setAuthMode,
     signOut,
   } = auth;
+  const [modal, setModalState] = useState<DialogKind | null>(() => {
+    if (createOrganizationIntentReady) return "organization";
+    const hasInvite = new URLSearchParams(window.location.search).has("invite");
+    return hasInvite && !supabase ? "code" : null;
+  });
+  const visibleModal = createOrganizationIntentReady ? "organization" : modal;
+
+  function setModal(kind: DialogKind | null) {
+    if (createOrganizationIntentReady) setCreateOrganizationIntentReady(false);
+    setModalState(kind);
+  }
   const organizationWorkflow = useOrganizationWorkflow({
     authLoading,
     session,
@@ -137,7 +144,7 @@ export function ConnectedApp({ modal, setModal }: ConnectedAppProps) {
 
   const modalManager = (
     <ModalManager
-      kind={modal}
+      kind={visibleModal}
       matchDialog={{
         date: matchDate,
         minDate: dateAfter(0),
@@ -196,62 +203,73 @@ export function ConnectedApp({ modal, setModal }: ConnectedAppProps) {
         .toUpperCase()
     : (session?.user.email?.slice(0, 2).toUpperCase() ?? "AM");
 
+  const layout = {
+    organization,
+    organizationMemberCount: organizationMembers.length,
+    avatarLabel,
+    isSignedIn: Boolean(session),
+    canShareInvite: Boolean(organizationId && inviteCode),
+    canInstall: Boolean(installPrompt),
+    onNavigate: (nextView: "matches" | "organization") =>
+      navigate(nextView === "matches" ? "/app/matches" : "/app/organizations"),
+    onChooseOrganization: () => setModal("organizations"),
+    onShareInvite: () => openInviteDialog(organization, inviteCode),
+    onJoinWithCode: () => {
+      setJoinCode("");
+      setOrganizationFeatureNotice("");
+      setModal("code");
+    },
+    onSignOut: () => {
+      void (async () => {
+        await signOut();
+        clearOrganizationSession();
+      })();
+    },
+    onInstall: installApp,
+    isSynchronized: Boolean(session),
+  };
+
+  const routeContext: WorkspaceRouteContext = {
+    organization,
+    matchCount: visibleMatches.length,
+    canShareInvite: Boolean(organizationId && inviteCode),
+    onCreateMatch: () => {
+      setJoinMatchOnCreate(true);
+      setModal("match");
+    },
+    matches: filteredMatches,
+    selectedMatchId: selectedMatch?.id,
+    currentAttendeeId,
+    matchRegistering,
+    matchFilter,
+    matchNotice,
+    onFilterChange: setMatchFilter,
+    onOpenMatch: openMatchDrawer,
+    onRegisterForMatch: (matchId: string) => void registerForMatch(matchId),
+    drawerMatch: selectedMatch,
+    drawerMounted: matchDrawerMounted,
+    drawerOpen: matchDrawerOpen,
+    playerNames,
+    composeTeams: composeMatchTeams,
+    onCloseDrawer: closeMatchDrawer,
+    members: organizationMembers,
+    players,
+    getPlayerRating: playerRating,
+    currentUserId: session?.user.id,
+    onInvite: () => openInviteDialog(organization, inviteCode),
+    onJoinWithCode: () => {
+      setJoinCode("");
+      setOrganizationFeatureNotice("");
+      setModal("code");
+    },
+    isSynchronized: Boolean(session),
+  };
+
   return (
     <>
-      <ConnectedPage
-        activeView={activeView}
-        organization={organization}
-        organizationMemberCount={organizationMembers.length}
-        avatarLabel={avatarLabel}
-        isSignedIn={Boolean(session)}
-        canShareInvite={Boolean(organizationId && inviteCode)}
-        canInstall={Boolean(installPrompt)}
-        onNavigate={(nextView) =>
-          navigate(
-            nextView === "matches" ? "/app/matches" : "/app/organizations",
-          )
-        }
-        onChooseOrganization={() => setModal("organizations")}
-        onShareInvite={() => openInviteDialog(organization, inviteCode)}
-        onJoinWithCode={() => {
-          setJoinCode("");
-          setOrganizationFeatureNotice("");
-          setModal("code");
-        }}
-        onSignOut={() => {
-          void (async () => {
-            await signOut();
-            clearOrganizationSession();
-          })();
-        }}
-        onInstall={installApp}
-        matchCount={visibleMatches.length}
-        onCreateMatch={() => {
-          setJoinMatchOnCreate(true);
-          setModal("match");
-        }}
-        matches={filteredMatches}
-        selectedMatchId={selectedMatch?.id}
-        currentAttendeeId={currentAttendeeId}
-        matchRegistering={matchRegistering}
-        matchFilter={matchFilter}
-        matchNotice={matchNotice}
-        onFilterChange={setMatchFilter}
-        onOpenMatch={openMatchDrawer}
-        onRegisterForMatch={(matchId) => void registerForMatch(matchId)}
-        drawerMatch={selectedMatch}
-        drawerMounted={matchDrawerMounted}
-        drawerOpen={matchDrawerOpen}
-        playerNames={playerNames}
-        composeTeams={composeMatchTeams}
-        onCloseDrawer={closeMatchDrawer}
-        members={organizationMembers}
-        players={players}
-        getPlayerRating={playerRating}
-        currentUserId={session?.user.id}
-        onInvite={() => openInviteDialog(organization, inviteCode)}
-        isSynchronized={Boolean(session)}
-      />
+      <DashboardLayout {...layout}>
+        <Outlet context={routeContext} />
+      </DashboardLayout>
       {modalManager}
     </>
   );

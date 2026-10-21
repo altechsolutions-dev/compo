@@ -8,19 +8,13 @@ import {
 } from "../../lib/supabase/supabase";
 import type { AuthMode } from "../../types";
 
-type UseAuthOptions = {
-  onCreateOrganizationIntent: () => void;
-};
-
-export function useAuth({ onCreateOrganizationIntent }: UseAuthOptions) {
+export function useAuth() {
   const location = useLocation();
   const navigate = useNavigate();
   const locationRef = useRef(location);
-  const createOrganizationCallbackRef = useRef(onCreateOrganizationIntent);
   const handledCreateIntent = useRef(false);
 
   locationRef.current = location;
-  createOrganizationCallbackRef.current = onCreateOrganizationIntent;
 
   const [authMode, setAuthMode] = useState<AuthMode>(() => {
     const query = new URLSearchParams(window.location.search);
@@ -48,6 +42,8 @@ export function useAuth({ onCreateOrganizationIntent }: UseAuthOptions) {
     () =>
       new URLSearchParams(window.location.search).has("create-organization"),
   );
+  const [createOrganizationIntentReady, setCreateOrganizationIntentReady] =
+    useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState(
     () =>
       new URLSearchParams(window.location.search).get("invite")?.trim() ?? "",
@@ -71,7 +67,7 @@ export function useAuth({ onCreateOrganizationIntent }: UseAuthOptions) {
       if (!nextSession || !createIntent || handledCreateIntent.current) return;
       handledCreateIntent.current = true;
       setPendingCreateOrganization(false);
-      createOrganizationCallbackRef.current();
+      setCreateOrganizationIntentReady(true);
       navigate("/app/matches", { replace: true });
     };
 
@@ -260,7 +256,7 @@ export function useAuth({ onCreateOrganizationIntent }: UseAuthOptions) {
       if (pendingCreateOrganization && !handledCreateIntent.current) {
         handledCreateIntent.current = true;
         setPendingCreateOrganization(false);
-        createOrganizationCallbackRef.current();
+        setCreateOrganizationIntentReady(true);
       }
     } catch (error) {
       setAuthNoticeKind("error");
@@ -293,6 +289,8 @@ export function useAuth({ onCreateOrganizationIntent }: UseAuthOptions) {
     authLoading,
     pendingCreateOrganization,
     setPendingCreateOrganization,
+    createOrganizationIntentReady,
+    setCreateOrganizationIntentReady,
     pendingInviteCode,
     setPendingInviteCode,
     signInWithGoogle,

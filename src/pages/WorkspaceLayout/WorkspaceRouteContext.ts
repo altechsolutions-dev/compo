@@ -1,0 +1,30 @@
+import type { MatchSlot, OrganizationMember, Player } from "../../types";
+
+export type WorkspaceRouteContext = {
+  organization: string;
+  matchCount: number;
+  canShareInvite: boolean;
+  onCreateMatch: () => void;
+  matches: MatchSlot[];
+  selectedMatchId?: string;
+  currentAttendeeId: string;
+  matchRegistering: boolean;
+  matchFilter: "all" | "available";
+  matchNotice: string;
+  onFilterChange: (filter: "all" | "available") => void;
+  onOpenMatch: (matchId: string) => void;
+  onRegisterForMatch: (matchId: string) => void;
+  drawerMatch?: MatchSlot;
+  drawerMounted: boolean;
+  drawerOpen: boolean;
+  playerNames: Record<string, string>;
+  composeTeams: (attendeeIds: string[]) => [string[], string[]];
+  onCloseDrawer: () => void;
+  members: OrganizationMember[];
+  players: Player[];
+  getPlayerRating: (player: Player) => number;
+  currentUserId?: string;
+  onInvite: () => void;
+  onJoinWithCode: () => void;
+  isSynchronized: boolean;
+};

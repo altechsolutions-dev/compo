@@ -10,10 +10,7 @@ vi.mock("../../lib/supabase/supabase", () => ({
 
 describe("useAuth", () => {
   it("initialise une session anonyme avec le formulaire de connexion", () => {
-    const { result } = renderHook(
-      () => useAuth({ onCreateOrganizationIntent: vi.fn() }),
-      { wrapper: MemoryRouter },
-    );
+    const { result } = renderHook(() => useAuth(), { wrapper: MemoryRouter });
 
     expect(result.current.session).toBeNull();
     expect(result.current.authLoading).toBe(false);
@@ -21,10 +18,7 @@ describe("useAuth", () => {
   });
 
   it("signale une configuration absente au moment de la connexion", async () => {
-    const { result } = renderHook(
-      () => useAuth({ onCreateOrganizationIntent: vi.fn() }),
-      { wrapper: MemoryRouter },
-    );
+    const { result } = renderHook(() => useAuth(), { wrapper: MemoryRouter });
     const form = document.createElement("form");
     const preventDefault = vi.fn();
 
