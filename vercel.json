@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/app/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/oauth/:path*",
+      "destination": "/index.html"
+    }
+  ]
+}
