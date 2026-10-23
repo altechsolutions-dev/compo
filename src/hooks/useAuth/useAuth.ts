@@ -8,8 +8,13 @@ import {
 } from "../../lib/supabase/supabase";
 import type { AuthMode } from "../../types";
 
-function getAuthenticatedDestination(search: string) {
-  const inviteCode = new URLSearchParams(search).get("invite")?.trim();
+export function getAuthenticatedDestination(
+  search: string,
+  pendingInviteCode = "",
+) {
+  const inviteCode =
+    new URLSearchParams(search).get("invite")?.trim() ||
+    pendingInviteCode.trim();
   return inviteCode
     ? `/app/matches?invite=${encodeURIComponent(inviteCode)}`
     : "/app/matches";
@@ -24,7 +29,7 @@ export function useAuth() {
   locationRef.current = location;
 
   const [authMode, setAuthMode] = useState<AuthMode>(() => {
-    const query = new URLSearchParams(window.location.search);
+    const query = new URLSearchParams(location.search);
     if (initialAuthCallbackMessage) return "login";
     if (query.has("create-organization")) return "signup";
     return "login";
@@ -32,10 +37,10 @@ export function useAuth() {
   const [authNotice, setAuthNotice] = useState(
     () =>
       initialAuthCallbackMessage ||
-      (new URLSearchParams(window.location.search).has("invite")
+      (new URLSearchParams(location.search).has("invite")
         ? "Connectez-vous ou créez un compte pour rejoindre l’organisation."
-        : window.location.pathname === "/oauth/consent" &&
-            new URLSearchParams(window.location.search).has("authorization_id")
+        : location.pathname === "/oauth/consent" &&
+            new URLSearchParams(location.search).has("authorization_id")
           ? "Connectez-vous pour examiner cette demande d’autorisation."
           : ""),
   );
@@ -46,14 +51,12 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(Boolean(supabase));
   const [pendingCreateOrganization, setPendingCreateOrganization] = useState(
-    () =>
-      new URLSearchParams(window.location.search).has("create-organization"),
+    () => new URLSearchParams(location.search).has("create-organization"),
   );
   const [createOrganizationIntentReady, setCreateOrganizationIntentReady] =
     useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState(
-    () =>
-      new URLSearchParams(window.location.search).get("invite")?.trim() ?? "",
+    () => new URLSearchParams(location.search).get("invite")?.trim() ?? "",
   );
 
   useEffect(() => {
@@ -75,7 +78,13 @@ export function useAuth() {
       handledCreateIntent.current = true;
       setPendingCreateOrganization(false);
       setCreateOrganizationIntentReady(true);
-      navigate("/app/matches", { replace: true });
+      navigate(
+        getAuthenticatedDestination(
+          locationRef.current.search,
+          pendingInviteCode,
+        ),
+        { replace: true },
+      );
     };
 
     void client.auth.getSession().then(({ data }) => {
@@ -86,9 +95,13 @@ export function useAuth() {
         locationRef.current.pathname === "/" &&
         !createIntent
       ) {
-        navigate(getAuthenticatedDestination(locationRef.current.search), {
-          replace: true,
-        });
+        navigate(
+          getAuthenticatedDestination(
+            locationRef.current.search,
+            pendingInviteCode,
+          ),
+          { replace: true },
+        );
       }
       completeCreateIntent(data.session);
     });
@@ -107,9 +120,13 @@ export function useAuth() {
         locationRef.current.pathname === "/" &&
         !createIntent
       ) {
-        navigate(getAuthenticatedDestination(locationRef.current.search), {
-          replace: true,
-        });
+        navigate(
+          getAuthenticatedDestination(
+            locationRef.current.search,
+            pendingInviteCode,
+          ),
+          { replace: true },
+        );
       }
       completeCreateIntent(nextSession);
     });
@@ -232,9 +249,13 @@ export function useAuth() {
         setAuthNoticeKind("success");
         setAuthNotice("");
         if (currentLocation.pathname !== "/oauth/consent") {
-          navigate(getAuthenticatedDestination(currentLocation.search), {
-            replace: true,
-          });
+          navigate(
+            getAuthenticatedDestination(
+              currentLocation.search,
+              pendingInviteCode,
+            ),
+            { replace: true },
+          );
         }
         return;
       }
@@ -264,9 +285,13 @@ export function useAuth() {
       setAuthMode(null);
       setAuthNotice("");
       if (currentLocation.pathname !== "/oauth/consent") {
-        navigate(getAuthenticatedDestination(currentLocation.search), {
-          replace: true,
-        });
+        navigate(
+          getAuthenticatedDestination(
+            currentLocation.search,
+            pendingInviteCode,
+          ),
+          { replace: true },
+        );
       }
       if (pendingCreateOrganization && !handledCreateIntent.current) {
         handledCreateIntent.current = true;

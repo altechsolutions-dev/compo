@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { useAuth } from "./useAuth";
+import { getAuthenticatedDestination, useAuth } from "./useAuth";
 
 vi.mock("../../lib/supabase/supabase", () => ({
   initialAuthCallbackMessage: "",
@@ -9,6 +9,12 @@ vi.mock("../../lib/supabase/supabase", () => ({
 }));
 
 describe("useAuth", () => {
+  it("garde le code mémorisé si la query a déjà disparu", () => {
+    expect(getAuthenticatedDestination("", "ABC123")).toBe(
+      "/app/matches?invite=ABC123",
+    );
+  });
+
   it("initialise une session anonyme avec le formulaire de connexion", () => {
     const { result } = renderHook(() => useAuth(), { wrapper: MemoryRouter });
 
