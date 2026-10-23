@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Share2, Shield, UserMinus } from "lucide-react";
-import type { OrganizationMember, Player } from "../../types";
+import type { OrganizationMember, OrganizationPlayerStats } from "../../types";
 import "./OrganizationRoster.css";
 
 export type OrganizationRosterProps = {
   organization: string;
   members: OrganizationMember[];
-  players: Player[];
+  playerStats: OrganizationPlayerStats[];
+  playerStatsNotice: string;
   currentUserId?: string;
   canInvite: boolean;
   canLeave: boolean;
@@ -16,7 +17,6 @@ export type OrganizationRosterProps = {
   canManageMembers: boolean;
   removingMemberId: string | null;
   removeMemberNotice: string;
-  getPlayerRating: (player: Player) => number;
   onInvite: () => void;
   onLeave: () => Promise<boolean>;
   onRemoveMember: (userId: string) => Promise<boolean>;
@@ -25,7 +25,8 @@ export type OrganizationRosterProps = {
 export function OrganizationRoster({
   organization,
   members,
-  players,
+  playerStats,
+  playerStatsNotice,
   currentUserId,
   canInvite,
   canLeave,
@@ -35,7 +36,6 @@ export function OrganizationRoster({
   canManageMembers,
   removingMemberId,
   removeMemberNotice,
-  getPlayerRating,
   onInvite,
   onLeave,
   onRemoveMember,
@@ -76,9 +76,14 @@ export function OrganizationRoster({
           Effectif
         </h2>
         <span className="text-[11px] text-(--muted)">
-          {members.length} joueurs · Stats / 100
+          {members.length} joueurs
         </span>
       </div>
+      {playerStatsNotice && (
+        <p className="my-3 text-xs text-(--team-a-red)" role="alert">
+          {playerStatsNotice}
+        </p>
+      )}
       {removeMemberNotice && (
         <p className="my-3 text-xs text-(--team-a-red)" role="alert">
           {removeMemberNotice}
@@ -93,17 +98,24 @@ export function OrganizationRoster({
           className="organization-roster__columns min-h-9.5 items-center text-[9px] font-bold text-(--text-secondary) max-[680px]:text-[7px] max-[680px]:leading-1.2"
           role="row"
         >
-          {["JOUEUR", "POSTE", "ATTAQUE", "DÉFENSE", "ENDURANCE", "GLOBAL"].map(
-            (label) => (
-              <span key={label} role="columnheader">
-                {label}
-              </span>
-            ),
-          )}
+          {[
+            "JOUEUR",
+            "NOTE",
+            "MATCHS",
+            "VICTOIRES",
+            "NULS",
+            "DÉFAITES",
+            "HOMME DU MATCH",
+            "BUTS",
+          ].map((label) => (
+            <span key={label} role="columnheader">
+              {label}
+            </span>
+          ))}
         </div>
         {members.map((member) => {
-          const player = players.find(
-            (candidate) => candidate.id === member.user_id,
+          const stats = playerStats.find(
+            (candidate) => candidate.user_id === member.user_id,
           );
           return (
             <div
@@ -130,15 +142,17 @@ export function OrganizationRoster({
                   )}
                 </strong>
               </span>
-              <span role="cell">{player?.position ?? "Joueur"}</span>
-              <span role="cell">{player?.attack ?? "—"}</span>
-              <span role="cell">{player?.defense ?? "—"}</span>
-              <span role="cell">{player?.stamina ?? "—"}</span>
+              <span role="cell">{stats?.overall_rating ?? "—"}</span>
+              <span role="cell">{stats?.matches_played ?? "—"}</span>
+              <span role="cell">{stats?.wins ?? "—"}</span>
+              <span role="cell">{stats?.draws ?? "—"}</span>
+              <span role="cell">{stats?.losses ?? "—"}</span>
+              <span role="cell">{stats?.man_of_the_match_count ?? "—"}</span>
               <span
                 className="flex items-center justify-between gap-1 text-(--text-primary) max-[680px]:text-[9px]"
                 role="cell"
               >
-                <strong>{player ? getPlayerRating(player) : "—"}</strong>
+                <strong>{stats?.goals ?? "—"}</strong>
                 {canManageMembers &&
                   member.role === "member" &&
                   member.user_id !== currentUserId &&

@@ -23,6 +23,17 @@ export type OrganizationMember = {
   role: "owner" | "member";
 };
 
+export type OrganizationPlayerStats = {
+  user_id: string;
+  overall_rating: number;
+  matches_played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  man_of_the_match_count: number;
+  goals: number;
+};
+
 export type AuthMode =
   | "login"
   | "signup"

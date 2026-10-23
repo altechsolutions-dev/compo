@@ -1,4 +1,9 @@
-import type { MatchSlot, OrganizationMember, Player } from "../../types";
+import type {
+  MatchSlot,
+  OrganizationMember,
+  OrganizationPlayerStats,
+  Player,
+} from "../../types";
 
 export type WorkspaceRouteContext = {
   organization: string;
@@ -25,6 +30,8 @@ export type WorkspaceRouteContext = {
   members: OrganizationMember[];
   isOrganizationOwner: boolean;
   players: Player[];
+  playerStats: OrganizationPlayerStats[];
+  playerStatsNotice: string;
   getPlayerRating: (player: Player) => number;
   currentUserId?: string;
   onInvite: () => void;
