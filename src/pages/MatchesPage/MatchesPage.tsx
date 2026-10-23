@@ -1,12 +1,14 @@
 import { useOutletContext } from "react-router-dom";
 import { DashboardHero } from "../../components/DashboardHero/DashboardHero";
 import { MatchList } from "../../components/MatchList/MatchList";
+import { OrganizationRequired } from "../../components/OrganizationRequired/OrganizationRequired";
 import { MatchDrawerContainer } from "../../containers/MatchDrawerContainer/MatchDrawerContainer";
 import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteContext";
 
 export function MatchesPage() {
   const {
     organization,
+    organizationId,
     matchCount,
     onCreateMatch,
     matches,
@@ -24,7 +26,12 @@ export function MatchesPage() {
     playerNames,
     composeTeams,
     onCloseDrawer,
+    onJoinWithCode,
   } = useOutletContext<WorkspaceRouteContext>();
+
+  if (!organizationId && !organization.trim()) {
+    return <OrganizationRequired onJoinWithCode={onJoinWithCode} />;
+  }
 
   return (
     <>

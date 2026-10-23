@@ -44,7 +44,8 @@ export type DialogKind =
   | "organizations"
   | "invite"
   | "join"
-  | "code";
+  | "code"
+  | "joined";
 
 export type OrganizationSummary = {
   organization_id: string;

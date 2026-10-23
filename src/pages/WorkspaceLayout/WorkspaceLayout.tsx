@@ -71,12 +71,18 @@ export function WorkspaceLayout() {
     inviteOrganizationName,
     inviteLink,
     featureNotice: organizationFeatureNotice,
+    isLeavingOrganization,
+    leaveOrganizationNotice,
+    removingMemberId,
+    removeMemberNotice,
     copyNotice,
     setFeatureNotice: setOrganizationFeatureNotice,
     selectOrganization,
     openOrganizationCreation,
     createOrganization,
     joinOrganization,
+    leaveOrganization,
+    removeOrganizationMember,
     copyText,
     openInviteDialog,
     clearOrganizationSession,
@@ -231,6 +237,7 @@ export function WorkspaceLayout() {
 
   const routeContext: WorkspaceRouteContext = {
     organization,
+    organizationId,
     matchCount: visibleMatches.length,
     canShareInvite: Boolean(organizationId && inviteCode),
     onCreateMatch: () => {
@@ -253,6 +260,9 @@ export function WorkspaceLayout() {
     composeTeams: composeMatchTeams,
     onCloseDrawer: closeMatchDrawer,
     members: organizationMembers,
+    isOrganizationOwner:
+      organizations.find((item) => item.organization_id === organizationId)
+        ?.role === "owner",
     players,
     getPlayerRating: playerRating,
     currentUserId: session?.user.id,
@@ -262,6 +272,13 @@ export function WorkspaceLayout() {
       setOrganizationFeatureNotice("");
       setModal("code");
     },
+    canLeaveOrganization: Boolean(organizationId),
+    isLeavingOrganization,
+    leaveOrganizationNotice,
+    onLeaveOrganization: leaveOrganization,
+    removingMemberId,
+    removeMemberNotice,
+    onRemoveOrganizationMember: removeOrganizationMember,
     isSynchronized: Boolean(session),
   };
 
