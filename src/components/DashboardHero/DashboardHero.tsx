@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import "./DashboardHero.css";
 
-export type DashboardView = "matches" | "organization";
+export type DashboardView = "matches" | "live" | "organization";
 
 export type DashboardHeroProps = {
   organization: string;
@@ -29,7 +29,9 @@ export function DashboardHero({
           aria-label={
             activeView === "matches"
               ? "Ton équipe. Ton terrain."
-              : "Ton équipe. Ton collectif."
+              : activeView === "organization"
+                ? "Ton équipe. Ton collectif."
+                : "Le match. En direct."
           }
         >
           {activeView === "matches" ? (
@@ -40,12 +42,20 @@ export function DashboardHero({
                 Ton <span className="text-(--team-b-blue)">terrain.</span>
               </em>
             </>
-          ) : (
+          ) : activeView === "organization" ? (
             <>
               Ton équipe.
               <br />
               <em className="not-italic">
                 Ton <span className="text-(--team-b-blue)">collectif.</span>
+              </em>
+            </>
+          ) : (
+            <>
+              Le match.
+              <br />
+              <em className="not-italic">
+                En <span className="text-(--team-b-blue)">direct.</span>
               </em>
             </>
           )}

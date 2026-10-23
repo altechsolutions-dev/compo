@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { ArrowRight, Check, MapPin, Shirt, X } from "lucide-react";
+import { ArrowRight, Check, CircleDot, MapPin, Shirt, X } from "lucide-react";
 import type { MatchSlot } from "../../types";
+import { LiveMatchPanel } from "../LiveMatchPanel/LiveMatchPanel";
 import "./MatchDrawer.css";
 
 export type MatchDrawerProps = {
@@ -15,6 +16,8 @@ export type MatchDrawerProps = {
   playerNames: Record<string, string>;
   onClose: () => void;
   onRegister: () => void;
+  onStartMatch?: (teams: [string[], string[]]) => void;
+  onRecordGoal?: (scorerId: string) => void;
 };
 
 function formatMatchDate(value: string) {
@@ -36,6 +39,8 @@ export function MatchDrawer({
   playerNames,
   onClose,
   onRegister,
+  onStartMatch,
+  onRecordGoal,
 }: MatchDrawerProps) {
   useEffect(() => {
     if (!open) return;
@@ -68,7 +73,11 @@ export function MatchDrawer({
       >
         <div className="mb-5.5 flex items-center justify-between">
           <span className="text-[9px] font-bold tracking-[1.5px] text-(--text-secondary)">
-            {isFull ? "MATCH COMPLET" : "PROCHAIN MATCH"}
+            {match.status === "in_progress"
+              ? "MATCH EN COURS"
+              : isFull
+                ? "MATCH COMPLET"
+                : "PROCHAIN MATCH"}
           </span>
           <button
             className="grid size-9 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-surface) text-(--ink)"
@@ -143,7 +152,15 @@ export function MatchDrawer({
           </div>
         </div>
 
-        {teams ? (
+        {match.status === "in_progress" && match.startedAt && teams ? (
+          <LiveMatchPanel
+            startedAt={match.startedAt}
+            teams={teams}
+            goals={match.goals ?? []}
+            playerNames={playerNames}
+            onRecordGoal={onRecordGoal ?? (() => undefined)}
+          />
+        ) : teams ? (
           <section className="match-drawer-line mt-4.75 border-t border-white/15 pt-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="m-0 text-sm font-bold text-(--ink)">
@@ -182,6 +199,15 @@ export function MatchDrawer({
             <p className="mt-3 flex items-center justify-center gap-1.5 text-[9px] text-(--status-success)">
               <Check size={14} /> Équipes équilibrées selon les stats
             </p>
+            {isFull && match.status !== "in_progress" && onStartMatch && (
+              <button
+                className="mt-4 flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md border-0 bg-(--team-b-blue) text-xs font-bold text-(--bg-main) hover:brightness-110"
+                onClick={() => onStartMatch(teams)}
+                type="button"
+              >
+                <CircleDot size={15} /> Lancer le match
+              </button>
+            )}
           </section>
         ) : isFull ? (
           <p className="mt-4.75 text-center text-[10px] text-(--text-secondary)">

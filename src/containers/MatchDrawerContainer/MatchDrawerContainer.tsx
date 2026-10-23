@@ -12,6 +12,8 @@ export type MatchDrawerContainerProps = {
   composeTeams: (attendeeIds: string[]) => [string[], string[]];
   onClose: () => void;
   onRegister: (matchId: string) => void;
+  onStartMatch: (matchId: string, teams: [string[], string[]]) => void;
+  onRecordGoal: (matchId: string, scorerId: string) => void;
 };
 
 export function MatchDrawerContainer({
@@ -24,6 +26,8 @@ export function MatchDrawerContainer({
   composeTeams,
   onClose,
   onRegister,
+  onStartMatch,
+  onRecordGoal,
 }: MatchDrawerContainerProps) {
   if (!match) return null;
 
@@ -44,6 +48,8 @@ export function MatchDrawerContainer({
         playerNames={playerNames}
         onClose={onClose}
         onRegister={() => onRegister(match.id)}
+        onStartMatch={(nextTeams) => onStartMatch(match.id, nextTeams)}
+        onRecordGoal={(scorerId) => onRecordGoal(match.id, scorerId)}
       />
     </div>
   );

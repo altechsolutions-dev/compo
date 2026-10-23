@@ -30,6 +30,18 @@ describe("useMatches", () => {
           maxPlayers: 2,
           attendees: [],
         },
+        {
+          id: "live",
+          date: "2030-06-17",
+          time: "19:30",
+          venue: "Terrain C",
+          maxPlayers: 2,
+          attendees: ["player-1", "player-2"],
+          status: "in_progress",
+          startedAt: "2030-06-17T19:30:00.000Z",
+          teams: [["player-1"], ["player-2"]],
+          goals: [],
+        },
       ]),
     );
     const { result } = renderHook(() =>
@@ -44,6 +56,7 @@ describe("useMatches", () => {
 
     expect(result.current.filteredMatches.map((match) => match.id)).toEqual([
       "open",
+      "live",
     ]);
 
     act(() => result.current.setMatches([]));

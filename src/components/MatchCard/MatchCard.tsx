@@ -22,6 +22,11 @@ export function MatchCard({
 }: MatchCardProps) {
   const isSignedUp = match.attendees.includes(currentAttendeeId);
   const isFull = match.attendees.length >= match.maxPlayers;
+  const isLive = match.status === "in_progress";
+  const liveScore = [
+    match.goals?.filter((goal) => goal.team === 0).length ?? 0,
+    match.goals?.filter((goal) => goal.team === 1).length ?? 0,
+  ];
   const date = new Date(`${match.date}T12:00:00`);
 
   function stopAndOpen(event: MouseEvent<HTMLButtonElement>) {
@@ -68,11 +73,15 @@ export function MatchCard({
           {match.venue}
         </span>
       </p>
-      {isFull && (
+      {isLive ? (
+        <p className="match-full-badge mt-3 flex min-h-8 items-center gap-2 border border-(--status-success) px-2.5 text-[9px] font-bold tracking-[0.7px] text-(--status-success)">
+          <Sparkles size={13} /> EN COURS · {liveScore[0]} - {liveScore[1]}
+        </p>
+      ) : isFull ? (
         <p className="match-full-badge mt-3 flex min-h-8 items-center gap-2 border border-(--team-b-blue) px-2.5 text-[9px] font-bold tracking-[0.7px] text-(--team-b-blue)">
           <Sparkles size={13} /> COMPLET · COMPO DISPONIBLE
         </p>
-      )}
+      ) : null}
       <div className="mt-4 border-t border-(--line) pt-3.5">
         <div className="mb-2.5 flex items-center justify-between text-[10px] text-(--text-secondary)">
           <span>Places réservées</span>
@@ -99,18 +108,21 @@ export function MatchCard({
           className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) text-[11px] font-bold text-(--ink) transition-colors hover:border-(--team-b-blue) hover:text-(--team-b-blue) disabled:cursor-default disabled:opacity-55"
           onClick={(event) => {
             event.stopPropagation();
-            onRegister();
+            if (isLive) onOpen();
+            else onRegister();
           }}
-          disabled={isSignedUp || isFull || matchRegistering}
+          disabled={isLive ? false : isSignedUp || isFull || matchRegistering}
           type="button"
         >
-          {isSignedUp
-            ? "Vous êtes inscrit"
-            : isFull
-              ? "Match complet"
-              : matchRegistering
-                ? "Inscription…"
-                : "Rejoindre le match"}
+          {isLive
+            ? "Voir le direct"
+            : isSignedUp
+              ? "Vous êtes inscrit"
+              : isFull
+                ? "Match complet"
+                : matchRegistering
+                  ? "Inscription…"
+                  : "Rejoindre le match"}
           {!isSignedUp && !isFull && !matchRegistering && (
             <ArrowRight size={14} />
           )}

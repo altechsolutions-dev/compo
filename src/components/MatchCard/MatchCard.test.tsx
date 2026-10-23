@@ -72,4 +72,29 @@ describe("MatchCard", () => {
     expect(onRegister).toHaveBeenCalledOnce();
     expect(onOpen).not.toHaveBeenCalled();
   });
+
+  it("affiche le score du direct et ouvre les détails du match en cours", () => {
+    const liveMatch: MatchSlot = {
+      ...baseMatch,
+      attendees: Array.from({ length: 10 }, (_, index) => `player-${index}`),
+      status: "in_progress",
+      goals: [
+        {
+          id: "goal-1",
+          scorerId: "alex",
+          team: 0,
+          elapsedSeconds: 125,
+          createdAt: "2030-06-15T19:32:05.000Z",
+        },
+      ],
+    };
+    const { onOpen, onRegister } = renderCard(liveMatch);
+    const liveButton = screen.getByRole("button", { name: "Voir le direct" });
+
+    expect(screen.getByText("EN COURS · 1 - 0")).toBeInTheDocument();
+    fireEvent.click(liveButton);
+
+    expect(onOpen).toHaveBeenCalledOnce();
+    expect(onRegister).not.toHaveBeenCalled();
+  });
 });

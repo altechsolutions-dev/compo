@@ -26,6 +26,18 @@ vi.mock("../pages/OrganizationPage/OrganizationPage", () => ({
   OrganizationPage: () => <div>Clubs</div>,
 }));
 
+vi.mock("../pages/FullMatchMock/FullMatchMock", () => ({
+  FullMatchMock: () => <div>Aperçu du match complet</div>,
+}));
+
+vi.mock("../pages/LiveMatchPage/LiveMatchPage", () => ({
+  LiveMatchPage: () => <div>Tableau du match en direct</div>,
+}));
+
+vi.mock("../pages/LiveMatchMockPage/LiveMatchMockPage", () => ({
+  LiveMatchMockPage: () => <div>Aperçu du tableau live</div>,
+}));
+
 function LoginLocation() {
   const location = useLocation();
   return (
@@ -37,6 +49,55 @@ function LoginLocation() {
 }
 
 describe("AppRouter", () => {
+  it("rend l’aperçu live sans authentification", () => {
+    render(
+      <MemoryRouter initialEntries={["/mock/match-en-direct"]}>
+        <AppRouter
+          authLoading
+          isConnected={false}
+          hasSupabase
+          loginPage={<LoginLocation />}
+          consentPage={null}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Aperçu du tableau live")).toBeInTheDocument();
+  });
+
+  it("ouvre la page live dans le workspace authentifié", () => {
+    render(
+      <MemoryRouter initialEntries={["/app/live?match=match-1"]}>
+        <AppRouter
+          authLoading={false}
+          isConnected
+          hasSupabase
+          loginPage={null}
+          consentPage={null}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Tableau du match en direct")).toBeInTheDocument();
+  });
+
+  it("rend le mock du match complet sans authentification", () => {
+    render(
+      <MemoryRouter initialEntries={["/mock/match-complet"]}>
+        <AppRouter
+          authLoading
+          isConnected={false}
+          hasSupabase
+          loginPage={<LoginLocation />}
+          consentPage={null}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Aperçu du match complet")).toBeInTheDocument();
+    expect(screen.queryByTestId("login-location")).not.toBeInTheDocument();
+  });
+
   it("conserve le code d’invitation lors de la redirection d’une session active", async () => {
     render(
       <MemoryRouter initialEntries={["/?invite=ABC123"]}>

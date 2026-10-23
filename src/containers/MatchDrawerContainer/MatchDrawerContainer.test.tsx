@@ -28,6 +28,8 @@ describe("MatchDrawerContainer", () => {
         composeTeams={composeTeams}
         onClose={vi.fn()}
         onRegister={vi.fn()}
+        onStartMatch={vi.fn()}
+        onRecordGoal={vi.fn()}
       />,
     );
 
@@ -53,6 +55,8 @@ describe("MatchDrawerContainer", () => {
         composeTeams={() => [[], []]}
         onClose={vi.fn()}
         onRegister={vi.fn()}
+        onStartMatch={vi.fn()}
+        onRecordGoal={vi.fn()}
       />,
     );
     expect(container).toBeEmptyDOMElement();

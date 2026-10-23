@@ -38,6 +38,8 @@ describe("DashboardHeader", () => {
       "true",
     );
     expect(screen.getByText("8")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "En direct" }));
+    expect(onNavigate).toHaveBeenCalledWith("live");
     fireEvent.click(screen.getByRole("tab", { name: /Club/ }));
     expect(onNavigate).toHaveBeenCalledWith("organization");
   });

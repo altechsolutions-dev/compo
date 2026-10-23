@@ -3,6 +3,7 @@ import type {
   OrganizationMember,
   OrganizationPlayerStats,
   Player,
+  MatchStateAction,
 } from "../../types";
 
 export type WorkspaceRouteContext = {
@@ -13,6 +14,7 @@ export type WorkspaceRouteContext = {
   canShareInvite: boolean;
   onCreateMatch: () => void;
   matches: MatchSlot[];
+  allMatches: MatchSlot[];
   selectedMatchId?: string;
   currentAttendeeId: string;
   matchRegistering: boolean;
@@ -21,6 +23,10 @@ export type WorkspaceRouteContext = {
   onFilterChange: (filter: "all" | "available") => void;
   onOpenMatch: (matchId: string) => void;
   onRegisterForMatch: (matchId: string) => void;
+  onStartMatch: (matchId: string, teams: [string[], string[]]) => void;
+  onSetMatchState: (matchId: string, action: MatchStateAction) => void;
+  onRecordGoal: (matchId: string, scorerId: string) => void;
+  onSwitchTeam: (matchId: string, playerId: string) => void;
   drawerMatch?: MatchSlot;
   drawerMounted: boolean;
   drawerOpen: boolean;
