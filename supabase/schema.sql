@@ -19,6 +19,9 @@ create table if not exists public.organization_members (
 create index if not exists organization_members_user_id_idx
   on public.organization_members (user_id);
 
+create unique index if not exists organizations_name_normalized_key
+  on public.organizations (lower(trim(name)));
+
 alter table public.organizations enable row level security;
 alter table public.organization_members enable row level security;
 
@@ -36,12 +39,20 @@ declare
   new_code text;
   new_id uuid;
   account_name text;
+  violated_constraint text;
 begin
   if auth.uid() is null then
     raise exception 'Authentication required';
   end if;
   if char_length(clean_name) < 2 or char_length(clean_name) > 80 then
     raise exception 'Organization name must contain 2 to 80 characters';
+  end if;
+  if exists (
+    select 1
+    from public.organizations as org
+    where lower(trim(org.name)) = lower(clean_name)
+  ) then
+    raise exception 'Organization name is already taken';
   end if;
 
   select coalesce(
@@ -60,9 +71,18 @@ begin
     );
   end loop;
 
-  insert into public.organizations (name, invite_code, created_by)
-  values (clean_name, new_code, auth.uid())
-  returning id into new_id;
+  begin
+    insert into public.organizations (name, invite_code, created_by)
+    values (clean_name, new_code, auth.uid())
+    returning id into new_id;
+  exception
+    when unique_violation then
+      get stacked diagnostics violated_constraint = constraint_name;
+      if violated_constraint = 'organizations_name_normalized_key' then
+        raise exception 'Organization name is already taken';
+      end if;
+      raise;
+  end;
 
   insert into public.organization_members (
     organization_id,
@@ -118,6 +138,15 @@ begin
     raise exception 'Invitation code not found';
   end if;
 
+  if exists (
+    select 1
+    from public.organization_members as membership
+    where membership.organization_id = invite_org.id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'You are already a member of this organization';
+  end if;
+
   select coalesce(
     nullif(trim(users.raw_user_meta_data ->> 'full_name'), ''),
     nullif(split_part(users.email, '@', 1), ''),
@@ -140,7 +169,11 @@ begin
     'member',
     true
   )
-  on conflict (organization_id, user_id) do nothing;
+  on conflict on constraint organization_members_pkey do nothing;
+
+  if not found then
+    raise exception 'You are already a member of this organization';
+  end if;
 
   return query select invite_org.id, invite_org.name;
 end;
@@ -194,17 +227,127 @@ begin
 end;
 $$;
 
+create or replace function public.leave_organization(p_organization_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  membership_role text;
+  next_owner_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  perform 1
+  from public.organizations as org
+  where org.id = p_organization_id
+  for update;
+  if not found then
+    raise exception 'Organization not found';
+  end if;
+
+  select membership.role into membership_role
+  from public.organization_members as membership
+  where membership.organization_id = p_organization_id
+    and membership.user_id = auth.uid()
+  for update;
+  if membership_role is null then
+    raise exception 'Organization membership required';
+  end if;
+
+  if membership_role = 'owner' then
+    select membership.user_id into next_owner_id
+    from public.organization_members as membership
+    where membership.organization_id = p_organization_id
+      and membership.user_id <> auth.uid()
+    order by membership.joined_at, membership.user_id
+    limit 1
+    for update;
+
+    if next_owner_id is null then
+      raise exception 'Le dernier propriétaire ne peut pas quitter l’organisation.';
+    end if;
+
+    update public.organization_members as membership
+    set role = 'owner'
+    where membership.organization_id = p_organization_id
+      and membership.user_id = next_owner_id;
+
+    update public.organizations as org
+    set created_by = next_owner_id
+    where org.id = p_organization_id;
+  end if;
+
+  delete from public.organization_members as membership
+  where membership.organization_id = p_organization_id
+    and membership.user_id = auth.uid();
+end;
+$$;
+
+create or replace function public.remove_organization_member(
+  p_organization_id uuid,
+  p_user_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  if p_user_id = auth.uid() then
+    raise exception 'Use leave_organization to remove yourself';
+  end if;
+
+  perform 1
+  from public.organizations as org
+  where org.id = p_organization_id
+  for update;
+  if not found then
+    raise exception 'Organization not found';
+  end if;
+
+  if not exists (
+    select 1
+    from public.organization_members as membership
+    where membership.organization_id = p_organization_id
+      and membership.user_id = auth.uid()
+      and membership.role = 'owner'
+  ) then
+    raise exception 'Organization owner required';
+  end if;
+
+  delete from public.organization_members as target_member
+  where target_member.organization_id = p_organization_id
+    and target_member.user_id = p_user_id
+    and target_member.role = 'member';
+
+  if not found then
+    raise exception 'Member not found or cannot be removed';
+  end if;
+end;
+$$;
+
 revoke all on function public.create_organization(text, boolean) from public;
 revoke all on function public.preview_organization_invite(text) from public;
 revoke all on function public.join_organization_by_code(text) from public;
 revoke all on function public.get_my_organizations() from public;
 revoke all on function public.get_organization_members(uuid) from public;
+revoke all on function public.leave_organization(uuid) from public;
+revoke all on function public.remove_organization_member(uuid, uuid) from public;
 
 grant execute on function public.create_organization(text, boolean) to authenticated;
 grant execute on function public.preview_organization_invite(text) to anon, authenticated;
 grant execute on function public.join_organization_by_code(text) to authenticated;
 grant execute on function public.get_my_organizations() to authenticated;
 grant execute on function public.get_organization_members(uuid) to authenticated;
+grant execute on function public.leave_organization(uuid) to authenticated;
+grant execute on function public.remove_organization_member(uuid, uuid) to authenticated;
 
 create table if not exists public.match_slots (
   id uuid primary key default gen_random_uuid(),

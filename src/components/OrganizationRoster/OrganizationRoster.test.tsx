@@ -28,10 +28,19 @@ describe("OrganizationRoster", () => {
         players={players}
         currentUserId="player-1"
         canInvite
+        canLeave={false}
+        isCurrentUserOwner
+        isLeaving={false}
+        leaveNotice=""
+        canManageMembers={false}
+        removingMemberId={null}
+        removeMemberNotice=""
         getPlayerRating={(player) =>
           Math.round((player.attack + player.defense + player.stamina) / 3)
         }
         onInvite={vi.fn()}
+        onLeave={vi.fn().mockResolvedValue(true)}
+        onRemoveMember={vi.fn().mockResolvedValue(true)}
       />,
     );
 
@@ -52,8 +61,17 @@ describe("OrganizationRoster", () => {
         members={[]}
         players={[]}
         canInvite
+        canLeave={false}
+        isCurrentUserOwner={false}
+        isLeaving={false}
+        leaveNotice=""
+        canManageMembers={false}
+        removingMemberId={null}
+        removeMemberNotice=""
         getPlayerRating={() => 0}
         onInvite={onInvite}
+        onLeave={vi.fn().mockResolvedValue(true)}
+        onRemoveMember={vi.fn().mockResolvedValue(true)}
       />,
     );
 
@@ -64,5 +82,67 @@ describe("OrganizationRoster", () => {
       screen.getByRole("button", { name: "Inviter des joueurs" }),
     );
     expect(onInvite).toHaveBeenCalledOnce();
+  });
+
+  it("garde le départ discret et demande une confirmation", () => {
+    const onLeave = vi.fn().mockResolvedValue(true);
+    render(
+      <OrganizationRoster
+        organization="Les Panthères"
+        members={members}
+        players={players}
+        canInvite
+        canLeave
+        isCurrentUserOwner
+        isLeaving={false}
+        leaveNotice=""
+        canManageMembers
+        removingMemberId={null}
+        removeMemberNotice=""
+        getPlayerRating={() => 0}
+        onInvite={vi.fn()}
+        onLeave={onLeave}
+        onRemoveMember={vi.fn().mockResolvedValue(true)}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Quitter l’organisation" }),
+    );
+    expect(
+      screen.getByText(/ton rôle sera transmis à un autre membre/),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirmer le départ" }),
+    );
+    expect(onLeave).toHaveBeenCalledOnce();
+  });
+
+  it("permet à l’admin de confirmer le retrait d’un membre ordinaire", () => {
+    const onRemoveMember = vi.fn().mockResolvedValue(true);
+    render(
+      <OrganizationRoster
+        organization="Les Panthères"
+        members={members}
+        players={players}
+        currentUserId="player-1"
+        canInvite
+        canLeave={false}
+        isCurrentUserOwner
+        isLeaving={false}
+        leaveNotice=""
+        canManageMembers
+        removingMemberId={null}
+        removeMemberNotice=""
+        getPlayerRating={() => 0}
+        onInvite={vi.fn()}
+        onLeave={vi.fn().mockResolvedValue(true)}
+        onRemoveMember={onRemoveMember}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Retirer Sam Lee" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmer" }));
+    expect(onRemoveMember).toHaveBeenCalledWith("player-2");
   });
 });

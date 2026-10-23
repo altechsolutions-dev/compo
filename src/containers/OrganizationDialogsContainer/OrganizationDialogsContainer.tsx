@@ -1,4 +1,4 @@
-import type { FormEventHandler } from "react";
+import { useState, type FormEvent, type FormEventHandler } from "react";
 import { Check, Copy, Plus, UserRoundPlus } from "lucide-react";
 import { DashboardDialog } from "../../components/DashboardDialog/DashboardDialog";
 import type { DialogKind, OrganizationSummary } from "../../types";
@@ -55,9 +55,40 @@ export function OrganizationDialogsContainer({
   onCopyInviteLink,
   onCopyInviteCode,
 }: OrganizationDialogsContainerProps) {
+  const [joinCodeSubmitted, setJoinCodeSubmitted] = useState(false);
+
+  function handleJoinSubmit(event: FormEvent<HTMLFormElement>) {
+    if (!joinCode.trim()) {
+      event.preventDefault();
+      setJoinCodeSubmitted(true);
+      return;
+    }
+    onJoinOrganization(event);
+  }
+
   return (
     <DashboardDialog kind={kind} onClose={onClose}>
-      {kind === "organizations" ? (
+      {kind === "joined" ? (
+        <div className="grid justify-items-start gap-4">
+          <p
+            className="m-0 text-sm leading-relaxed text-(--text-secondary)"
+            role="status"
+          >
+            Tu as rejoint{" "}
+            <strong className="text-(--text-primary)">
+              {inviteOrganizationName}
+            </strong>
+            . Tu peux maintenant consulter son effectif et ses informations.
+          </p>
+          <button
+            className="organization-dialog-form__submit mt-0 w-full"
+            onClick={onClose}
+            type="button"
+          >
+            <Check size={17} /> Voir l’organisation
+          </button>
+        </div>
+      ) : kind === "organizations" ? (
         <div className="organization-dialog-actions grid gap-2.5">
           {organizations.length === 0 ? (
             <p className="mb-2 text-sm text-(--text-secondary)">
@@ -136,10 +167,7 @@ export function OrganizationDialogsContainer({
           </button>
         </form>
       ) : kind === "code" || kind === "join" ? (
-        <form
-          className="organization-dialog-form"
-          onSubmit={onJoinOrganization}
-        >
+        <form className="organization-dialog-form" onSubmit={handleJoinSubmit}>
           {kind === "join" && (
             <p className="text-xs leading-1.5 text-(--text-secondary) [&>strong]:text-(--text-primary)">
               Vous allez rejoindre <strong>{inviteOrganizationName}</strong>.
@@ -151,13 +179,25 @@ export function OrganizationDialogsContainer({
             autoCapitalize="characters"
             id="organization-invite-code"
             maxLength={12}
-            onChange={(event) =>
-              onJoinCodeChange(event.target.value.toUpperCase())
-            }
+            onChange={(event) => {
+              setJoinCodeSubmitted(false);
+              onJoinCodeChange(event.target.value.toUpperCase());
+            }}
             placeholder="Ex. A1B2C3D4E5F6"
-            required
+            aria-required="true"
+            aria-invalid={joinCodeSubmitted && !joinCode.trim()}
+            aria-describedby={joinCodeSubmitted ? "join-code-error" : undefined}
             value={joinCode}
           />
+          {joinCodeSubmitted && !joinCode.trim() && (
+            <p
+              className="organization-dialog-form__error"
+              id="join-code-error"
+              role="alert"
+            >
+              Saisissez un code d’invitation.
+            </p>
+          )}
           <button className="organization-dialog-form__submit" type="submit">
             <UserRoundPlus size={17} /> Rejoindre l’organisation
           </button>
@@ -196,8 +236,8 @@ export function OrganizationDialogsContainer({
       )}
       {featureNotice && (
         <p
-          className="my-3.5 wrap-anywhere text-[11px] leading-1.5 text-(--status-success)"
-          role="status"
+          className="my-3.5 wrap-anywhere text-[11px] leading-1.5 text-(--team-a-red)"
+          role="alert"
         >
           {featureNotice}
         </p>

@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "supabase-push": "npx supabase db push"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

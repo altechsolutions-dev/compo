@@ -2,6 +2,8 @@ import type { MatchSlot, OrganizationMember, Player } from "../../types";
 
 export type WorkspaceRouteContext = {
   organization: string;
+  organizationId: string | null;
+  isLoadingOrganizations: boolean;
   matchCount: number;
   canShareInvite: boolean;
   onCreateMatch: () => void;
@@ -21,10 +23,18 @@ export type WorkspaceRouteContext = {
   composeTeams: (attendeeIds: string[]) => [string[], string[]];
   onCloseDrawer: () => void;
   members: OrganizationMember[];
+  isOrganizationOwner: boolean;
   players: Player[];
   getPlayerRating: (player: Player) => number;
   currentUserId?: string;
   onInvite: () => void;
   onJoinWithCode: () => void;
+  canLeaveOrganization: boolean;
+  isLeavingOrganization: boolean;
+  leaveOrganizationNotice: string;
+  onLeaveOrganization: () => Promise<boolean>;
+  removingMemberId: string | null;
+  removeMemberNotice: string;
+  onRemoveOrganizationMember: (userId: string) => Promise<boolean>;
   isSynchronized: boolean;
 };

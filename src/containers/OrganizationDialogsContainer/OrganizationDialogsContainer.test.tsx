@@ -12,7 +12,13 @@ const organization: OrganizationSummary = {
 };
 
 function createProps(
-  kind: "organizations" | "organization" | "join" | "code" | "invite",
+  kind:
+    | "organizations"
+    | "organization"
+    | "join"
+    | "code"
+    | "invite"
+    | "joined",
 ) {
   return {
     kind,
@@ -73,5 +79,58 @@ describe("OrganizationDialogsContainer", () => {
     );
     expect(props.onCopyInviteLink).toHaveBeenCalledOnce();
     expect(props.onCopyInviteCode).toHaveBeenCalledOnce();
+  });
+
+  it("ne marque pas le code vide invalide avant la soumission", () => {
+    const props = { ...createProps("code"), joinCode: "" };
+    render(<OrganizationDialogsContainer {...props} />);
+
+    const input = screen.getByLabelText("Code d’invitation");
+    expect(input).toHaveAttribute("aria-required", "true");
+    expect((input as HTMLInputElement).validity.valueMissing).toBe(false);
+  });
+
+  it("affiche une erreur et n’envoie pas le formulaire si le code est vide", () => {
+    const props = { ...createProps("code"), joinCode: "" };
+    render(<OrganizationDialogsContainer {...props} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Rejoindre l’organisation" }),
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Saisissez un code d’invitation.",
+    );
+    expect(screen.getByLabelText("Code d’invitation")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(props.onJoinOrganization).not.toHaveBeenCalled();
+  });
+
+  it("affiche les erreurs d’adhésion comme des alertes, pas des succès", () => {
+    const props = {
+      ...createProps("code"),
+      featureNotice: 'column reference "organization_id" is ambiguous',
+    };
+    render(<OrganizationDialogsContainer {...props} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      'column reference "organization_id" is ambiguous',
+    );
+    expect(screen.getByRole("alert")).toHaveClass("text-(--team-a-red)");
+  });
+
+  it("confirme l’adhésion et permet d’ouvrir l’organisation", () => {
+    const props = createProps("joined");
+    render(<OrganizationDialogsContainer {...props} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Tu as rejoint Les Panthères.",
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Voir l’organisation" }),
+    );
+    expect(props.onClose).toHaveBeenCalledOnce();
   });
 });

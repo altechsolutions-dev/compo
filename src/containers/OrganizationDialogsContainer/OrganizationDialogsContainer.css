@@ -22,6 +22,31 @@
     padding: 8px 10px;
     color: var(--text-primary);
     font-size: 12px;
+    outline: none;
+    box-shadow: none;
+  }
+
+  .organization-dialog-form > input:invalid {
+    border-color: var(--border-neutral);
+    outline: none;
+    box-shadow: none;
+  }
+
+  .organization-dialog-form > input[aria-invalid="true"] {
+    border-color: var(--team-a-red);
+  }
+
+  .organization-dialog-form__error {
+    margin: -4px 0 0;
+    color: var(--team-a-red);
+    font-size: 11px;
+  }
+
+  .organization-dialog-form > input:focus,
+  .organization-invite-content > input:focus {
+    border-color: var(--team-b-blue);
+    outline: none;
+    box-shadow: none;
   }
 
   .organization-dialog-form .checkbox-field {
@@ -50,10 +75,20 @@
     margin-top: 12px;
     border: 0;
     border-radius: 3px;
-    background: var(--team-a-red);
+    background: var(--team-b-blue);
     padding: 0 14px;
-    color: var(--text-primary);
+    color: var(--bg-main);
     font-size: 12px;
     font-weight: 600;
   }
+}
+
+.organization-dialog-form > input:focus-visible,
+.organization-invite-content > input:focus-visible {
+  outline: 2px solid var(--team-b-blue);
+  outline-offset: 2px;
+}
+
+.organization-dialog-form > input[aria-invalid="true"]:focus-visible {
+  outline-color: var(--team-a-red);
 }

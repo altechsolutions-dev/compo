@@ -17,6 +17,7 @@ const dialogTitles: Record<DialogKind, string> = {
   invite: "Inviter des joueurs",
   join: "Rejoindre l’organisation",
   code: "Rejoindre avec un code",
+  joined: "Bienvenue dans l’organisation",
 };
 
 const dialogEyebrows: Record<DialogKind, string> = {
@@ -26,6 +27,7 @@ const dialogEyebrows: Record<DialogKind, string> = {
   invite: "INVITATION COMPO",
   join: "INVITATION COMPO",
   code: "INVITATION COMPO",
+  joined: "ADHÉSION CONFIRMÉE",
 };
 
 export function DashboardDialog({

@@ -57,6 +57,9 @@ export function useOrganizationWorkflow({
   );
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
+  const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(
+    Boolean(supabase),
+  );
   const [inviteCode, setInviteCode] = useState("");
   const [organizationMembers, setOrganizationMembers] = useState(() =>
     supabase ? [] : readOrganizationMembers(),
@@ -73,13 +76,22 @@ export function useOrganizationWorkflow({
       : "",
   );
   const [copyNotice, setCopyNotice] = useState("");
+  const [isLeavingOrganization, setIsLeavingOrganization] = useState(false);
+  const [leaveOrganizationNotice, setLeaveOrganizationNotice] = useState("");
+  const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [removeMemberNotice, setRemoveMemberNotice] = useState("");
   const handledInviteCode = useRef("");
   const sessionUserId = session?.user.id ?? null;
 
   useEffect(() => {
     const client = supabase;
-    if (!client || authLoading || !sessionUserId) return;
+    if (!client || authLoading) return;
+    if (!sessionUserId) {
+      setIsLoadingOrganizations(false);
+      return;
+    }
     let cancelled = false;
+    setIsLoadingOrganizations(true);
 
     void deduplicateOrganizationRequest(`organizations:${sessionUserId}`, () =>
       client.rpc("get_my_organizations"),
@@ -89,6 +101,7 @@ export function useOrganizationWorkflow({
         setFeatureNotice(
           `Impossible de charger les organisations : ${error.message}`,
         );
+        setIsLoadingOrganizations(false);
         return;
       }
 
@@ -100,6 +113,7 @@ export function useOrganizationWorkflow({
         setOrganizationId(null);
         setInviteCode("");
         setOrganizationMembers([]);
+        setIsLoadingOrganizations(false);
         return;
       }
 
@@ -117,9 +131,11 @@ export function useOrganizationWorkflow({
       if (cancelled) return;
       if (membersError) {
         setFeatureNotice(membersError.message);
+        setIsLoadingOrganizations(false);
         return;
       }
       setOrganizationMembers((memberRows ?? []) as OrganizationMember[]);
+      setIsLoadingOrganizations(false);
     });
 
     return () => {
@@ -162,6 +178,7 @@ export function useOrganizationWorkflow({
     setInviteCode(selected.invite_code);
     setModal(null);
     setFeatureNotice("");
+    setRemoveMemberNotice("");
     const { data, error } = await supabase.rpc("get_organization_members", {
       p_organization_id: selected.organization_id,
     });
@@ -170,6 +187,97 @@ export function useOrganizationWorkflow({
       return;
     }
     setOrganizationMembers((data ?? []) as OrganizationMember[]);
+  }
+
+  async function leaveOrganization(): Promise<boolean> {
+    const client = supabase;
+    const leavingOrganizationId = organizationId;
+    if (!client || !session || !leavingOrganizationId) return false;
+
+    setIsLeavingOrganization(true);
+    setLeaveOrganizationNotice("");
+    try {
+      const { error } = await client.rpc("leave_organization", {
+        p_organization_id: leavingOrganizationId,
+      });
+      if (error) {
+        setLeaveOrganizationNotice(error.message);
+        return false;
+      }
+
+      const remainingOrganizations = organizations.filter(
+        (item) => item.organization_id !== leavingOrganizationId,
+      );
+      setOrganizations(remainingOrganizations);
+      const nextOrganization = remainingOrganizations[0];
+
+      if (nextOrganization) {
+        await selectOrganization(nextOrganization);
+        navigate("/app/organizations", { replace: true });
+      } else {
+        setOrganization("");
+        setOrganizationId(null);
+        setInviteCode("");
+        setOrganizationMembers([]);
+        navigate("/app/matches", { replace: true });
+      }
+      return true;
+    } catch (error) {
+      setLeaveOrganizationNotice(
+        error instanceof Error
+          ? error.message
+          : "Impossible de quitter l’organisation.",
+      );
+      return false;
+    } finally {
+      setIsLeavingOrganization(false);
+    }
+  }
+
+  async function removeOrganizationMember(userId: string): Promise<boolean> {
+    const client = supabase;
+    const activeOrganizationId = organizationId;
+    if (!client || !session || !activeOrganizationId) return false;
+    if (userId === session.user.id) {
+      setRemoveMemberNotice(
+        "Utilisez « Quitter l’organisation » pour votre compte.",
+      );
+      return false;
+    }
+
+    setRemovingMemberId(userId);
+    setRemoveMemberNotice("");
+    try {
+      const { error } = await client.rpc("remove_organization_member", {
+        p_organization_id: activeOrganizationId,
+        p_user_id: userId,
+      });
+      if (error) {
+        setRemoveMemberNotice(error.message);
+        return false;
+      }
+
+      setOrganizationMembers((current) =>
+        current.filter((member) => member.user_id !== userId),
+      );
+      setOrganizations((current) =>
+        current.map((item) =>
+          item.organization_id === activeOrganizationId
+            ? { ...item, member_count: Math.max(0, item.member_count - 1) }
+            : item,
+        ),
+      );
+      return true;
+    } catch (error) {
+      setRemoveMemberNotice(
+        error instanceof Error
+          ? error.message
+          : "Impossible de retirer ce membre.",
+      );
+      return false;
+    } finally {
+      setRemovingMemberId(null);
+    }
   }
 
   function openOrganizationCreation() {
@@ -216,7 +324,13 @@ export function useOrganizationWorkflow({
       invite_code: string;
     } | null;
     if (error || !created) {
-      setFeatureNotice(error?.message ?? "La création a échoué.");
+      const isDuplicateName =
+        error?.message.includes("Organization name is already taken") ?? false;
+      setFeatureNotice(
+        isDuplicateName
+          ? "Ce nom d’organisation est déjà utilisé. Choisissez-en un autre."
+          : (error?.message ?? "La création a échoué."),
+      );
       return;
     }
 
@@ -278,6 +392,11 @@ export function useOrganizationWorkflow({
     }
 
     setFeatureNotice("");
+    if (organizations.some((item) => item.invite_code.toUpperCase() === code)) {
+      setFeatureNotice("Vous faites déjà partie de cette organisation.");
+      return;
+    }
+
     const { data: joinedRows, error } = await supabase.rpc(
       "join_organization_by_code",
       { p_code: code },
@@ -287,10 +406,26 @@ export function useOrganizationWorkflow({
       organization_name: string;
     } | null;
     if (error || !joined) {
-      setFeatureNotice(error?.message ?? "Code d’invitation introuvable.");
+      const isAlreadyMember = error?.message.includes(
+        "You are already a member of this organization",
+      );
+      const isInvalidCode = error?.message.includes(
+        "Invitation code not found",
+      );
+      setFeatureNotice(
+        isAlreadyMember
+          ? "Vous faites déjà partie de cette organisation."
+          : isInvalidCode || !error
+            ? "Ce code d’invitation est introuvable. Vérifiez-le puis réessayez."
+            : error.message,
+      );
       return;
     }
 
+    setOrganization(joined.organization_name);
+    setOrganizationId(joined.organization_id);
+    setInviteCode(code);
+    setInviteOrganizationName(joined.organization_name);
     setOrganizations((current) => [
       {
         organization_id: joined.organization_id,
@@ -303,9 +438,6 @@ export function useOrganizationWorkflow({
         (item) => item.organization_id !== joined.organization_id,
       ),
     ]);
-    setOrganization(joined.organization_name);
-    setOrganizationId(joined.organization_id);
-    setInviteCode(code);
     const { data: memberRows, error: membersError } = await supabase.rpc(
       "get_organization_members",
       { p_organization_id: joined.organization_id },
@@ -314,14 +446,30 @@ export function useOrganizationWorkflow({
       setFeatureNotice(membersError.message);
       return;
     }
-    setOrganizationMembers((memberRows ?? []) as OrganizationMember[]);
+    const joinedMembers = (memberRows ?? []) as OrganizationMember[];
+    const currentMembership = joinedMembers.find(
+      (member) => member.user_id === session.user.id,
+    );
+    setOrganizations((current) => [
+      {
+        organization_id: joined.organization_id,
+        organization_name: joined.organization_name,
+        invite_code: code,
+        role: currentMembership?.role ?? "member",
+        member_count: joinedMembers.length,
+      },
+      ...current.filter(
+        (item) => item.organization_id !== joined.organization_id,
+      ),
+    ]);
+    setOrganizationMembers(joinedMembers);
     setPendingInviteCode("");
     const url = new URL(window.location.href);
     url.searchParams.delete("invite");
     navigate(`${url.pathname}${url.search}`, { replace: true });
     setFeatureNotice("");
-    setModal(null);
-    navigate("/app/matches", { replace: true });
+    navigate("/app/organizations", { replace: true });
+    setModal("joined");
   }
 
   async function copyText(text: string, label: string) {
@@ -357,6 +505,7 @@ export function useOrganizationWorkflow({
     organization,
     organizationId,
     organizations,
+    isLoadingOrganizations,
     inviteCode,
     organizationMembers,
     organizationName,
@@ -374,6 +523,12 @@ export function useOrganizationWorkflow({
     openOrganizationCreation,
     createOrganization,
     joinOrganization,
+    isLeavingOrganization,
+    leaveOrganizationNotice,
+    leaveOrganization,
+    removingMemberId,
+    removeMemberNotice,
+    removeOrganizationMember,
     copyText,
     openInviteDialog,
     clearOrganizationSession,
