@@ -12,10 +12,10 @@ export function OrganizationPage() {
     matchCount,
     onCreateMatch,
     members,
-    players,
+    playerStats,
+    playerStatsNotice,
     currentUserId,
     canShareInvite,
-    getPlayerRating,
     onInvite,
     onJoinWithCode,
     canLeaveOrganization,
@@ -54,10 +54,10 @@ export function OrganizationPage() {
       <OrganizationRoster
         organization={organization}
         members={members}
-        players={players}
+        playerStats={playerStats}
+        playerStatsNotice={playerStatsNotice}
         currentUserId={currentUserId}
         canInvite={canShareInvite}
-        getPlayerRating={getPlayerRating}
         onInvite={onInvite}
         canLeave={canLeaveOrganization}
         isCurrentUserOwner={isOrganizationOwner}

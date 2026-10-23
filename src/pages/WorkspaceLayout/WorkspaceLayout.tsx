@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { ModalManager } from "../../components/ModalManager/ModalManager";
 import { useMatchActions } from "../../hooks/useMatchActions/useMatchActions";
@@ -12,7 +12,7 @@ import { composeMatchTeams } from "../../lib/composeMatchTeams/composeMatchTeams
 import { playerRating } from "../../lib/playerRating/playerRating";
 import { dateAfter } from "../../data/dateAfter/dateAfter";
 import { players } from "../../data/players/players";
-import type { DialogKind } from "../../types";
+import type { DialogKind, OrganizationPlayerStats } from "../../types";
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -22,6 +22,8 @@ type InstallPromptEvent = Event & {
 export function WorkspaceLayout() {
   const navigate = useNavigate();
   const auth = useAuthContext();
+  const [playerStats, setPlayerStats] = useState<OrganizationPlayerStats[]>([]);
+  const [playerStatsNotice, setPlayerStatsNotice] = useState("");
   const {
     session,
     authLoading,
@@ -88,6 +90,40 @@ export function WorkspaceLayout() {
     openInviteDialog,
     clearOrganizationSession,
   } = organizationWorkflow;
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !organizationId) {
+      setPlayerStats([]);
+      setPlayerStatsNotice("");
+      return;
+    }
+
+    let cancelled = false;
+    setPlayerStats([]);
+    setPlayerStatsNotice("");
+    void client
+      .from("players")
+      .select(
+        "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, goals",
+      )
+      .eq("organization_id", organizationId)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setPlayerStatsNotice(
+            `Impossible de charger les statistiques des joueurs : ${error.message}`,
+          );
+          return;
+        }
+        setPlayerStats((data ?? []) as OrganizationPlayerStats[]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
+
   const matchState = useMatches({
     session,
     organizationId,
@@ -266,6 +302,8 @@ export function WorkspaceLayout() {
       organizations.find((item) => item.organization_id === organizationId)
         ?.role === "owner",
     players,
+    playerStats,
+    playerStatsNotice,
     getPlayerRating: playerRating,
     currentUserId: session?.user.id,
     onInvite: () => openInviteDialog(organization, inviteCode),

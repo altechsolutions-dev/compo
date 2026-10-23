@@ -1,21 +1,23 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { OrganizationRoster } from "./OrganizationRoster";
-import type { OrganizationMember, Player } from "../../types";
+import type { OrganizationMember, OrganizationPlayerStats } from "../../types";
 
 const members: OrganizationMember[] = [
   { user_id: "player-1", display_name: "Alex Martin", role: "owner" },
   { user_id: "player-2", display_name: "Sam Lee", role: "member" },
 ];
 
-const players: Player[] = [
+const playerStats: OrganizationPlayerStats[] = [
   {
-    id: "player-1",
-    name: "Alex Martin",
-    position: "Milieu",
-    attack: 80,
-    defense: 70,
-    stamina: 90,
+    user_id: "player-1",
+    overall_rating: 82,
+    matches_played: 12,
+    wins: 8,
+    draws: 2,
+    losses: 2,
+    man_of_the_match_count: 3,
+    goals: 5,
   },
 ];
 
@@ -25,7 +27,8 @@ describe("OrganizationRoster", () => {
       <OrganizationRoster
         organization="Les Panthères"
         members={members}
-        players={players}
+        playerStats={playerStats}
+        playerStatsNotice=""
         currentUserId="player-1"
         canInvite
         canLeave={false}
@@ -35,9 +38,6 @@ describe("OrganizationRoster", () => {
         canManageMembers={false}
         removingMemberId={null}
         removeMemberNotice=""
-        getPlayerRating={(player) =>
-          Math.round((player.attack + player.defense + player.stamina) / 3)
-        }
         onInvite={vi.fn()}
         onLeave={vi.fn().mockResolvedValue(true)}
         onRemoveMember={vi.fn().mockResolvedValue(true)}
@@ -49,8 +49,15 @@ describe("OrganizationRoster", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Alex Martin")).toBeInTheDocument();
     expect(screen.getByText("Vous")).toBeInTheDocument();
-    expect(screen.getAllByText("80")).toHaveLength(2);
-    expect(screen.getByText("Joueur")).toBeInTheDocument();
+    expect(screen.getByText("82")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("8")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "BUTS" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("—")).toHaveLength(7);
   });
 
   it("signale un effectif vide et permet de déclencher une invitation", () => {
@@ -59,7 +66,8 @@ describe("OrganizationRoster", () => {
       <OrganizationRoster
         organization="Les Panthères"
         members={[]}
-        players={[]}
+        playerStats={[]}
+        playerStatsNotice=""
         canInvite
         canLeave={false}
         isCurrentUserOwner={false}
@@ -68,7 +76,6 @@ describe("OrganizationRoster", () => {
         canManageMembers={false}
         removingMemberId={null}
         removeMemberNotice=""
-        getPlayerRating={() => 0}
         onInvite={onInvite}
         onLeave={vi.fn().mockResolvedValue(true)}
         onRemoveMember={vi.fn().mockResolvedValue(true)}
@@ -90,7 +97,8 @@ describe("OrganizationRoster", () => {
       <OrganizationRoster
         organization="Les Panthères"
         members={members}
-        players={players}
+        playerStats={playerStats}
+        playerStatsNotice=""
         canInvite
         canLeave
         isCurrentUserOwner
@@ -99,7 +107,6 @@ describe("OrganizationRoster", () => {
         canManageMembers
         removingMemberId={null}
         removeMemberNotice=""
-        getPlayerRating={() => 0}
         onInvite={vi.fn()}
         onLeave={onLeave}
         onRemoveMember={vi.fn().mockResolvedValue(true)}
@@ -122,7 +129,8 @@ describe("OrganizationRoster", () => {
       <OrganizationRoster
         organization="Les Panthères"
         members={members}
-        players={players}
+        playerStats={playerStats}
+        playerStatsNotice=""
         currentUserId="player-1"
         canInvite
         canLeave={false}
@@ -132,7 +140,6 @@ describe("OrganizationRoster", () => {
         canManageMembers
         removingMemberId={null}
         removeMemberNotice=""
-        getPlayerRating={() => 0}
         onInvite={vi.fn()}
         onLeave={vi.fn().mockResolvedValue(true)}
         onRemoveMember={onRemoveMember}
