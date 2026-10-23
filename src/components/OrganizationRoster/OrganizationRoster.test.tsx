@@ -45,7 +45,7 @@ describe("OrganizationRoster", () => {
     );
 
     expect(
-      screen.getByRole("table", { name: "Effectif de l’organisation" }),
+      screen.getByRole("table", { name: "Effectif du club" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Alex Martin")).toBeInTheDocument();
     expect(screen.getByText("Vous")).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe("OrganizationRoster", () => {
     );
 
     expect(
-      screen.getByText("Aucun joueur dans cette organisation pour le moment."),
+      screen.getByText("Aucun joueur dans ce club pour le moment."),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "Inviter des joueurs" }),
@@ -106,9 +106,7 @@ describe("OrganizationRoster", () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Quitter l’organisation" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Quitter le club" }));
     expect(
       screen.getByText(/ton rôle sera transmis à un autre membre/),
     ).toBeInTheDocument();

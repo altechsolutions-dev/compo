@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DashboardLayout } from "./DashboardLayout";
 
 describe("DashboardLayout", () => {
-  it("affiche la page Matchs et propose la navigation vers l’organisation", () => {
+  it("affiche la page Matchs et propose la navigation vers le club", () => {
     render(
       <MemoryRouter initialEntries={["/app/matches"]}>
         <Routes>
@@ -38,7 +38,7 @@ describe("DashboardLayout", () => {
       "aria-selected",
       "true",
     );
-    expect(screen.getByRole("tab", { name: /Organisation/ })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: /Club/ })).toHaveAttribute(
       "aria-selected",
       "false",
     );

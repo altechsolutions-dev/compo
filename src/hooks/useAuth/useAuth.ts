@@ -46,7 +46,7 @@ export function useAuth() {
     () =>
       initialAuthCallbackMessage ||
       (initialPendingInviteCode
-        ? "Connectez-vous ou créez un compte pour rejoindre l’organisation."
+        ? "Connectez-vous ou créez un compte pour rejoindre le club."
         : location.pathname === "/oauth/consent" &&
             new URLSearchParams(location.search).has("authorization_id")
           ? "Connectez-vous pour examiner cette demande d’autorisation."

@@ -17,7 +17,7 @@ describe("useOrganizationWorkflow", () => {
     supabaseRpc.mockReset();
   });
 
-  it("charge les organisations et les membres via Supabase à la connexion", async () => {
+  it("charge les clubs et leurs membres via Supabase à la connexion", async () => {
     const organization: OrganizationSummary = {
       organization_id: "organization-1",
       organization_name: "Les Panthères",
@@ -68,7 +68,7 @@ describe("useOrganizationWorkflow", () => {
     expect(result.current.organizationId).toBe(organization.organization_id);
   });
 
-  it("refuse la création quand le nom d’organisation est déjà utilisé", async () => {
+  it("refuse la création quand le nom du club est déjà utilisé", async () => {
     supabaseRpc.mockImplementation((procedure: string) => {
       if (procedure === "get_my_organizations") {
         return Promise.resolve({ data: [], error: null });
@@ -114,14 +114,14 @@ describe("useOrganizationWorkflow", () => {
       p_join_as_player: true,
     });
     expect(result.current.featureNotice).toBe(
-      "Ce nom d’organisation est déjà utilisé. Choisissez-en un autre.",
+      "Ce nom de club est déjà utilisé. Choisissez-en un autre.",
     );
     expect(result.current.organizations).toEqual([]);
     expect(navigate).not.toHaveBeenCalled();
     expect(setModal).not.toHaveBeenCalled();
   });
 
-  it("redirige vers Organisation et ouvre la confirmation après une adhésion réussie", async () => {
+  it("redirige vers Club et ouvre la confirmation après une adhésion réussie", async () => {
     const member: OrganizationMember = {
       user_id: "user-1",
       display_name: "Alex Martin",
@@ -182,7 +182,7 @@ describe("useOrganizationWorkflow", () => {
     expect(result.current.organizationMembers).toEqual([member]);
   });
 
-  it("conserve l’organisation dans la liste si le chargement des membres échoue après l’adhésion", async () => {
+  it("conserve le club dans la liste si le chargement des membres échoue après l’adhésion", async () => {
     const joinedOrganization = {
       organization_id: "organization-2",
       organization_name: "Les Bleus",
@@ -245,7 +245,7 @@ describe("useOrganizationWorkflow", () => {
     expect(setModal).not.toHaveBeenCalledWith("joined");
   });
 
-  it("refuse une nouvelle adhésion avant le RPC si l’organisation est déjà connue", async () => {
+  it("refuse une nouvelle adhésion avant le RPC si le club est déjà connu", async () => {
     const organization: OrganizationSummary = {
       organization_id: "organization-1",
       organization_name: "Les Panthères",
@@ -305,7 +305,7 @@ describe("useOrganizationWorkflow", () => {
 
     expect(result.current.organizations).toEqual([organization]);
     expect(result.current.featureNotice).toBe(
-      "Vous faites déjà partie de cette organisation.",
+      "Vous faites déjà partie de ce club.",
     );
     expect(supabaseRpc).not.toHaveBeenCalledWith("join_organization_by_code", {
       p_code: organization.invite_code,
@@ -314,7 +314,7 @@ describe("useOrganizationWorkflow", () => {
     expect(setModal).not.toHaveBeenCalled();
   });
 
-  it("quitte la dernière organisation et redirige vers Matchs", async () => {
+  it("quitte le dernier club et redirige vers Matchs", async () => {
     const organization: OrganizationSummary = {
       organization_id: "organization-1",
       organization_name: "Les Panthères",
@@ -373,7 +373,7 @@ describe("useOrganizationWorkflow", () => {
     expect(result.current.organizationId).toBeNull();
   });
 
-  it("conserve l’organisation et affiche l’erreur si le départ échoue", async () => {
+  it("conserve le club et affiche l’erreur si le départ échoue", async () => {
     const organization: OrganizationSummary = {
       organization_id: "organization-1",
       organization_name: "Les Panthères",

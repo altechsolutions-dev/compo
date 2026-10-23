@@ -36,7 +36,7 @@ export function MatchesPage() {
         className="grid min-h-80 place-items-center border-b border-(--line) px-6 py-16 text-center text-sm text-(--text-secondary)"
         role="status"
       >
-        Chargement de votre organisation…
+        Chargement de votre club…
       </section>
     );
   }

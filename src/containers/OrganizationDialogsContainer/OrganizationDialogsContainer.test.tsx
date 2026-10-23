@@ -47,7 +47,7 @@ function createProps(
 }
 
 describe("OrganizationDialogsContainer", () => {
-  it("affiche et transmet la sélection d’organisation", () => {
+  it("affiche et transmet la sélection du club", () => {
     const props = createProps("organizations");
     render(<OrganizationDialogsContainer {...props} />);
 
@@ -59,11 +59,11 @@ describe("OrganizationDialogsContainer", () => {
     const props = createProps("organization");
     render(<OrganizationDialogsContainer {...props} />);
 
-    fireEvent.change(screen.getByLabelText("Nom de l'organisation"), {
+    fireEvent.change(screen.getByLabelText("Nom du club"), {
       target: { value: "Les Bleus" },
     });
     fireEvent.click(
-      screen.getByLabelText("M’ajouter comme joueur dans l’organisation"),
+      screen.getByLabelText("M’ajouter comme joueur dans le club"),
     );
     expect(props.onOrganizationNameChange).toHaveBeenCalledWith("Les Bleus");
     expect(props.onJoinAsPlayerChange).toHaveBeenCalledWith(false);
@@ -94,9 +94,7 @@ describe("OrganizationDialogsContainer", () => {
     const props = { ...createProps("code"), joinCode: "" };
     render(<OrganizationDialogsContainer {...props} />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Rejoindre l’organisation" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Rejoindre le club" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Saisissez un code d’invitation.",
@@ -121,16 +119,14 @@ describe("OrganizationDialogsContainer", () => {
     expect(screen.getByRole("alert")).toHaveClass("text-(--team-a-red)");
   });
 
-  it("confirme l’adhésion et permet d’ouvrir l’organisation", () => {
+  it("confirme l’adhésion et permet d’ouvrir le club", () => {
     const props = createProps("joined");
     render(<OrganizationDialogsContainer {...props} />);
 
     expect(screen.getByRole("status")).toHaveTextContent(
       "Tu as rejoint Les Panthères.",
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: "Voir l’organisation" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Voir le club" }));
     expect(props.onClose).toHaveBeenCalledOnce();
   });
 });

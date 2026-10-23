@@ -59,10 +59,10 @@ describe("ModalManager", () => {
     expect(screen.getByLabelText("Terrain")).toBeVisible();
   });
 
-  it("délègue les modales d’organisation au conteneur dédié", () => {
+  it("délègue les modales de club au conteneur dédié", () => {
     render(<ModalManager {...createProps("organizations")} />);
     expect(
-      screen.getByText("Vous n’avez pas encore rejoint d’organisation."),
+      screen.getByText("Vous n’avez pas encore rejoint de club."),
     ).toBeVisible();
   });
 });
