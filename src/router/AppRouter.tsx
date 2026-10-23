@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { WorkspaceLayout } from "../pages/WorkspaceLayout/WorkspaceLayout";
 import { MatchesPage } from "../pages/MatchesPage/MatchesPage";
 import { OrganizationPage } from "../pages/OrganizationPage/OrganizationPage";
@@ -30,6 +30,11 @@ export function AppRouter({
   loginPage,
   consentPage,
 }: AppRouterProps) {
+  const location = useLocation();
+  const inviteCode = new URLSearchParams(location.search).get("invite")?.trim();
+  const authenticatedDestination = inviteCode
+    ? `/app/matches?invite=${encodeURIComponent(inviteCode)}`
+    : "/app/matches";
   const routeLoading = <RouteLoading />;
 
   return (
@@ -40,7 +45,7 @@ export function AppRouter({
           authLoading ? (
             routeLoading
           ) : isConnected ? (
-            <Navigate to="/app/matches" replace />
+            <Navigate to={authenticatedDestination} replace />
           ) : (
             loginPage
           )

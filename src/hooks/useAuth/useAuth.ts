@@ -8,6 +8,13 @@ import {
 } from "../../lib/supabase/supabase";
 import type { AuthMode } from "../../types";
 
+function getAuthenticatedDestination(search: string) {
+  const inviteCode = new URLSearchParams(search).get("invite")?.trim();
+  return inviteCode
+    ? `/app/matches?invite=${encodeURIComponent(inviteCode)}`
+    : "/app/matches";
+}
+
 export function useAuth() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -79,7 +86,9 @@ export function useAuth() {
         locationRef.current.pathname === "/" &&
         !createIntent
       ) {
-        navigate("/app/matches", { replace: true });
+        navigate(getAuthenticatedDestination(locationRef.current.search), {
+          replace: true,
+        });
       }
       completeCreateIntent(data.session);
     });
@@ -98,7 +107,9 @@ export function useAuth() {
         locationRef.current.pathname === "/" &&
         !createIntent
       ) {
-        navigate("/app/matches", { replace: true });
+        navigate(getAuthenticatedDestination(locationRef.current.search), {
+          replace: true,
+        });
       }
       completeCreateIntent(nextSession);
     });
@@ -221,7 +232,9 @@ export function useAuth() {
         setAuthNoticeKind("success");
         setAuthNotice("");
         if (currentLocation.pathname !== "/oauth/consent") {
-          navigate("/app/matches", { replace: true });
+          navigate(getAuthenticatedDestination(currentLocation.search), {
+            replace: true,
+          });
         }
         return;
       }
@@ -251,7 +264,9 @@ export function useAuth() {
       setAuthMode(null);
       setAuthNotice("");
       if (currentLocation.pathname !== "/oauth/consent") {
-        navigate("/app/matches", { replace: true });
+        navigate(getAuthenticatedDestination(currentLocation.search), {
+          replace: true,
+        });
       }
       if (pendingCreateOrganization && !handledCreateIntent.current) {
         handledCreateIntent.current = true;
