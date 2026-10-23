@@ -14,10 +14,10 @@ export function OrganizationRequired({
           <UserRoundPlus size={22} aria-hidden="true" />
         </div>
         <h1 className="mb-3 mt-5 text-2xl font-bold text-(--ink)">
-          Rejoins une organisation pour accéder aux matchs
+          Rejoins un club pour accéder aux matchs
         </h1>
         <p className="m-0 text-sm leading-relaxed text-(--text-secondary)">
-          Les matchs sont organisés au sein d’une équipe. Rejoins-en une avec un
+          Les matchs sont organisés au sein d’un club. Rejoins-en un avec un
           code d’invitation pour découvrir le programme et jouer ensemble.
         </p>
         <button

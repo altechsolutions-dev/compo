@@ -78,21 +78,22 @@ export function OrganizationDialogsContainer({
             <strong className="text-(--text-primary)">
               {inviteOrganizationName}
             </strong>
-            . Tu peux maintenant consulter son effectif et ses informations.
+            . Tu peux maintenant consulter l’effectif du club et ses
+            informations.
           </p>
           <button
             className="organization-dialog-form__submit mt-0 w-full"
             onClick={onClose}
             type="button"
           >
-            <Check size={17} /> Voir l’organisation
+            <Check size={17} /> Voir le club
           </button>
         </div>
       ) : kind === "organizations" ? (
         <div className="organization-dialog-actions grid gap-2.5">
           {organizations.length === 0 ? (
             <p className="mb-2 text-sm text-(--text-secondary)">
-              Vous n’avez pas encore rejoint d’organisation.
+              Vous n’avez pas encore rejoint de club.
             </p>
           ) : (
             <div className="mb-2 grid max-h-64 gap-2 overflow-y-auto">
@@ -113,7 +114,7 @@ export function OrganizationDialogsContainer({
                   </span>
                   {item.organization_id === activeOrganizationId && (
                     <Check
-                      aria-label="Organisation active"
+                      aria-label="Club actif"
                       className="shrink-0 text-(--team-b-blue)"
                       size={16}
                     />
@@ -127,14 +128,14 @@ export function OrganizationDialogsContainer({
             onClick={onOpenOrganizationCreation}
             type="button"
           >
-            <Plus size={16} /> Créer une organisation
+            <Plus size={16} /> Créer un club
           </button>
           <button
             className="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-sm border border-(--border-neutral) bg-transparent text-sm font-semibold text-white hover:bg-[#343744]"
             onClick={onOpenJoinByCode}
             type="button"
           >
-            <UserRoundPlus size={16} /> Rejoindre une organisation
+            <UserRoundPlus size={16} /> Rejoindre un club
           </button>
         </div>
       ) : kind === "organization" ? (
@@ -142,7 +143,7 @@ export function OrganizationDialogsContainer({
           className="organization-dialog-form"
           onSubmit={onCreateOrganization}
         >
-          <label htmlFor="organization-name">Nom de l'organisation</label>
+          <label htmlFor="organization-name">Nom du club</label>
           <input
             autoFocus
             id="organization-name"
@@ -160,10 +161,10 @@ export function OrganizationDialogsContainer({
               onChange={(event) => onJoinAsPlayerChange(event.target.checked)}
               type="checkbox"
             />
-            <span>M’ajouter comme joueur dans l’organisation</span>
+            <span>M’ajouter comme joueur dans le club</span>
           </label>
           <button className="organization-dialog-form__submit" type="submit">
-            <Check size={17} /> Créer l’organisation
+            <Check size={17} /> Créer le club
           </button>
         </form>
       ) : kind === "code" || kind === "join" ? (
@@ -199,7 +200,7 @@ export function OrganizationDialogsContainer({
             </p>
           )}
           <button className="organization-dialog-form__submit" type="submit">
-            <UserRoundPlus size={17} /> Rejoindre l’organisation
+            <UserRoundPlus size={17} /> Rejoindre le club
           </button>
         </form>
       ) : (

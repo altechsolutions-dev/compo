@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteContext";
 import { MatchesPage } from "./MatchesPage";
 
-describe("MatchesPage sans organisation", () => {
-  it("n’affiche pas l’invitation pendant le chargement des organisations", () => {
+describe("MatchesPage sans club", () => {
+  it("n’affiche pas l’invitation pendant le chargement des clubs", () => {
     const context = {
       organization: "",
       organizationId: null,
@@ -23,16 +23,16 @@ describe("MatchesPage sans organisation", () => {
     );
 
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Chargement de votre organisation",
+      "Chargement de votre club",
     );
     expect(
       screen.queryByRole("heading", {
-        name: "Rejoins une organisation pour accéder aux matchs",
+        name: "Rejoins un club pour accéder aux matchs",
       }),
     ).not.toBeInTheDocument();
   });
 
-  it("invite le joueur à rejoindre une organisation avec un code", () => {
+  it("invite le joueur à rejoindre un club avec un code", () => {
     const onJoinWithCode = vi.fn();
     const context = {
       organization: "",
@@ -52,7 +52,7 @@ describe("MatchesPage sans organisation", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: "Rejoins une organisation pour accéder aux matchs",
+        name: "Rejoins un club pour accéder aux matchs",
       }),
     ).toBeInTheDocument();
     fireEvent.click(

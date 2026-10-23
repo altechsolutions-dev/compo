@@ -38,22 +38,20 @@ describe("DashboardHeader", () => {
       "true",
     );
     expect(screen.getByText("8")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("tab", { name: /Organisation/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Club/ }));
     expect(onNavigate).toHaveBeenCalledWith("organization");
   });
 
   it("transmet les actions de partage, sélection, installation et déconnexion", () => {
     const callbacks = renderHeader();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Choisir une organisation" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Choisir un club" }));
     fireEvent.click(
       screen.getByRole("button", { name: "Partager le lien d’invitation" }),
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Rejoindre une organisation avec un code",
+        name: "Rejoindre un club avec un code",
       }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Se déconnecter" }));

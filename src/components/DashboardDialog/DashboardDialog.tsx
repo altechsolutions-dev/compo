@@ -12,16 +12,16 @@ export type DashboardDialogProps = {
 
 const dialogTitles: Record<DialogKind, string> = {
   match: "Nouveau créneau",
-  organization: "Créer une organisation",
-  organizations: "Mes organisations",
+  organization: "Créer un club",
+  organizations: "Mes clubs",
   invite: "Inviter des joueurs",
-  join: "Rejoindre l’organisation",
+  join: "Rejoindre le club",
   code: "Rejoindre avec un code",
-  joined: "Bienvenue dans l’organisation",
+  joined: "Bienvenue dans le club",
 };
 
 const dialogEyebrows: Record<DialogKind, string> = {
-  match: "ORGANISATION",
+  match: "CLUB",
   organization: "NOUVELLE ÉQUIPE",
   organizations: "MES ÉQUIPES",
   invite: "INVITATION COMPO",

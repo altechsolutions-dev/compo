@@ -76,7 +76,7 @@ export function DashboardHeader({
           role="tab"
           aria-selected={activeView === "organization"}
         >
-          <Users size={16} /> Organisation
+          <Users size={16} /> Club
           <span className="min-w-4.5 rounded-[9px] bg-(--bg-elevated) px-1.25 py-px text-center text-[10px] text-(--text-secondary)">
             {organizationMemberCount}
           </span>
@@ -86,7 +86,7 @@ export function DashboardHeader({
         <button
           className="inline-flex cursor-pointer items-center gap-2.25 border-0 bg-transparent px-0 py-1.25 text-xs font-semibold text-(--ink) max-[680px]:gap-1.75 max-[680px]:text-[11px] [&>svg]:text-(--muted) [&>span:nth-child(2)]:max-[380px]:max-w-27.5 [&>span:nth-child(2)]:max-[380px]:overflow-hidden [&>span:nth-child(2)]:max-[380px]:text-ellipsis [&>span:nth-child(2)]:max-[380px]:whitespace-nowrap"
           onClick={onChooseOrganization}
-          aria-label="Choisir une organisation"
+          aria-label="Choisir un club"
           type="button"
         >
           <span className="grid size-7 place-items-center rounded-[7px] bg-(--bg-elevated) text-xs font-bold text-(--team-b-blue)">
@@ -110,7 +110,7 @@ export function DashboardHeader({
           onClick={onJoinWithCode}
           title="Rejoindre avec un code"
           type="button"
-          aria-label="Rejoindre une organisation avec un code"
+          aria-label="Rejoindre un club avec un code"
         >
           <UserRoundPlus size={16} />
         </button>

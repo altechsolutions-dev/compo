@@ -98,9 +98,7 @@ export function useOrganizationWorkflow({
     ).then(async ({ data, error }) => {
       if (cancelled) return;
       if (error) {
-        setFeatureNotice(
-          `Impossible de charger les organisations : ${error.message}`,
-        );
+        setFeatureNotice(`Impossible de charger les clubs : ${error.message}`);
         setIsLoadingOrganizations(false);
         return;
       }
@@ -226,7 +224,7 @@ export function useOrganizationWorkflow({
       setLeaveOrganizationNotice(
         error instanceof Error
           ? error.message
-          : "Impossible de quitter l’organisation.",
+          : "Impossible de quitter le club.",
       );
       return false;
     } finally {
@@ -239,9 +237,7 @@ export function useOrganizationWorkflow({
     const activeOrganizationId = organizationId;
     if (!client || !session || !activeOrganizationId) return false;
     if (userId === session.user.id) {
-      setRemoveMemberNotice(
-        "Utilisez « Quitter l’organisation » pour votre compte.",
-      );
+      setRemoveMemberNotice("Utilisez « Quitter le club » pour votre compte.");
       return false;
     }
 
@@ -285,17 +281,13 @@ export function useOrganizationWorkflow({
     setJoinOrganizationAsPlayer(true);
     setFeatureNotice("");
     if (!supabase) {
-      setFeatureNotice(
-        "Configurez Supabase pour créer une organisation partageable.",
-      );
+      setFeatureNotice("Configurez Supabase pour créer un club partageable.");
       setModal("organization");
       return;
     }
     if (!session) {
       setPendingCreateOrganization(true);
-      setAuthNotice(
-        "Connectez-vous ou créez un compte pour créer une organisation.",
-      );
+      setAuthNotice("Connectez-vous ou créez un compte pour créer un club.");
       setAuthMode("signup");
       navigate("/");
       setModal(null);
@@ -309,7 +301,7 @@ export function useOrganizationWorkflow({
     const name = organizationName.trim();
     if (!name) return;
     if (!supabase || !session) {
-      setFeatureNotice("Connectez-vous à Supabase pour créer l’organisation.");
+      setFeatureNotice("Connectez-vous à Supabase pour créer le club.");
       return;
     }
 
@@ -328,7 +320,7 @@ export function useOrganizationWorkflow({
         error?.message.includes("Organization name is already taken") ?? false;
       setFeatureNotice(
         isDuplicateName
-          ? "Ce nom d’organisation est déjà utilisé. Choisissez-en un autre."
+          ? "Ce nom de club est déjà utilisé. Choisissez-en un autre."
           : (error?.message ?? "La création a échoué."),
       );
       return;
@@ -377,13 +369,13 @@ export function useOrganizationWorkflow({
     const code = joinCode.trim().toUpperCase();
     if (!code) return;
     if (!supabase) {
-      setFeatureNotice("Configurez Supabase pour rejoindre une organisation.");
+      setFeatureNotice("Configurez Supabase pour rejoindre un club.");
       return;
     }
     if (!session) {
       setPendingInviteCode(code);
       setAuthNotice(
-        "Connectez-vous ou créez un compte pour rejoindre l’organisation.",
+        "Connectez-vous ou créez un compte pour rejoindre le club.",
       );
       setAuthMode("login");
       navigate("/");
@@ -393,7 +385,7 @@ export function useOrganizationWorkflow({
 
     setFeatureNotice("");
     if (organizations.some((item) => item.invite_code.toUpperCase() === code)) {
-      setFeatureNotice("Vous faites déjà partie de cette organisation.");
+      setFeatureNotice("Vous faites déjà partie de ce club.");
       return;
     }
 
@@ -414,7 +406,7 @@ export function useOrganizationWorkflow({
       );
       setFeatureNotice(
         isAlreadyMember
-          ? "Vous faites déjà partie de cette organisation."
+          ? "Vous faites déjà partie de ce club."
           : isInvalidCode || !error
             ? "Ce code d’invitation est introuvable. Vérifiez-le puis réessayez."
             : error.message,

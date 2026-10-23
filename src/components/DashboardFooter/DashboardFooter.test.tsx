@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { DashboardFooter } from "./DashboardFooter";
 
 describe("DashboardFooter", () => {
-  it("indique le statut de synchronisation et l’organisation", () => {
+  it("indique le statut de synchronisation et le club", () => {
     render(<DashboardFooter organization="Les Panthères" isSynchronized />);
 
     expect(screen.getByRole("contentinfo")).toHaveTextContent(
       "COMPO / Les Panthères",
     );
-    expect(screen.getByText("Organisation synchronisée")).toBeInTheDocument();
+    expect(screen.getByText("Club synchronisé")).toBeInTheDocument();
   });
 
   it("signale les données locales en mode démonstration", () => {

@@ -56,7 +56,7 @@ export function OrganizationRoster({
             ESPACE CLUB
           </p>
           <h2 className="m-0 font-sans text-xl font-semibold text-(--ink)">
-            {organization || "Votre organisation"}
+            {organization || "Votre club"}
           </h2>
           <p className="mt-2 text-xs text-(--text-secondary)">
             Retrouvez les membres et gérez la vie de votre collectif.
@@ -87,7 +87,7 @@ export function OrganizationRoster({
       <div
         className="organization-roster__table border-t border-(--line)"
         role="table"
-        aria-label="Effectif de l’organisation"
+        aria-label="Effectif du club"
       >
         <div
           className="organization-roster__columns min-h-9.5 items-center text-[9px] font-bold text-(--text-secondary) max-[680px]:text-[7px] max-[680px]:leading-1.2"
@@ -188,7 +188,7 @@ export function OrganizationRoster({
       </div>
       {members.length === 0 && (
         <p className="py-4.5 text-xs text-(--text-secondary)">
-          Aucun joueur dans cette organisation pour le moment.
+          Aucun joueur dans ce club pour le moment.
         </p>
       )}
       <p className="mt-4.5 flex items-center gap-2.25 text-[11px] text-(--text-secondary) [&>svg]:text-(--team-b-blue)">
@@ -243,7 +243,7 @@ export function OrganizationRoster({
               onClick={() => setConfirmingLeave(true)}
               type="button"
             >
-              Quitter l’organisation
+              Quitter le club
             </button>
           )}
         </div>

@@ -116,7 +116,7 @@ export function useMatchActions({
     if (supabase && session) {
       if (!organizationId) {
         setFeatureNotice(
-          "Créez ou rejoignez une organisation avant d’ajouter un match dans Supabase.",
+          "Créez ou rejoignez un club avant d’ajouter un match dans Supabase.",
         );
         return;
       }

@@ -24,7 +24,7 @@ describe("DashboardHero", () => {
     expect(onCreateMatch).toHaveBeenCalledOnce();
   });
 
-  it("masque l’action de création dans l’onglet organisation", () => {
+  it("masque l’action de création dans l’onglet club", () => {
     render(
       <DashboardHero
         organization="Les Panthères"

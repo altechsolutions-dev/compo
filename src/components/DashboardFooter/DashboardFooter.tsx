@@ -18,7 +18,7 @@ export function DashboardFooter({
       <span className="inline-flex items-center gap-2">
         <Clock3 size={13} />
         {isSynchronized
-          ? "Organisation synchronisée"
+          ? "Club synchronisé"
           : "Données de démonstration locales"}
       </span>
     </footer>

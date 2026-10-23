@@ -23,7 +23,7 @@ vi.mock("../pages/MatchesPage/MatchesPage", () => ({
 }));
 
 vi.mock("../pages/OrganizationPage/OrganizationPage", () => ({
-  OrganizationPage: () => <div>Organisations</div>,
+  OrganizationPage: () => <div>Clubs</div>,
 }));
 
 function LoginLocation() {
