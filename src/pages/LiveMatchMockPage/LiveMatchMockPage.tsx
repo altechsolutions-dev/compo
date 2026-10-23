@@ -61,8 +61,8 @@ export function LiveMatchMockPage() {
       setMatch((current) => {
         if (
           current.id !== matchId ||
-          current.status !== "in_progress" ||
-          !current.startedAt ||
+          (current.status !== "in_progress" && current.status !== "paused") ||
+          (current.status === "in_progress" && !current.startedAt) ||
           !current.teams
         ) {
           return current;
@@ -75,34 +75,41 @@ export function LiveMatchMockPage() {
           team,
           elapsedSeconds:
             (current.elapsedSeconds ?? 0) +
-            Math.max(
-              0,
-              Math.floor(
-                (createdAt.getTime() - new Date(current.startedAt).getTime()) /
-                  1000,
-              ),
-            ),
+            (current.status === "in_progress" && current.startedAt
+              ? Math.max(
+                  0,
+                  Math.floor(
+                    (createdAt.getTime() -
+                      new Date(current.startedAt).getTime()) /
+                      1000,
+                  ),
+                )
+              : 0),
           createdAt: createdAt.toISOString(),
         };
         return { ...current, goals: [...(current.goals ?? []), goal] };
       });
     },
-    onSwitchTeam: (matchId: string, playerId: string) => {
+    onSwapPlayers: (
+      matchId: string,
+      redPlayerId: string,
+      bluePlayerId: string,
+    ) => {
       setMatch((current) => {
         if (
           current.id !== matchId ||
-          current.status !== "in_progress" ||
+          (current.status !== "in_progress" && current.status !== "paused") ||
           !current.teams
         )
           return current;
-        const playerTeam = current.teams.findIndex((team) =>
-          team.includes(playerId),
-        );
-        if (playerTeam < 0) return current;
-        const nextTeam = playerTeam === 0 ? 1 : 0;
+        const redIndex = current.teams[0].indexOf(redPlayerId);
+        const blueIndex = current.teams[1].indexOf(bluePlayerId);
+        if (redIndex < 0 || blueIndex < 0 || redPlayerId === bluePlayerId) {
+          return current;
+        }
         const teams = [...current.teams] as [string[], string[]];
-        teams[playerTeam] = teams[playerTeam].filter((id) => id !== playerId);
-        teams[nextTeam] = [...teams[nextTeam], playerId];
+        teams[0][redIndex] = bluePlayerId;
+        teams[1][blueIndex] = redPlayerId;
         return { ...current, teams };
       });
     },

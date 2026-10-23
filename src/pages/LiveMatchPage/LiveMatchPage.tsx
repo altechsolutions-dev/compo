@@ -3,13 +3,16 @@ import {
   ArrowRightLeft,
   CalendarDays,
   CircleDot,
+  Eye,
   Flag,
   Goal,
   MapPin,
   MinusCircle,
   Pause,
   Play,
+  X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import { OrganizationRequired } from "../../components/OrganizationRequired/OrganizationRequired";
 import type { MatchGoal, MatchSlot } from "../../types";
@@ -76,6 +79,7 @@ export function LiveMatchPage({
   const goals = match?.goals ?? [];
   const isLive = match?.status === "in_progress";
   const isPaused = match?.status === "paused";
+  const canRecordActions = isLive || isPaused;
   const isFinished = match?.status === "finished";
   const isScheduled = !match?.status || match.status === "scheduled";
   const matchElapsedSeconds = match?.elapsedSeconds ?? 0;
@@ -91,9 +95,11 @@ export function LiveMatchPage({
       match?.startedAt,
     ),
   );
-  const [goalTeam, setGoalTeam] = useState<0 | 1>(0);
-  const [scorerId, setScorerId] = useState("");
-  const [playerToMove, setPlayerToMove] = useState("");
+  const [goalPickerOpen, setGoalPickerOpen] = useState(false);
+  const [compositionOpen, setCompositionOpen] = useState(false);
+  const [redPlayerToSwap, setRedPlayerToSwap] = useState("");
+  const [bluePlayerToSwap, setBluePlayerToSwap] = useState("");
+  const [confirmFinish, setConfirmFinish] = useState(false);
 
   useEffect(() => {
     const updateClock = () =>
@@ -109,6 +115,24 @@ export function LiveMatchPage({
     const timer = window.setInterval(updateClock, 1000);
     return () => window.clearInterval(timer);
   }, [isLive, matchElapsedSeconds, match?.startedAt, match?.status]);
+
+  useEffect(() => {
+    if (!compositionOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCompositionOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [compositionOpen]);
+
+  useEffect(() => {
+    if (!goalPickerOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setGoalPickerOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [goalPickerOpen]);
 
   if (!context) return null;
 
@@ -143,28 +167,23 @@ export function LiveMatchPage({
   }
 
   const score = [countGoals(goals, 0), countGoals(goals, 1)];
-  const currentPlayerTeam = teams.findIndex((team) =>
-    team.includes(playerToMove),
-  );
-  const eligibleScorers = teams[goalTeam];
-
   function selectMatch(matchId: string) {
     setSearchParams({ match: matchId });
   }
 
-  function submitGoal(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!isLive || !scorerId) return;
+  function recordGoal(scorerId: string) {
+    if (!canRecordActions) return;
     context?.onRecordGoal(match.id, scorerId);
-    setScorerId("");
+    setGoalPickerOpen(false);
   }
 
   function submitTeamChange(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!isLive || !playerToMove) return;
-    context?.onSwitchTeam(match.id, playerToMove);
-    setPlayerToMove("");
-    setScorerId("");
+    if (!canRecordActions || !redPlayerToSwap || !bluePlayerToSwap) return;
+    context?.onSwapPlayers(match.id, redPlayerToSwap, bluePlayerToSwap);
+    setRedPlayerToSwap("");
+    setBluePlayerToSwap("");
+    setGoalPickerOpen(false);
   }
 
   return (
@@ -214,14 +233,25 @@ export function LiveMatchPage({
           )}
         </div>
         {isScheduled && (
-          <button
-            className="inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-md border-0 bg-(--team-b-blue) px-4 text-xs font-bold text-(--bg-main) transition hover:brightness-110"
-            onClick={() => context.onStartMatch(match.id, teams)}
-            type="button"
-          >
-            <Play aria-hidden="true" fill="currentColor" size={14} />
-            Lancer le match
-          </button>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <button
+              aria-expanded={compositionOpen}
+              aria-controls="match-composition-drawer"
+              className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-4 text-xs font-bold text-(--text-primary) transition hover:brightness-110"
+              onClick={() => setCompositionOpen(true)}
+              type="button"
+            >
+              <Eye aria-hidden="true" size={15} /> Voir la compo
+            </button>
+            <button
+              className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border-0 bg-(--team-b-blue) px-4 text-xs font-bold text-(--bg-main) transition hover:brightness-110"
+              onClick={() => context.onStartMatch(match.id, teams)}
+              type="button"
+            >
+              <Play aria-hidden="true" fill="currentColor" size={14} />
+              Lancer le match
+            </button>
+          </div>
         )}
         {(isLive || isPaused) && (
           <div className="flex shrink-0 flex-wrap gap-2">
@@ -241,7 +271,7 @@ export function LiveMatchPage({
             </button>
             <button
               className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-(--team-a-red)/40 bg-(--team-a-red)/10 px-4 text-xs font-bold text-(--team-a-red) transition hover:brightness-110"
-              onClick={() => context.onSetMatchState(match.id, "finish")}
+              onClick={() => setConfirmFinish(true)}
               type="button"
             >
               <Flag aria-hidden="true" size={14} /> Siffler la fin
@@ -249,6 +279,127 @@ export function LiveMatchPage({
           </div>
         )}
       </header>
+
+      {confirmFinish &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-0 sm:p-5"
+            onClick={() => setConfirmFinish(false)}
+            role="presentation"
+          >
+            <section
+              aria-labelledby="finish-match-title"
+              aria-modal="true"
+              className="w-full rounded-none border-x-0 border-y border-(--line) bg-(--bg-surface) p-5 shadow-xl sm:max-w-sm sm:rounded-lg sm:border-x"
+              onClick={(event) => event.stopPropagation()}
+              role="alertdialog"
+            >
+              <h2 className="m-0 text-lg font-bold" id="finish-match-title">
+                Siffler la fin du match ?
+              </h2>
+              <p className="mb-0 mt-2 text-sm text-(--text-secondary)">
+                Le chrono sera arrêté et les actions de jeu désactivées.
+              </p>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button
+                  className="min-h-12 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-3 text-sm font-bold text-(--text-primary)"
+                  onClick={() => setConfirmFinish(false)}
+                  type="button"
+                >
+                  Continuer le match
+                </button>
+                <button
+                  className="min-h-12 cursor-pointer rounded-md border-0 bg-(--team-a-red) px-3 text-sm font-bold text-(--bg-main)"
+                  onClick={() => {
+                    context.onSetMatchState(match.id, "finish");
+                    setConfirmFinish(false);
+                  }}
+                  type="button"
+                >
+                  Confirmer la fin
+                </button>
+              </div>
+            </section>
+          </div>,
+          document.body,
+        )}
+
+      {goalPickerOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/70 p-0 sm:p-4"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget)
+                setGoalPickerOpen(false);
+            }}
+            role="presentation"
+          >
+            <section
+              aria-labelledby="goal-scorer-title"
+              aria-modal="true"
+              className="my-auto w-full rounded-none border-x-0 border-y border-(--line) bg-(--bg-surface) p-4 text-(--text-primary) shadow-xl sm:max-w-xl sm:rounded-lg sm:border-x sm:p-6"
+              id="goal-scorer-picker"
+              onMouseDown={(event) => event.stopPropagation()}
+              role="dialog"
+            >
+              <div className="mb-4 flex items-center justify-between gap-3 border-b border-(--line) pb-4">
+                <div>
+                  <p className="mb-1 text-[9px] font-bold tracking-[1.4px] text-(--text-secondary)">
+                    NOUVEAU BUT
+                  </p>
+                  <h2
+                    className="m-0 text-base font-bold"
+                    id="goal-scorer-title"
+                  >
+                    Qui a marqué ?
+                  </h2>
+                </div>
+                <button
+                  aria-label="Annuler la saisie du but"
+                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-main) text-(--text-secondary)"
+                  onClick={() => setGoalPickerOpen(false)}
+                  type="button"
+                >
+                  <X aria-hidden="true" size={16} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {teams.map((teamPlayers, teamIndex) => {
+                  const team = teamIndex as 0 | 1;
+                  const isRedTeam = team === 0;
+                  return (
+                    <section
+                      aria-label={`Équipe ${isRedTeam ? "rouge" : "bleue"}`}
+                      className={`min-w-0 rounded-md border p-2 sm:p-3 ${isRedTeam ? "border-(--team-a-red)/25 bg-(--team-a-red)/5" : "border-(--team-b-blue)/25 bg-(--team-b-blue)/5"}`}
+                      key={team}
+                    >
+                      <h3
+                        className={`mb-2 mt-0 text-center text-[10px] font-bold uppercase ${isRedTeam ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
+                      >
+                        {isRedTeam ? "Rouge" : "Bleue"}
+                      </h3>
+                      <div className="grid gap-1.5">
+                        {teamPlayers.map((id) => (
+                          <button
+                            className={`min-h-12 cursor-pointer rounded border px-2 text-left text-xs font-semibold leading-tight transition ${isRedTeam ? "border-(--team-a-red)/30 bg-(--bg-main) text-(--text-primary) hover:bg-(--team-a-red)/15" : "border-(--team-b-blue)/30 bg-(--bg-main) text-(--text-primary) hover:bg-(--team-b-blue)/15"}`}
+                            key={id}
+                            onClick={() => recordGoal(id)}
+                            type="button"
+                          >
+                            <span className="block truncate">
+                              {context.playerNames[id] ?? "Joueur"}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+            </section>
+          </div>,
+          document.body,
+        )}
 
       {context.matchNotice && (
         <p className="my-3 text-sm text-(--team-a-red)" role="alert">
@@ -260,19 +411,14 @@ export function LiveMatchPage({
         aria-label="Score du match"
         className="mt-6 grid min-h-44 grid-cols-[1fr_0.5fr_1fr] overflow-hidden rounded-xl border border-(--line) bg-(--bg-surface) sm:min-h-47"
       >
-        <div className="flex min-w-0 flex-col justify-center px-3 py-5 sm:px-8">
+        <div className="flex min-w-0 flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-3 py-5 sm:px-8">
           <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
-            <span className="size-1.5 rounded-full bg-(--team-a-red)" /> ÉQUIPE
-            ROUGE
+            <span className="size-1.5 rounded-full bg-(--team-b-blue)" /> ÉQUIPE
+            BLEUE
           </p>
-          <strong className="text-5xl font-bold leading-none tabular-nums text-(--team-a-red) sm:text-6xl">
-            {score[0]}
+          <strong className="text-5xl font-bold leading-none tabular-nums text-(--team-b-blue) sm:text-6xl">
+            {score[1]}
           </strong>
-          <p className="mb-0 mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-(--text-secondary)">
-            {teams[0].map((id) => (
-              <span key={id}>{context.playerNames[id] ?? "Joueur"}</span>
-            ))}
-          </p>
         </div>
         <div className="flex flex-col items-center justify-center border-x border-(--line) px-2 text-center">
           <p className="mb-1 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
@@ -297,21 +443,90 @@ export function LiveMatchPage({
                   : "PRÊT À JOUER"}
           </p>
         </div>
-        <div className="flex min-w-0 flex-col items-end justify-center px-3 py-5 text-right sm:px-8">
+        <div className="flex min-w-0 flex-col items-end justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-3 py-5 text-right sm:px-8">
           <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
-            ÉQUIPE BLEUE{" "}
-            <span className="size-1.5 rounded-full bg-(--team-b-blue)" />
+            ÉQUIPE ROUGE{" "}
+            <span className="size-1.5 rounded-full bg-(--team-a-red)" />
           </p>
-          <strong className="text-5xl font-bold leading-none tabular-nums text-(--team-b-blue) sm:text-6xl">
-            {score[1]}
+          <strong className="text-5xl font-bold leading-none tabular-nums text-(--team-a-red) sm:text-6xl">
+            {score[0]}
           </strong>
-          <p className="mb-0 mt-4 flex flex-wrap justify-end gap-x-3 gap-y-1 text-[9px] text-(--text-secondary)">
-            {teams[1].map((id) => (
-              <span key={id}>{context.playerNames[id] ?? "Joueur"}</span>
-            ))}
-          </p>
         </div>
       </section>
+
+      {isScheduled &&
+        createPortal(
+          <div
+            aria-hidden={!compositionOpen}
+            className={`fixed inset-0 z-50 flex justify-end overflow-hidden bg-black/70 transition-opacity duration-300 ease-out motion-reduce:transition-none ${compositionOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+            inert={!compositionOpen}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget)
+                setCompositionOpen(false);
+            }}
+            role="presentation"
+          >
+            <aside
+              aria-labelledby="match-composition-title"
+              aria-modal="true"
+              className={`h-full w-full max-w-140 overflow-y-auto border-l border-(--line) bg-(--bg-main) p-5 text-(--text-primary) shadow-[-18px_0_48px_#0005] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-[600px]:max-w-full max-[600px]:border-l-0 motion-reduce:transition-none sm:p-8 ${compositionOpen ? "translate-x-0" : "translate-x-full"}`}
+              id="match-composition-drawer"
+              onMouseDown={(event) => event.stopPropagation()}
+              role="dialog"
+            >
+              <div className="mb-7 flex items-center justify-between gap-4 border-b border-(--line) pb-4">
+                <div>
+                  <p className="mb-1 text-[9px] font-bold tracking-[1.5px] text-(--text-secondary)">
+                    AVANT LE COUP D’ENVOI
+                  </p>
+                  <h2
+                    className="m-0 text-xl font-bold"
+                    id="match-composition-title"
+                  >
+                    Composition du match
+                  </h2>
+                </div>
+                <button
+                  aria-label="Fermer la composition"
+                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-surface) text-(--text-primary)"
+                  onClick={() => setCompositionOpen(false)}
+                  type="button"
+                >
+                  <X aria-hidden="true" size={18} />
+                </button>
+              </div>
+              <div className="grid gap-4">
+                {teams.map((teamPlayers, teamIndex) => {
+                  const isRedTeam = teamIndex === 0;
+                  return (
+                    <section
+                      aria-label={`Équipe ${isRedTeam ? "rouge" : "bleue"}`}
+                      className={`rounded-md border p-4 ${isRedTeam ? "border-(--team-a-red)/25 bg-(--team-a-red)/5" : "border-(--team-b-blue)/25 bg-(--team-b-blue)/5"}`}
+                      key={teamIndex}
+                    >
+                      <h3
+                        className={`mb-3 mt-0 text-sm font-bold uppercase ${isRedTeam ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
+                      >
+                        Équipe {isRedTeam ? "rouge" : "bleue"}
+                      </h3>
+                      <ul className="m-0 grid list-none gap-1 p-0 text-sm text-(--text-primary)">
+                        {teamPlayers.map((id) => (
+                          <li
+                            className="border-t border-(--line) py-3"
+                            key={id}
+                          >
+                            {context.playerNames[id] ?? "Joueur"}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  );
+                })}
+              </div>
+            </aside>
+          </div>,
+          document.body,
+        )}
 
       <div className="mt-3 flex items-center justify-between text-[10px] text-(--text-secondary)">
         <span>{match.attendees.length} joueurs confirmés</span>
@@ -320,7 +535,7 @@ export function LiveMatchPage({
         </span>
       </div>
 
-      <div className="mt-3 grid items-start gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]">
+      <div className="mt-3 grid items-start gap-4 lg:items-stretch lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]">
         <section
           className="order-2 min-h-80 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-2 sm:p-6 lg:order-1"
           aria-labelledby="match-events-title"
@@ -387,93 +602,82 @@ export function LiveMatchPage({
             <h2 className="m-0 text-base font-bold">Actions rapides</h2>
           </div>
 
-          <form className="border-b border-(--line) py-4" onSubmit={submitGoal}>
-            <h3 className="mb-2.5 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
-              AJOUTER UN BUT
-            </h3>
-            <div
-              aria-label="Équipe du buteur"
-              className="grid grid-cols-2 rounded-md bg-(--bg-main) p-1"
-              role="group"
+          <div className="border-b border-(--line) py-4">
+            <button
+              aria-expanded={goalPickerOpen}
+              aria-controls="goal-scorer-picker"
+              className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-md border-0 bg-(--team-b-blue) px-3 text-base font-extrabold text-(--bg-main) disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={!canRecordActions}
+              onClick={() => setGoalPickerOpen(true)}
+              type="button"
             >
-              {([0, 1] as const).map((team) => (
-                <button
-                  aria-pressed={goalTeam === team}
-                  className={`min-h-8 cursor-pointer rounded border-0 text-[10px] font-bold ${goalTeam === team ? (team === 0 ? "bg-(--team-a-red)/10 text-(--team-a-red)" : "bg-(--team-b-blue)/10 text-(--team-b-blue)") : "bg-transparent text-(--text-secondary)"}`}
-                  key={team}
-                  onClick={() => {
-                    setGoalTeam(team);
-                    setScorerId("");
-                  }}
-                  type="button"
+              <Goal aria-hidden="true" size={20} /> But !
+            </button>
+          </div>
+
+          <details className="group border-b border-(--line) py-3">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-(--text-secondary) [&::-webkit-details-marker]:hidden">
+              Échanger deux joueurs
+              <ArrowRightLeft aria-hidden="true" size={16} />
+            </summary>
+            <form className="pt-2" onSubmit={submitTeamChange}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label
+                  className="block text-xs text-(--team-a-red)"
+                  htmlFor="swap-red-player"
                 >
-                  {team === 0 ? "Rouge" : "Bleue"}
-                </button>
-              ))}
-            </div>
-            <label
-              className="mt-3 block text-[9px] text-(--text-secondary)"
-              htmlFor="live-goal-scorer"
-            >
-              Buteur
-            </label>
-            <select
-              className="mt-1 w-full rounded-md border border-(--line) bg-(--bg-main) px-2.5 py-2 text-[10px] text-(--text-primary)"
-              disabled={!isLive}
-              id="live-goal-scorer"
-              onChange={(event) => setScorerId(event.target.value)}
-              value={scorerId}
-            >
-              <option value="">Choisir un joueur</option>
-              {eligibleScorers.map((id) => (
-                <option key={id} value={id}>
-                  {context.playerNames[id] ?? "Joueur"}
-                </option>
-              ))}
-            </select>
-            <button
-              className="mt-2.5 inline-flex min-h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-md border-0 bg-(--team-b-blue) text-[10px] font-bold text-(--bg-main) disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={!isLive || !scorerId}
-              type="submit"
-            >
-              <Goal aria-hidden="true" size={14} /> Valider le but
-            </button>
-          </form>
+                  Joueur de l’équipe rouge
+                  <select
+                    className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
+                    disabled={!canRecordActions}
+                    id="swap-red-player"
+                    onChange={(event) => setRedPlayerToSwap(event.target.value)}
+                    value={redPlayerToSwap}
+                  >
+                    <option value="">Choisir un joueur rouge</option>
+                    {teams[0].map((id) => (
+                      <option key={id} value={id}>
+                        {context.playerNames[id] ?? "Joueur"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label
+                  className="block text-xs text-(--team-b-blue)"
+                  htmlFor="swap-blue-player"
+                >
+                  Joueur de l’équipe bleue
+                  <select
+                    className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
+                    disabled={!canRecordActions}
+                    id="swap-blue-player"
+                    onChange={(event) =>
+                      setBluePlayerToSwap(event.target.value)
+                    }
+                    value={bluePlayerToSwap}
+                  >
+                    <option value="">Choisir un joueur bleu</option>
+                    {teams[1].map((id) => (
+                      <option key={id} value={id}>
+                        {context.playerNames[id] ?? "Joueur"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <button
+                className="mt-2 inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) text-sm font-bold text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={
+                  !canRecordActions || !redPlayerToSwap || !bluePlayerToSwap
+                }
+                type="submit"
+              >
+                Échanger les joueurs
+              </button>
+            </form>
+          </details>
 
-          <form className="pt-4" onSubmit={submitTeamChange}>
-            <h3 className="mb-2.5 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
-              CHANGER UN JOUEUR D’ÉQUIPE
-            </h3>
-            <label
-              className="block text-[9px] text-(--text-secondary)"
-              htmlFor="team-change-player"
-            >
-              Joueur
-            </label>
-            <select
-              className="mt-1 w-full rounded-md border border-(--line) bg-(--bg-main) px-2.5 py-2 text-[10px] text-(--text-primary)"
-              disabled={!isLive}
-              id="team-change-player"
-              onChange={(event) => setPlayerToMove(event.target.value)}
-              value={playerToMove}
-            >
-              <option value="">Choisir un joueur</option>
-              {[...teams[0], ...teams[1]].map((id) => (
-                <option key={id} value={id}>
-                  {context.playerNames[id] ?? "Joueur"}
-                </option>
-              ))}
-            </select>
-            <button
-              className="mt-2.5 inline-flex min-h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) text-[10px] font-bold text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={!isLive || currentPlayerTeam < 0}
-              type="submit"
-            >
-              <ArrowRightLeft aria-hidden="true" size={14} /> Changer d’équipe
-            </button>
-          </form>
-
-          {!isLive && (
+          {!canRecordActions && (
             <p className="mb-0 mt-3 text-center text-[9px] text-(--text-secondary)">
               {isPaused
                 ? "Reprenez le match pour enregistrer des actions."

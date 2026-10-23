@@ -26,7 +26,11 @@ export type WorkspaceRouteContext = {
   onStartMatch: (matchId: string, teams: [string[], string[]]) => void;
   onSetMatchState: (matchId: string, action: MatchStateAction) => void;
   onRecordGoal: (matchId: string, scorerId: string) => void;
-  onSwitchTeam: (matchId: string, playerId: string) => void;
+  onSwapPlayers: (
+    matchId: string,
+    redPlayerId: string,
+    bluePlayerId: string,
+  ) => void;
   drawerMatch?: MatchSlot;
   drawerMounted: boolean;
   drawerOpen: boolean;

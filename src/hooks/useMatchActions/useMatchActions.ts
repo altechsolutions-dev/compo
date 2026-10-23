@@ -332,8 +332,8 @@ export function useMatchActions({
     );
     if (
       !match ||
-      match.status !== "in_progress" ||
-      !match.startedAt ||
+      (match.status !== "in_progress" && match.status !== "paused") ||
+      (match.status === "in_progress" && !match.startedAt) ||
       (teamIndex !== 0 && teamIndex !== 1)
     ) {
       return;
@@ -381,17 +381,31 @@ export function useMatchActions({
     }
   }
 
-  async function switchTeam(matchId: string, playerId: string) {
+  async function swapPlayers(
+    matchId: string,
+    redPlayerId: string,
+    bluePlayerId: string,
+  ) {
     const match = matches.find((item) => item.id === matchId);
-    if (match?.status !== "in_progress" || !match.teams) return;
-    if (!match.teams.some((team) => team.includes(playerId))) return;
+    if (
+      (match?.status !== "in_progress" && match?.status !== "paused") ||
+      !match.teams
+    )
+      return;
+    if (
+      !match.teams[0].includes(redPlayerId) ||
+      !match.teams[1].includes(bluePlayerId) ||
+      redPlayerId === bluePlayerId
+    )
+      return;
 
     try {
       let nextTeams: [string[], string[]];
       if (supabase && session) {
-        const { data, error } = await supabase.rpc("switch_match_team", {
+        const { data, error } = await supabase.rpc("swap_match_teams", {
           p_match_id: matchId,
-          p_player_id: playerId,
+          p_red_player_id: redPlayerId,
+          p_blue_player_id: bluePlayerId,
         });
         if (error) throw error;
         const row = ((data ?? []) as MatchTeamsRow[])[0];
@@ -399,15 +413,11 @@ export function useMatchActions({
           throw new Error("Supabase n’a renvoyé aucune équipe mise à jour.");
         nextTeams = [row.team_a, row.team_b];
       } else {
-        const playerTeam = match.teams.findIndex((team) =>
-          team.includes(playerId),
-        );
-        if (playerTeam < 0) return;
-        const fromTeam = match.teams[playerTeam];
-        const toTeam = match.teams[playerTeam === 0 ? 1 : 0];
         nextTeams = [...match.teams] as [string[], string[]];
-        nextTeams[playerTeam] = fromTeam.filter((id) => id !== playerId);
-        nextTeams[playerTeam === 0 ? 1 : 0] = [...toTeam, playerId];
+        const redIndex = nextTeams[0].indexOf(redPlayerId);
+        const blueIndex = nextTeams[1].indexOf(bluePlayerId);
+        nextTeams[0][redIndex] = bluePlayerId;
+        nextTeams[1][blueIndex] = redPlayerId;
       }
       setMatches((current) =>
         current.map((item) =>
@@ -417,7 +427,7 @@ export function useMatchActions({
       setMatchNotice("");
     } catch (error) {
       setMatchNotice(
-        `Impossible de changer le joueur d’équipe : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+        `Impossible d’échanger les joueurs : ${error instanceof Error ? error.message : "erreur inconnue"}`,
       );
     }
   }
@@ -428,6 +438,6 @@ export function useMatchActions({
     startMatch,
     setMatchState,
     recordGoal,
-    switchTeam,
+    swapPlayers,
   };
 }

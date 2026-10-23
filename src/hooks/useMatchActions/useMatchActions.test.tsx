@@ -106,24 +106,63 @@ describe("useMatchActions", () => {
     });
   });
 
-  it("déplace un joueur dans l’autre équipe pendant un match", async () => {
+  it("échange un joueur de chaque équipe en conservant les effectifs", async () => {
     const match: MatchSlot = {
       id: "match-live",
       date: "2030-06-15",
       time: "19:30",
       venue: "Stade municipal",
-      maxPlayers: 2,
-      attendees: ["alex", "sam"],
+      maxPlayers: 4,
+      attendees: ["alex", "ava", "sam", "sasha"],
       status: "in_progress",
       startedAt: "2030-06-15T19:30:00.000Z",
-      teams: [["alex"], ["sam"]],
+      teams: [
+        ["alex", "ava"],
+        ["sam", "sasha"],
+      ],
       goals: [],
     };
     const { result, getMatches } = setup([match]);
 
-    await act(() => result.current.switchTeam("match-live", "alex"));
+    await act(() => result.current.swapPlayers("match-live", "alex", "sasha"));
 
-    expect(getMatches()[0].teams).toEqual([[], ["sam", "alex"]]);
+    expect(getMatches()[0].teams).toEqual([
+      ["sasha", "ava"],
+      ["sam", "alex"],
+    ]);
+  });
+
+  it("autorise les buts et échanges pendant la pause sans avancer le chrono", async () => {
+    const match: MatchSlot = {
+      id: "match-paused",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 4,
+      attendees: ["alex", "ava", "sam", "sasha"],
+      status: "paused",
+      elapsedSeconds: 78,
+      teams: [
+        ["alex", "ava"],
+        ["sam", "sasha"],
+      ],
+      goals: [],
+    };
+    const { result, getMatches } = setup([match]);
+
+    await act(() => result.current.recordGoal("match-paused", "alex"));
+    await act(() =>
+      result.current.swapPlayers("match-paused", "alex", "sasha"),
+    );
+
+    expect(getMatches()[0].goals?.[0]).toMatchObject({
+      scorerId: "alex",
+      elapsedSeconds: 78,
+    });
+    expect(getMatches()[0].teams).toEqual([
+      ["sasha", "ava"],
+      ["sam", "alex"],
+    ]);
   });
 
   it("met en pause, reprend puis termine un match en conservant le temps", async () => {

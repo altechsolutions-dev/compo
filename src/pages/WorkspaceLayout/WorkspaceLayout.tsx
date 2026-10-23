@@ -163,7 +163,7 @@ export function WorkspaceLayout() {
     startMatch,
     setMatchState,
     recordGoal,
-    switchTeam,
+    swapPlayers,
   } = useMatchActions({
     matches,
     setMatches,
@@ -319,7 +319,8 @@ export function WorkspaceLayout() {
     },
     onSetMatchState: (matchId, action) => void setMatchState(matchId, action),
     onRecordGoal: (matchId, scorerId) => void recordGoal(matchId, scorerId),
-    onSwitchTeam: (matchId, playerId) => void switchTeam(matchId, playerId),
+    onSwapPlayers: (matchId, redPlayerId, bluePlayerId) =>
+      void swapPlayers(matchId, redPlayerId, bluePlayerId),
     drawerMatch: selectedMatch,
     drawerMounted: matchDrawerMounted,
     drawerOpen: matchDrawerOpen,

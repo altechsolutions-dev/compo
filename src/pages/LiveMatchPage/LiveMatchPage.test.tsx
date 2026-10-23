@@ -26,9 +26,9 @@ const liveMatch: MatchSlot = {
   ],
 };
 
-function renderLivePage() {
+function renderLivePage(match: MatchSlot = liveMatch) {
   const context = {
-    allMatches: [liveMatch],
+    allMatches: [match],
     isLoadingOrganizations: false,
     organization: "Les Panthères",
     organizationId: "org-1",
@@ -39,7 +39,7 @@ function renderLivePage() {
     onRecordGoal: vi.fn(),
     onStartMatch: vi.fn(),
     onSetMatchState: vi.fn(),
-    onSwitchTeam: vi.fn(),
+    onSwapPlayers: vi.fn(),
   } as unknown as WorkspaceRouteContext;
   render(
     <MemoryRouter initialEntries={["/app/live?match=match-live"]}>
@@ -63,29 +63,89 @@ describe("LiveMatchPage", () => {
     expect(
       screen.getByRole("timer", { name: "Temps de jeu" }),
     ).toBeInTheDocument();
+    const scoreRegion = screen.getByRole("region", { name: "Score du match" });
+    const scorePanels = scoreRegion.querySelectorAll(":scope > div");
+    expect(scorePanels[0]).toHaveTextContent("ÉQUIPE BLEUE");
+    expect(scorePanels[2]).toHaveTextContent("ÉQUIPE ROUGE");
+    expect(
+      within(scoreRegion).queryByText("Lucas Martin"),
+    ).not.toBeInTheDocument();
     expect(
       within(
         screen.getByRole("list", { name: "Événements du match" }),
       ).getByText("Lucas Martin"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Valider le but")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "But !" })).toBeEnabled();
+    expect(
+      screen.queryByRole("group", { name: "Choisir le buteur" }),
+    ).not.toBeInTheDocument();
   });
 
-  it("permet de valider un but et de changer un joueur d’équipe", () => {
+  it("affiche la composition uniquement à la demande avant le coup d’envoi", () => {
+    const scheduledMatch: MatchSlot = {
+      ...liveMatch,
+      status: "scheduled",
+      startedAt: undefined,
+    };
+    renderLivePage(scheduledMatch);
+
+    expect(
+      screen.queryByRole("dialog", { name: "Composition du match" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Voir la compo" }));
+    const composition = screen.getByRole("dialog", {
+      name: "Composition du match",
+    });
+    expect(within(composition).getByText("Lucas Martin")).toBeInTheDocument();
+    expect(within(composition).getByText("Théo Bernard")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Fermer la composition" }),
+    );
+    expect(
+      screen.queryByRole("dialog", { name: "Composition du match" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Voir la compo" }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(
+      screen.queryByRole("dialog", { name: "Composition du match" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("permet de valider un but et d’échanger deux joueurs d’équipes opposées", () => {
     const { context } = renderLivePage();
 
-    fireEvent.click(screen.getByRole("button", { name: "Bleue" }));
-    fireEvent.change(screen.getByLabelText("Buteur"), {
-      target: { value: "theo" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Valider le but" }));
+    fireEvent.click(screen.getByRole("button", { name: "But !" }));
+    expect(
+      screen.getByRole("dialog", { name: "Qui a marqué ?" }),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(
+      screen.queryByRole("dialog", { name: "Qui a marqué ?" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "But !" }));
+    fireEvent.click(screen.getByRole("button", { name: "Théo Bernard" }));
     expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
+    expect(
+      screen.queryByRole("dialog", { name: "Qui a marqué ?" }),
+    ).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Joueur"), {
+    fireEvent.click(screen.getByText("Échanger deux joueurs"));
+    fireEvent.change(screen.getByLabelText("Joueur de l’équipe rouge"), {
       target: { value: "lucas" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Changer d’équipe" }));
-    expect(context.onSwitchTeam).toHaveBeenCalledWith("match-live", "lucas");
+    fireEvent.change(screen.getByLabelText("Joueur de l’équipe bleue"), {
+      target: { value: "theo" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Échanger les joueurs" }),
+    );
+    expect(context.onSwapPlayers).toHaveBeenCalledWith(
+      "match-live",
+      "lucas",
+      "theo",
+    );
   });
 
   it("propose la pause et la fin pendant le match", () => {
@@ -94,15 +154,37 @@ describe("LiveMatchPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mettre en pause" }));
     fireEvent.click(screen.getByRole("button", { name: "Siffler la fin" }));
 
-    expect(context.onSetMatchState).toHaveBeenNthCalledWith(
-      1,
-      "match-live",
-      "pause",
-    );
-    expect(context.onSetMatchState).toHaveBeenNthCalledWith(
-      2,
+    expect(context.onSetMatchState).toHaveBeenCalledWith("match-live", "pause");
+    expect(context.onSetMatchState).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Confirmer la fin" }));
+    expect(context.onSetMatchState).toHaveBeenCalledWith(
       "match-live",
       "finish",
     );
+  });
+
+  it("garde les actions de saisie disponibles pendant la pause", () => {
+    const pausedMatch: MatchSlot = {
+      ...liveMatch,
+      status: "paused",
+      startedAt: undefined,
+      elapsedSeconds: 84,
+    };
+    const { context } = renderLivePage(pausedMatch);
+
+    fireEvent.click(screen.getByRole("button", { name: "But !" }));
+    fireEvent.click(screen.getByRole("button", { name: "Théo Bernard" }));
+    expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
+
+    fireEvent.click(screen.getByText("Échanger deux joueurs"));
+    fireEvent.change(screen.getByLabelText("Joueur de l’équipe rouge"), {
+      target: { value: "lucas" },
+    });
+    fireEvent.change(screen.getByLabelText("Joueur de l’équipe bleue"), {
+      target: { value: "theo" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Échanger les joueurs" }),
+    ).toBeEnabled();
   });
 });
