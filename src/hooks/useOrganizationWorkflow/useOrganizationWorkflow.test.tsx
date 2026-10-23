@@ -182,6 +182,69 @@ describe("useOrganizationWorkflow", () => {
     expect(result.current.organizationMembers).toEqual([member]);
   });
 
+  it("conserve l’organisation dans la liste si le chargement des membres échoue après l’adhésion", async () => {
+    const joinedOrganization = {
+      organization_id: "organization-2",
+      organization_name: "Les Bleus",
+    };
+    supabaseRpc.mockImplementation((procedure: string) => {
+      if (procedure === "join_organization_by_code") {
+        return Promise.resolve({ data: [joinedOrganization], error: null });
+      }
+      if (procedure === "get_organization_members") {
+        return Promise.resolve({
+          data: null,
+          error: { message: "Members could not be loaded" },
+        });
+      }
+      return Promise.resolve({ data: [], error: null });
+    });
+    const navigate = vi.fn();
+    const setModal = vi.fn();
+    const session = { user: { id: "user-1" } } as Session;
+    const { result } = renderHook(() =>
+      useOrganizationWorkflow({
+        authLoading: false,
+        session,
+        pendingInviteCode: "",
+        setPendingInviteCode: vi.fn(),
+        setPendingCreateOrganization: vi.fn(),
+        setAuthNotice: vi.fn(),
+        setAuthMode: vi.fn(),
+        navigate,
+        setModal,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(supabaseRpc).toHaveBeenCalledWith("get_my_organizations"),
+    );
+    act(() => {
+      result.current.setJoinCode("A1B2C3D4");
+    });
+    const event = {
+      preventDefault: vi.fn(),
+    } as unknown as FormEvent<HTMLFormElement>;
+    await act(async () => {
+      await result.current.joinOrganization(event);
+    });
+
+    expect(result.current.organizationId).toBe(
+      joinedOrganization.organization_id,
+    );
+    expect(result.current.organizations).toContainEqual({
+      ...joinedOrganization,
+      invite_code: "A1B2C3D4",
+      role: "member",
+      member_count: 1,
+    });
+    expect(result.current.featureNotice).toBe("Members could not be loaded");
+    expect(navigate).not.toHaveBeenCalledWith("/app/organizations", {
+      replace: true,
+    });
+    expect(setModal).not.toHaveBeenCalledWith("joined");
+  });
+
   it("refuse une nouvelle adhésion avant le RPC si l’organisation est déjà connue", async () => {
     const organization: OrganizationSummary = {
       organization_id: "organization-1",

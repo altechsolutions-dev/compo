@@ -409,6 +409,18 @@ export function useOrganizationWorkflow({
     setOrganizationId(joined.organization_id);
     setInviteCode(code);
     setInviteOrganizationName(joined.organization_name);
+    setOrganizations((current) => [
+      {
+        organization_id: joined.organization_id,
+        organization_name: joined.organization_name,
+        invite_code: code,
+        role: "member",
+        member_count: 1,
+      },
+      ...current.filter(
+        (item) => item.organization_id !== joined.organization_id,
+      ),
+    ]);
     const { data: memberRows, error: membersError } = await supabase.rpc(
       "get_organization_members",
       { p_organization_id: joined.organization_id },
