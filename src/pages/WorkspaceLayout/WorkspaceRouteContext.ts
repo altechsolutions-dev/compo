@@ -3,6 +3,7 @@ import type { MatchSlot, OrganizationMember, Player } from "../../types";
 export type WorkspaceRouteContext = {
   organization: string;
   organizationId: string | null;
+  isLoadingOrganizations: boolean;
   matchCount: number;
   canShareInvite: boolean;
   onCreateMatch: () => void;

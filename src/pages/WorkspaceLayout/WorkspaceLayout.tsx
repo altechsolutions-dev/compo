@@ -60,6 +60,7 @@ export function WorkspaceLayout() {
     organization,
     organizationId,
     organizations,
+    isLoadingOrganizations,
     inviteCode,
     organizationMembers,
     organizationName,
@@ -238,6 +239,7 @@ export function WorkspaceLayout() {
   const routeContext: WorkspaceRouteContext = {
     organization,
     organizationId,
+    isLoadingOrganizations,
     matchCount: visibleMatches.length,
     canShareInvite: Boolean(organizationId && inviteCode),
     onCreateMatch: () => {

@@ -57,6 +57,9 @@ export function useOrganizationWorkflow({
   );
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
+  const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(
+    Boolean(supabase),
+  );
   const [inviteCode, setInviteCode] = useState("");
   const [organizationMembers, setOrganizationMembers] = useState(() =>
     supabase ? [] : readOrganizationMembers(),
@@ -82,8 +85,13 @@ export function useOrganizationWorkflow({
 
   useEffect(() => {
     const client = supabase;
-    if (!client || authLoading || !sessionUserId) return;
+    if (!client || authLoading) return;
+    if (!sessionUserId) {
+      setIsLoadingOrganizations(false);
+      return;
+    }
     let cancelled = false;
+    setIsLoadingOrganizations(true);
 
     void deduplicateOrganizationRequest(`organizations:${sessionUserId}`, () =>
       client.rpc("get_my_organizations"),
@@ -93,6 +101,7 @@ export function useOrganizationWorkflow({
         setFeatureNotice(
           `Impossible de charger les organisations : ${error.message}`,
         );
+        setIsLoadingOrganizations(false);
         return;
       }
 
@@ -104,6 +113,7 @@ export function useOrganizationWorkflow({
         setOrganizationId(null);
         setInviteCode("");
         setOrganizationMembers([]);
+        setIsLoadingOrganizations(false);
         return;
       }
 
@@ -121,9 +131,11 @@ export function useOrganizationWorkflow({
       if (cancelled) return;
       if (membersError) {
         setFeatureNotice(membersError.message);
+        setIsLoadingOrganizations(false);
         return;
       }
       setOrganizationMembers((memberRows ?? []) as OrganizationMember[]);
+      setIsLoadingOrganizations(false);
     });
 
     return () => {
@@ -488,6 +500,7 @@ export function useOrganizationWorkflow({
     organization,
     organizationId,
     organizations,
+    isLoadingOrganizations,
     inviteCode,
     organizationMembers,
     organizationName,

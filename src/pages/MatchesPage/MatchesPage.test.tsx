@@ -5,6 +5,33 @@ import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteCon
 import { MatchesPage } from "./MatchesPage";
 
 describe("MatchesPage sans organisation", () => {
+  it("n’affiche pas l’invitation pendant le chargement des organisations", () => {
+    const context = {
+      organization: "",
+      organizationId: null,
+      isLoadingOrganizations: true,
+    } as unknown as WorkspaceRouteContext;
+
+    render(
+      <MemoryRouter initialEntries={["/app/matches"]}>
+        <Routes>
+          <Route path="/app" element={<Outlet context={context} />}>
+            <Route path="matches" element={<MatchesPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Chargement de votre organisation",
+    );
+    expect(
+      screen.queryByRole("heading", {
+        name: "Rejoins une organisation pour accéder aux matchs",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it("invite le joueur à rejoindre une organisation avec un code", () => {
     const onJoinWithCode = vi.fn();
     const context = {

@@ -5,6 +5,33 @@ import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteCon
 import { OrganizationPage } from "./OrganizationPage";
 
 describe("OrganizationPage sans organisation", () => {
+  it("n’affiche pas l’invitation pendant le chargement des organisations", () => {
+    const context = {
+      organization: "",
+      organizationId: null,
+      isLoadingOrganizations: true,
+    } as unknown as WorkspaceRouteContext;
+
+    render(
+      <MemoryRouter initialEntries={["/app/organizations"]}>
+        <Routes>
+          <Route path="/app" element={<Outlet context={context} />}>
+            <Route path="organizations" element={<OrganizationPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Chargement de votre organisation",
+    );
+    expect(
+      screen.queryByRole("heading", {
+        name: "Rejoins une organisation pour accéder aux matchs",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it("affiche l’invitation à rejoindre une organisation", () => {
     const onJoinWithCode = vi.fn();
     const context = {

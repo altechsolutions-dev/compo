@@ -9,6 +9,7 @@ export function MatchesPage() {
   const {
     organization,
     organizationId,
+    isLoadingOrganizations,
     matchCount,
     onCreateMatch,
     matches,
@@ -28,6 +29,17 @@ export function MatchesPage() {
     onCloseDrawer,
     onJoinWithCode,
   } = useOutletContext<WorkspaceRouteContext>();
+
+  if (isLoadingOrganizations) {
+    return (
+      <section
+        className="grid min-h-80 place-items-center border-b border-(--line) px-6 py-16 text-center text-sm text-(--text-secondary)"
+        role="status"
+      >
+        Chargement de votre organisation…
+      </section>
+    );
+  }
 
   if (!organizationId && !organization.trim()) {
     return <OrganizationRequired onJoinWithCode={onJoinWithCode} />;
