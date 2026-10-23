@@ -26,6 +26,16 @@ vi.mock("../pages/OrganizationPage/OrganizationPage", () => ({
   OrganizationPage: () => <div>Organisations</div>,
 }));
 
+function LoginLocation() {
+  const location = useLocation();
+  return (
+    <output data-testid="login-location">
+      {location.pathname}
+      {location.search}
+    </output>
+  );
+}
+
 describe("AppRouter", () => {
   it("conserve le code d’invitation lors de la redirection d’une session active", async () => {
     render(
@@ -43,6 +53,26 @@ describe("AppRouter", () => {
     await waitFor(() => {
       expect(screen.getByTestId("location")).toHaveTextContent(
         "/app/matches?invite=ABC123",
+      );
+    });
+  });
+
+  it("conserve le code d’invitation lorsque la garde renvoie vers la connexion", async () => {
+    render(
+      <MemoryRouter initialEntries={["/app/matches?invite=ABC123"]}>
+        <AppRouter
+          authLoading={false}
+          isConnected={false}
+          hasSupabase
+          loginPage={<LoginLocation />}
+          consentPage={null}
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("login-location")).toHaveTextContent(
+        "/?invite=ABC123",
       );
     });
   });

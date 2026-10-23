@@ -59,7 +59,7 @@ export function AppRouter({
           ) : isConnected ? (
             <WorkspaceLayout />
           ) : (
-            <Navigate to="/" replace />
+            <Navigate to={`/${location.search}`} replace />
           )
         }
       >
