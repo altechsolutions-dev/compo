@@ -6,6 +6,10 @@ import {
   initialAuthCallbackMessage,
   supabase,
 } from "../../lib/supabase/supabase";
+import {
+  readPendingInviteCode,
+  storePendingInviteCode,
+} from "../../lib/pendingInvite/pendingInvite";
 import type { AuthMode } from "../../types";
 
 export function getAuthenticatedDestination(
@@ -25,6 +29,10 @@ export function useAuth() {
   const navigate = useNavigate();
   const locationRef = useRef(location);
   const handledCreateIntent = useRef(false);
+  const inviteFromLocation =
+    new URLSearchParams(location.search).get("invite")?.trim() ?? "";
+  const initialPendingInviteCode =
+    inviteFromLocation || readPendingInviteCode();
 
   locationRef.current = location;
 
@@ -37,7 +45,7 @@ export function useAuth() {
   const [authNotice, setAuthNotice] = useState(
     () =>
       initialAuthCallbackMessage ||
-      (new URLSearchParams(location.search).has("invite")
+      (initialPendingInviteCode
         ? "Connectez-vous ou créez un compte pour rejoindre l’organisation."
         : location.pathname === "/oauth/consent" &&
             new URLSearchParams(location.search).has("authorization_id")
@@ -56,8 +64,32 @@ export function useAuth() {
   const [createOrganizationIntentReady, setCreateOrganizationIntentReady] =
     useState(false);
   const [pendingInviteCode, setPendingInviteCode] = useState(
-    () => new URLSearchParams(location.search).get("invite")?.trim() ?? "",
+    () => initialPendingInviteCode,
   );
+
+  useEffect(() => {
+    if (!pendingInviteCode) {
+      storePendingInviteCode("");
+      return;
+    }
+
+    storePendingInviteCode(pendingInviteCode);
+    const currentLocation = locationRef.current;
+    const search = new URLSearchParams(currentLocation.search);
+    if (search.get("invite")?.trim() === pendingInviteCode) return;
+
+    search.set("invite", pendingInviteCode);
+    navigate(
+      `${currentLocation.pathname}?${search.toString()}${currentLocation.hash}`,
+      { replace: true },
+    );
+  }, [
+    location.hash,
+    location.pathname,
+    location.search,
+    navigate,
+    pendingInviteCode,
+  ]);
 
   useEffect(() => {
     if (!initialAuthCallbackMessage) return;
@@ -159,6 +191,7 @@ export function useAuth() {
 
     setAuthSubmitting(true);
     setAuthNotice("");
+    storePendingInviteCode(pendingInviteCode);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -213,6 +246,7 @@ export function useAuth() {
 
     setAuthSubmitting(true);
     setAuthNotice("");
+    storePendingInviteCode(pendingInviteCode);
     try {
       if (authMode === "recovery") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
