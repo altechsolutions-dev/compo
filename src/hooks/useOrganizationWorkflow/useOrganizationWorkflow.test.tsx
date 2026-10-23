@@ -420,6 +420,7 @@ describe("useOrganizationWorkflow", () => {
     await waitFor(() =>
       expect(result.current.organizationMembers).toEqual([member]),
     );
+
     let didLeave = true;
     await act(async () => {
       didLeave = await result.current.leaveOrganization();
@@ -432,6 +433,53 @@ describe("useOrganizationWorkflow", () => {
       "Organization membership required",
     );
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("affiche un message français quand le code d’invitation est inconnu", async () => {
+    supabaseRpc.mockImplementation((procedure: string) => {
+      if (procedure === "join_organization_by_code") {
+        return Promise.resolve({
+          data: null,
+          error: { message: "Invitation code not found" },
+        });
+      }
+      return Promise.resolve({ data: [], error: null });
+    });
+    const session = { user: { id: "user-1" } } as Session;
+    const navigate = vi.fn();
+    const setModal = vi.fn();
+    const { result } = renderHook(() =>
+      useOrganizationWorkflow({
+        authLoading: false,
+        session,
+        pendingInviteCode: "",
+        setPendingInviteCode: vi.fn(),
+        setPendingCreateOrganization: vi.fn(),
+        setAuthNotice: vi.fn(),
+        setAuthMode: vi.fn(),
+        navigate,
+        setModal,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(supabaseRpc).toHaveBeenCalledWith("get_my_organizations"),
+    );
+    act(() => {
+      result.current.setJoinCode("BADCODE");
+    });
+    const event = {
+      preventDefault: vi.fn(),
+    } as unknown as FormEvent<HTMLFormElement>;
+    await act(async () => {
+      await result.current.joinOrganization(event);
+    });
+
+    expect(result.current.featureNotice).toBe(
+      "Ce code d’invitation est introuvable. Vérifiez-le puis réessayez.",
+    );
+    expect(navigate).not.toHaveBeenCalled();
+    expect(setModal).not.toHaveBeenCalled();
   });
 
   it("retire un membre via le RPC et actualise l’effectif", async () => {

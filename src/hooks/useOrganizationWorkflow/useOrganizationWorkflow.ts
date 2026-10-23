@@ -409,10 +409,15 @@ export function useOrganizationWorkflow({
       const isAlreadyMember = error?.message.includes(
         "You are already a member of this organization",
       );
+      const isInvalidCode = error?.message.includes(
+        "Invitation code not found",
+      );
       setFeatureNotice(
         isAlreadyMember
           ? "Vous faites déjà partie de cette organisation."
-          : (error?.message ?? "Code d’invitation introuvable."),
+          : isInvalidCode || !error
+            ? "Ce code d’invitation est introuvable. Vérifiez-le puis réessayez."
+            : error.message,
       );
       return;
     }
