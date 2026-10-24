@@ -18,10 +18,6 @@
     transform: translateX(0);
   }
 
-  .match-drawer-line {
-    border-color: color-mix(in srgb, var(--text-primary) 15%, transparent);
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .match-drawer-backdrop,
     .match-drawer-panel {

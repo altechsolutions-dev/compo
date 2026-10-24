@@ -1,4 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type RefObject,
+} from "react";
 import {
   ArrowRightLeft,
   CalendarDays,
@@ -14,6 +21,8 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useOutletContext, useSearchParams } from "react-router-dom";
+import { Drawer } from "../../components/Drawer/Drawer";
+import { renderLiveMatchComposition } from "../../components/LiveMatchComposition/renderLiveMatchComposition";
 import { OrganizationRequired } from "../../components/OrganizationRequired/OrganizationRequired";
 import type { MatchGoal, MatchSlot } from "../../types";
 import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteContext";
@@ -48,6 +57,66 @@ function countGoals(goals: MatchGoal[], team: 0 | 1) {
 
 function matchLabel(match: MatchSlot) {
   return `${match.venue.split("·")[0].trim()} · ${match.time}`;
+}
+
+function useDialogAccessibility(
+  open: boolean,
+  dialogRef: RefObject<HTMLElement | null>,
+  triggerRef: RefObject<HTMLElement | null>,
+) {
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!open || !dialog) return;
+
+    const previousFocus =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const returnFocusTarget = triggerRef.current ?? previousFocus;
+    const previousOverflow = document.body.style.overflow;
+    const focusableSelector =
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const getFocusableElements = () =>
+      Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector));
+    const focusWithoutScrolling = (element: HTMLElement) =>
+      element.focus({ preventScroll: true });
+
+    document.body.style.overflow = "hidden";
+    focusWithoutScrolling(getFocusableElements()[0] ?? dialog);
+
+    const keepFocusInside = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const focusableElements = getFocusableElements();
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+      if (!first || !last) {
+        event.preventDefault();
+        focusWithoutScrolling(dialog);
+      } else if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          !dialog.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        focusWithoutScrolling(last);
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          !dialog.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        focusWithoutScrolling(first);
+      }
+    };
+
+    document.addEventListener("keydown", keepFocusInside, true);
+    return () => {
+      document.removeEventListener("keydown", keepFocusInside, true);
+      document.body.style.overflow = previousOverflow;
+      if (returnFocusTarget?.isConnected)
+        focusWithoutScrolling(returnFocusTarget);
+    };
+  }, [dialogRef, open, triggerRef]);
 }
 
 export function LiveMatchPage({
@@ -97,9 +166,45 @@ export function LiveMatchPage({
   );
   const [goalPickerOpen, setGoalPickerOpen] = useState(false);
   const [compositionOpen, setCompositionOpen] = useState(false);
+  const [compositionMounted, setCompositionMounted] = useState(false);
   const [redPlayerToSwap, setRedPlayerToSwap] = useState("");
   const [bluePlayerToSwap, setBluePlayerToSwap] = useState("");
   const [confirmFinish, setConfirmFinish] = useState(false);
+  const compositionDialogRef = useRef<HTMLElement | null>(null);
+  const goalDialogRef = useRef<HTMLElement | null>(null);
+  const finishDialogRef = useRef<HTMLElement | null>(null);
+  const compositionTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const goalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const finishTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const compositionCloseTimerRef = useRef<number | null>(null);
+
+  const openComposition = useCallback(() => {
+    if (compositionCloseTimerRef.current !== null) {
+      window.clearTimeout(compositionCloseTimerRef.current);
+      compositionCloseTimerRef.current = null;
+    }
+    setCompositionMounted(true);
+    requestAnimationFrame(() => setCompositionOpen(true));
+  }, []);
+
+  const closeComposition = useCallback(() => {
+    setCompositionOpen(false);
+    if (compositionCloseTimerRef.current !== null) {
+      window.clearTimeout(compositionCloseTimerRef.current);
+    }
+    compositionCloseTimerRef.current = window.setTimeout(() => {
+      setCompositionMounted(false);
+      compositionCloseTimerRef.current = null;
+    }, 260);
+  }, []);
+
+  useDialogAccessibility(
+    compositionOpen,
+    compositionDialogRef,
+    compositionTriggerRef,
+  );
+  useDialogAccessibility(goalPickerOpen, goalDialogRef, goalTriggerRef);
+  useDialogAccessibility(confirmFinish, finishDialogRef, finishTriggerRef);
 
   useEffect(() => {
     const updateClock = () =>
@@ -116,14 +221,14 @@ export function LiveMatchPage({
     return () => window.clearInterval(timer);
   }, [isLive, matchElapsedSeconds, match?.startedAt, match?.status]);
 
-  useEffect(() => {
-    if (!compositionOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setCompositionOpen(false);
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [compositionOpen]);
+  useEffect(
+    () => () => {
+      if (compositionCloseTimerRef.current !== null) {
+        window.clearTimeout(compositionCloseTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!goalPickerOpen) return;
@@ -133,6 +238,15 @@ export function LiveMatchPage({
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [goalPickerOpen]);
+
+  useEffect(() => {
+    if (!confirmFinish) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setConfirmFinish(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [confirmFinish]);
 
   if (!context) return null;
 
@@ -238,7 +352,8 @@ export function LiveMatchPage({
               aria-expanded={compositionOpen}
               aria-controls="match-composition-drawer"
               className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-4 text-xs font-bold text-(--text-primary) transition hover:brightness-110"
-              onClick={() => setCompositionOpen(true)}
+              onClick={openComposition}
+              ref={compositionTriggerRef}
               type="button"
             >
               <Eye aria-hidden="true" size={15} /> Voir la compo
@@ -272,6 +387,7 @@ export function LiveMatchPage({
             <button
               className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-(--team-a-red)/40 bg-(--team-a-red)/10 px-4 text-xs font-bold text-(--team-a-red) transition hover:brightness-110"
               onClick={() => setConfirmFinish(true)}
+              ref={finishTriggerRef}
               type="button"
             >
               <Flag aria-hidden="true" size={14} /> Siffler la fin
@@ -292,7 +408,9 @@ export function LiveMatchPage({
               aria-modal="true"
               className="w-full rounded-none border-x-0 border-y border-(--line) bg-(--bg-surface) p-5 shadow-xl sm:max-w-sm sm:rounded-lg sm:border-x"
               onClick={(event) => event.stopPropagation()}
+              ref={finishDialogRef}
               role="alertdialog"
+              tabIndex={-1}
             >
               <h2 className="m-0 text-lg font-bold" id="finish-match-title">
                 Siffler la fin du match ?
@@ -340,7 +458,9 @@ export function LiveMatchPage({
               className="my-auto w-full rounded-none border-x-0 border-y border-(--line) bg-(--bg-surface) p-4 text-(--text-primary) shadow-xl sm:max-w-xl sm:rounded-lg sm:border-x sm:p-6"
               id="goal-scorer-picker"
               onMouseDown={(event) => event.stopPropagation()}
+              ref={goalDialogRef}
               role="dialog"
+              tabIndex={-1}
             >
               <div className="mb-4 flex items-center justify-between gap-3 border-b border-(--line) pb-4">
                 <div>
@@ -454,79 +574,24 @@ export function LiveMatchPage({
         </div>
       </section>
 
-      {isScheduled &&
-        createPortal(
-          <div
-            aria-hidden={!compositionOpen}
-            className={`fixed inset-0 z-50 flex justify-end overflow-hidden bg-black/70 transition-opacity duration-300 ease-out motion-reduce:transition-none ${compositionOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
-            inert={!compositionOpen}
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget)
-                setCompositionOpen(false);
-            }}
-            role="presentation"
-          >
-            <aside
-              aria-labelledby="match-composition-title"
-              aria-modal="true"
-              className={`h-full w-full max-w-140 overflow-y-auto border-l border-(--line) bg-(--bg-main) p-5 text-(--text-primary) shadow-[-18px_0_48px_#0005] transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] max-[600px]:max-w-full max-[600px]:border-l-0 motion-reduce:transition-none sm:p-8 ${compositionOpen ? "translate-x-0" : "translate-x-full"}`}
-              id="match-composition-drawer"
-              onMouseDown={(event) => event.stopPropagation()}
-              role="dialog"
-            >
-              <div className="mb-7 flex items-center justify-between gap-4 border-b border-(--line) pb-4">
-                <div>
-                  <p className="mb-1 text-[9px] font-bold tracking-[1.5px] text-(--text-secondary)">
-                    AVANT LE COUP D’ENVOI
-                  </p>
-                  <h2
-                    className="m-0 text-xl font-bold"
-                    id="match-composition-title"
-                  >
-                    Composition du match
-                  </h2>
-                </div>
-                <button
-                  aria-label="Fermer la composition"
-                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-surface) text-(--text-primary)"
-                  onClick={() => setCompositionOpen(false)}
-                  type="button"
-                >
-                  <X aria-hidden="true" size={18} />
-                </button>
-              </div>
-              <div className="grid gap-4">
-                {teams.map((teamPlayers, teamIndex) => {
-                  const isRedTeam = teamIndex === 0;
-                  return (
-                    <section
-                      aria-label={`Équipe ${isRedTeam ? "rouge" : "bleue"}`}
-                      className={`rounded-md border p-4 ${isRedTeam ? "border-(--team-a-red)/25 bg-(--team-a-red)/5" : "border-(--team-b-blue)/25 bg-(--team-b-blue)/5"}`}
-                      key={teamIndex}
-                    >
-                      <h3
-                        className={`mb-3 mt-0 text-sm font-bold uppercase ${isRedTeam ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
-                      >
-                        Équipe {isRedTeam ? "rouge" : "bleue"}
-                      </h3>
-                      <ul className="m-0 grid list-none gap-1 p-0 text-sm text-(--text-primary)">
-                        {teamPlayers.map((id) => (
-                          <li
-                            className="border-t border-(--line) py-3"
-                            key={id}
-                          >
-                            {context.playerNames[id] ?? "Joueur"}
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  );
-                })}
-              </div>
-            </aside>
-          </div>,
-          document.body,
-        )}
+      {isScheduled && compositionMounted && (
+        <Drawer
+          mounted={compositionMounted}
+          open={compositionOpen}
+          onClose={closeComposition}
+          labelledBy="match-composition-title"
+          panelId="match-composition-drawer"
+          panelRef={compositionDialogRef}
+          backdropClassName="z-50 overflow-hidden"
+          panelClassName="h-full w-full max-w-180 overflow-y-auto border-l border-(--line) bg-(--bg-main) p-8 text-(--text-primary) shadow-[-18px_0_48px_#0005] max-[600px]:max-w-full max-[600px]:border-l-0 max-[600px]:p-5"
+        >
+          {renderLiveMatchComposition({
+            teams,
+            playerNames: context.playerNames,
+            onClose: closeComposition,
+          })}
+        </Drawer>
+      )}
 
       <div className="mt-3 flex items-center justify-between text-[10px] text-(--text-secondary)">
         <span>{match.attendees.length} joueurs confirmés</span>
@@ -609,6 +674,7 @@ export function LiveMatchPage({
               className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-md border-0 bg-(--team-b-blue) px-3 text-base font-extrabold text-(--bg-main) disabled:cursor-not-allowed disabled:opacity-40"
               disabled={!canRecordActions}
               onClick={() => setGoalPickerOpen(true)}
+              ref={goalTriggerRef}
               type="button"
             >
               <Goal aria-hidden="true" size={20} /> But !

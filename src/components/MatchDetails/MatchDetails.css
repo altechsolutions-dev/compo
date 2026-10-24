@@ -1,0 +1,5 @@
+@layer components {
+  .match-drawer-line {
+    border-color: color-mix(in srgb, var(--text-primary) 15%, transparent);
+  }
+}

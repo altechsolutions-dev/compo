@@ -81,7 +81,7 @@ describe("LiveMatchPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("affiche la composition uniquement à la demande avant le coup d’envoi", () => {
+  it("affiche la composition uniquement à la demande avant le coup d’envoi", async () => {
     const scheduledMatch: MatchSlot = {
       ...liveMatch,
       status: "scheduled",
@@ -92,10 +92,24 @@ describe("LiveMatchPage", () => {
     expect(
       screen.queryByRole("dialog", { name: "Composition du match" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Voir la compo" }));
-    const composition = screen.getByRole("dialog", {
+    const openComposition = screen.getByRole("button", {
+      name: "Voir la compo",
+    });
+    const focusSpy = vi.spyOn(HTMLElement.prototype, "focus");
+    fireEvent.click(openComposition);
+    const composition = await screen.findByRole("dialog", {
       name: "Composition du match",
     });
+    expect(
+      screen.getByRole("button", { name: "Fermer la composition" }),
+    ).toHaveFocus();
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+    focusSpy.mockRestore();
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.getElementById("match-composition-drawer")).toHaveClass(
+      "match-drawer-panel",
+      "is-open",
+    );
     expect(within(composition).getByText("Lucas Martin")).toBeInTheDocument();
     expect(within(composition).getByText("Théo Bernard")).toBeInTheDocument();
 
@@ -105,8 +119,14 @@ describe("LiveMatchPage", () => {
     expect(
       screen.queryByRole("dialog", { name: "Composition du match" }),
     ).not.toBeInTheDocument();
+    expect(openComposition).toHaveFocus();
+    expect(document.body.style.overflow).toBe("");
+    expect(document.getElementById("match-composition-drawer")).not.toHaveClass(
+      "is-open",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Voir la compo" }));
+    await screen.findByRole("dialog", { name: "Composition du match" });
     fireEvent.keyDown(window, { key: "Escape" });
     expect(
       screen.queryByRole("dialog", { name: "Composition du match" }),
@@ -116,14 +136,27 @@ describe("LiveMatchPage", () => {
   it("permet de valider un but et d’échanger deux joueurs d’équipes opposées", () => {
     const { context } = renderLivePage();
 
-    fireEvent.click(screen.getByRole("button", { name: "But !" }));
+    const openGoalPicker = screen.getByRole("button", { name: "But !" });
+    fireEvent.click(openGoalPicker);
     expect(
       screen.getByRole("dialog", { name: "Qui a marqué ?" }),
     ).toBeInTheDocument();
+    const cancelGoal = screen.getByRole("button", {
+      name: "Annuler la saisie du but",
+    });
+    expect(cancelGoal).toHaveFocus();
+    expect(document.body.style.overflow).toBe("hidden");
+    screen.getByRole("button", { name: "Théo Bernard" }).focus();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Théo Bernard" }), {
+      key: "Tab",
+    });
+    expect(cancelGoal).toHaveFocus();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(
       screen.queryByRole("dialog", { name: "Qui a marqué ?" }),
     ).not.toBeInTheDocument();
+    expect(openGoalPicker).toHaveFocus();
+    expect(document.body.style.overflow).toBe("");
     fireEvent.click(screen.getByRole("button", { name: "But !" }));
     fireEvent.click(screen.getByRole("button", { name: "Théo Bernard" }));
     expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
@@ -152,7 +185,23 @@ describe("LiveMatchPage", () => {
     const { context } = renderLivePage();
 
     fireEvent.click(screen.getByRole("button", { name: "Mettre en pause" }));
-    fireEvent.click(screen.getByRole("button", { name: "Siffler la fin" }));
+    const openFinishDialog = screen.getByRole("button", {
+      name: "Siffler la fin",
+    });
+    fireEvent.click(openFinishDialog);
+    expect(
+      screen.getByRole("button", { name: "Continuer le match" }),
+    ).toHaveFocus();
+    expect(document.body.style.overflow).toBe("hidden");
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(
+      screen.queryByRole("alertdialog", {
+        name: "Siffler la fin du match ?",
+      }),
+    ).not.toBeInTheDocument();
+    expect(openFinishDialog).toHaveFocus();
+    expect(document.body.style.overflow).toBe("");
+    fireEvent.click(openFinishDialog);
 
     expect(context.onSetMatchState).toHaveBeenCalledWith("match-live", "pause");
     expect(context.onSetMatchState).toHaveBeenCalledTimes(1);

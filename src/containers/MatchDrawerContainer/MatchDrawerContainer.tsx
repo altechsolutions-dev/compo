@@ -1,4 +1,5 @@
-import { MatchDrawer } from "../../components/MatchDrawer/MatchDrawer";
+import { Drawer } from "../../components/Drawer/Drawer";
+import { renderMatchDetailsContent } from "../../components/MatchDetails/matchDetailsContent";
 import type { MatchSlot } from "../../types";
 import "./MatchDrawerContainer.css";
 
@@ -37,20 +38,26 @@ export function MatchDrawerContainer({
 
   return (
     <div className="match-drawer-container">
-      <MatchDrawer
-        match={match}
+      <Drawer
         mounted={mounted}
         open={open}
-        isFull={isFull}
-        isRegistered={match.attendees.includes(currentAttendeeId)}
-        isRegistering={isRegistering}
-        teams={teams}
-        playerNames={playerNames}
         onClose={onClose}
-        onRegister={() => onRegister(match.id)}
-        onStartMatch={(nextTeams) => onStartMatch(match.id, nextTeams)}
-        onRecordGoal={(scorerId) => onRecordGoal(match.id, scorerId)}
-      />
+        labelledBy="match-drawer-title"
+        panelClassName="h-full w-full max-w-180 overflow-y-auto border-l border-(--line) bg-(--bg-main) p-8 text-(--text-primary) shadow-[-18px_0_48px_#0005] max-[600px]:max-w-full max-[600px]:border-l-0 max-[600px]:p-5 [&>h2]:mb-2.25 [&>h2]:font-sans [&>h2]:text-2xl [&>h2]:font-normal [&>h2_span]:text-[#9bb5a4]"
+      >
+        {renderMatchDetailsContent({
+          match,
+          isFull,
+          isRegistered: match.attendees.includes(currentAttendeeId),
+          isRegistering,
+          teams,
+          playerNames,
+          onClose,
+          onRegister: () => onRegister(match.id),
+          onStartMatch: (nextTeams) => onStartMatch(match.id, nextTeams),
+          onRecordGoal: (scorerId) => onRecordGoal(match.id, scorerId),
+        })}
+      </Drawer>
     </div>
   );
 }
