@@ -509,8 +509,8 @@ export function LiveMatchPage({
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                {teams.map((teamPlayers, teamIndex) => {
-                  const team = teamIndex as 0 | 1;
+                {([1, 0] as const).map((team) => {
+                  const teamPlayers = teams[team];
                   const isRedTeam = team === 0;
                   return (
                     <section

@@ -83,25 +83,9 @@ export function renderMatchDetailsContent({
 
         <section
           aria-label="Résultat final"
-          className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-y border-(--line) py-5 text-center"
+          className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-y border-(--line) text-center"
         >
-          <div>
-            <p className="mb-1 text-[9px] font-bold uppercase text-(--team-a-red)">
-              Équipe rouge
-            </p>
-            <strong className="font-mono text-4xl tabular-nums text-(--team-a-red)">
-              {score[0]}
-            </strong>
-          </div>
-          <div>
-            <p className="mb-1 text-[9px] font-bold uppercase text-(--text-secondary)">
-              Chrono
-            </p>
-            <strong className="font-mono text-lg tabular-nums text-(--text-primary)">
-              {formatElapsedTime(match.elapsedSeconds ?? 0)}
-            </strong>
-          </div>
-          <div>
+          <div className="flex flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-2 py-4">
             <p className="mb-1 text-[9px] font-bold uppercase text-(--team-b-blue)">
               Équipe bleue
             </p>
@@ -109,11 +93,27 @@ export function renderMatchDetailsContent({
               {score[1]}
             </strong>
           </div>
+          <div className="flex flex-col items-center justify-center border-x border-(--line) px-2 py-4">
+            <p className="mb-1 text-[9px] font-bold uppercase text-(--text-secondary)">
+              Chrono
+            </p>
+            <strong className="font-mono text-lg tabular-nums text-(--text-primary)">
+              {formatElapsedTime(match.elapsedSeconds ?? 0)}
+            </strong>
+          </div>
+          <div className="flex flex-col justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-2 py-4">
+            <p className="mb-1 text-[9px] font-bold uppercase text-(--team-a-red)">
+              Équipe rouge
+            </p>
+            <strong className="font-mono text-4xl tabular-nums text-(--team-a-red)">
+              {score[0]}
+            </strong>
+          </div>
         </section>
 
         <section
           aria-label="Distinctions du match"
-          className="mt-6 grid gap-x-10 gap-y-5 border-y border-(--line) py-5 sm:grid-cols-2"
+          className="mt-6 grid gap-x-10 gap-y-5 py-2 sm:grid-cols-2"
         >
           <div className="min-w-0">
             <h3 className="mb-2 text-sm font-bold text-(--text-primary)">
@@ -137,9 +137,6 @@ export function renderMatchDetailsContent({
                 >
                   Vote en cours · {manOfTheMatchPoll.voteCount}/
                   {manOfTheMatchPoll.eligibleVoterCount} votes
-                </p>
-                <p className="-mt-2 mb-3 text-[10px] text-(--text-secondary)">
-                  Clôture après 48 h si au moins 3 votes.
                 </p>
                 <div className="grid gap-1.5">
                   {match.attendees.map((candidateId) => {
@@ -222,7 +219,10 @@ export function renderMatchDetailsContent({
           </div>
         </section>
 
-        <section className="mt-6" aria-labelledby="finished-scorers-title">
+        <section
+          className="mt-6 border-t border-(--line) pt-5"
+          aria-labelledby="finished-scorers-title"
+        >
           <h3
             className="mb-4 text-sm font-bold text-(--text-primary)"
             id="finished-scorers-title"
@@ -230,14 +230,14 @@ export function renderMatchDetailsContent({
             Buteurs
           </h3>
           <div className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
-            {([0, 1] as const).map((team) => {
+            {([1, 0] as const).map((team) => {
               const teamGoals = goals.filter((goal) => goal.team === team);
               const teamLabel = team === 0 ? "rouge" : "bleue";
 
               return (
                 <section
                   aria-label={`Buteurs de l'équipe ${teamLabel}`}
-                  className="min-w-0 border-t border-(--line) pt-3"
+                  className="min-w-0"
                   key={team}
                 >
                   <h4
@@ -248,7 +248,7 @@ export function renderMatchDetailsContent({
                   {teamGoals.length ? (
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
-                        <tr className="border-b border-(--line) text-[9px] uppercase text-(--text-secondary)">
+                        <tr className="text-[9px] uppercase text-(--text-secondary)">
                           <th className="py-2 font-semibold">Buteur</th>
                           <th className="py-2 text-right font-semibold">
                             Minute
@@ -257,10 +257,7 @@ export function renderMatchDetailsContent({
                       </thead>
                       <tbody>
                         {teamGoals.map((goal) => (
-                          <tr
-                            className="border-b border-(--line)"
-                            key={goal.id}
-                          >
+                          <tr key={goal.id}>
                             <td className="py-2.5 text-(--text-primary)">
                               {playerNames[goal.scorerId] ?? "Joueur"}
                             </td>
@@ -293,14 +290,14 @@ export function renderMatchDetailsContent({
             Composition
           </h3>
           <div className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
-            {([0, 1] as const).map((team) => {
+            {([1, 0] as const).map((team) => {
               const teamLabel = team === 0 ? "rouge" : "bleue";
               const teamPlayers = teams?.[team] ?? match.teams?.[team] ?? [];
 
               return (
                 <section
                   aria-label={`Composition de l'équipe ${teamLabel}`}
-                  className="min-w-0 border-t border-(--line) pt-3"
+                  className="min-w-0"
                   key={team}
                 >
                   <h4

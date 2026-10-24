@@ -162,16 +162,20 @@ describe("LiveMatchPage", () => {
 
     const openGoalPicker = screen.getByRole("button", { name: "But !" });
     fireEvent.click(openGoalPicker);
+    const goalDialog = screen.getByRole("dialog", { name: "Qui a marqué ?" });
+    expect(goalDialog).toBeInTheDocument();
     expect(
-      screen.getByRole("dialog", { name: "Qui a marqué ?" }),
-    ).toBeInTheDocument();
+      within(goalDialog)
+        .getAllByRole("region")
+        .map((teamRegion) => teamRegion.getAttribute("aria-label")),
+    ).toEqual(["Équipe bleue", "Équipe rouge"]);
     const cancelGoal = screen.getByRole("button", {
       name: "Annuler la saisie du but",
     });
     expect(cancelGoal).toHaveFocus();
     expect(document.body.style.overflow).toBe("hidden");
-    screen.getByRole("button", { name: "Théo Bernard" }).focus();
-    fireEvent.keyDown(screen.getByRole("button", { name: "Théo Bernard" }), {
+    screen.getByRole("button", { name: "Lucas Martin" }).focus();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Lucas Martin" }), {
       key: "Tab",
     });
     expect(cancelGoal).toHaveFocus();
