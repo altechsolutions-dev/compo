@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ModalManager } from "../../components/ModalManager/ModalManager";
 import { useMatchActions } from "../../hooks/useMatchActions/useMatchActions";
 import { useMatches } from "../../hooks/useMatches/useMatches";
@@ -12,7 +12,11 @@ import { composeMatchTeams } from "../../lib/composeMatchTeams/composeMatchTeams
 import { playerRating } from "../../lib/playerRating/playerRating";
 import { dateAfter } from "../../data/dateAfter/dateAfter";
 import { players } from "../../data/players/players";
-import type { DialogKind, OrganizationPlayerStats } from "../../types";
+import type {
+  DialogKind,
+  MatchManOfTheMatchPoll,
+  OrganizationPlayerStats,
+} from "../../types";
 
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -20,10 +24,17 @@ type InstallPromptEvent = Event & {
 };
 
 export function WorkspaceLayout() {
+  const location = useLocation();
   const navigate = useNavigate();
   const auth = useAuthContext();
   const [playerStats, setPlayerStats] = useState<OrganizationPlayerStats[]>([]);
   const [playerStatsNotice, setPlayerStatsNotice] = useState("");
+  const [manOfTheMatchPoll, setManOfTheMatchPoll] =
+    useState<MatchManOfTheMatchPoll | null>(null);
+  const [manOfTheMatchPollLoading, setManOfTheMatchPollLoading] =
+    useState(false);
+  const [manOfTheMatchVoteSaving, setManOfTheMatchVoteSaving] = useState(false);
+  const [manOfTheMatchVoteError, setManOfTheMatchVoteError] = useState("");
   const {
     session,
     authLoading,
@@ -105,7 +116,7 @@ export function WorkspaceLayout() {
     void client
       .from("players")
       .select(
-        "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, goals",
+        "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, goals",
       )
       .eq("organization_id", organizationId)
       .then(({ data, error }) => {
@@ -128,6 +139,7 @@ export function WorkspaceLayout() {
     session,
     organizationId,
     organizationMembers,
+    isLiveView: location.pathname.endsWith("/live"),
   });
   const {
     matches,
@@ -147,6 +159,147 @@ export function WorkspaceLayout() {
     openMatchDrawer,
     closeMatchDrawer,
   } = matchState;
+
+  useEffect(() => {
+    const client = supabase;
+    if (
+      !client ||
+      !session ||
+      !selectedMatch ||
+      selectedMatch.status !== "finished" ||
+      !matchDrawerOpen
+    ) {
+      setManOfTheMatchPoll(null);
+      setManOfTheMatchPollLoading(false);
+      setManOfTheMatchVoteError("");
+      return;
+    }
+
+    let cancelled = false;
+    const refreshPoll = async () => {
+      const { data, error } = await client.rpc("get_match_man_of_the_match", {
+        p_match_id: selectedMatch.id,
+      });
+      if (cancelled) return;
+      if (error) {
+        setManOfTheMatchVoteError(error.message);
+        setManOfTheMatchPollLoading(false);
+        return;
+      }
+      const row = (data?.[0] ?? null) as {
+        my_vote: string | null;
+        vote_totals: { candidate_id: string; vote_count: number }[];
+        vote_count: number;
+        eligible_voter_count: number;
+        is_complete: boolean;
+        winner_ids: string[];
+      } | null;
+      setManOfTheMatchPoll(
+        row
+          ? {
+              myVote: row.my_vote,
+              voteTotals: (row.vote_totals ?? []).map((vote) => ({
+                candidateId: vote.candidate_id,
+                voteCount: vote.vote_count,
+              })),
+              voteCount: row.vote_count,
+              eligibleVoterCount: row.eligible_voter_count,
+              isComplete: row.is_complete,
+              winnerIds: row.winner_ids ?? [],
+            }
+          : null,
+      );
+      setManOfTheMatchVoteError("");
+      setManOfTheMatchPollLoading(false);
+    };
+
+    setManOfTheMatchPollLoading(true);
+    void refreshPoll();
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshPoll();
+    };
+    const refreshTimer = window.setInterval(() => void refreshPoll(), 60_000);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(refreshTimer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [matchDrawerOpen, selectedMatch?.id, selectedMatch?.status, session]);
+
+  useEffect(() => {
+    if (!supabase || !organizationId || !manOfTheMatchPoll?.isComplete) return;
+    let cancelled = false;
+    void supabase
+      .from("players")
+      .select(
+        "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, goals",
+      )
+      .eq("organization_id", organizationId)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setPlayerStatsNotice(
+            `Impossible d’actualiser les statistiques des joueurs : ${error.message}`,
+          );
+          return;
+        }
+        setPlayerStats((data ?? []) as OrganizationPlayerStats[]);
+        setPlayerStatsNotice("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId, manOfTheMatchPoll?.isComplete]);
+
+  async function voteForManOfTheMatch(candidateId: string) {
+    if (!supabase || !selectedMatch || manOfTheMatchVoteSaving) return;
+    setManOfTheMatchVoteSaving(true);
+    setManOfTheMatchVoteError("");
+    try {
+      const { data, error } = await supabase.rpc(
+        "vote_match_man_of_the_match",
+        { p_match_id: selectedMatch.id, p_candidate_id: candidateId },
+      );
+      if (error) throw error;
+      const row = (data?.[0] ?? null) as {
+        my_vote: string | null;
+        vote_totals: { candidate_id: string; vote_count: number }[];
+        vote_count: number;
+        eligible_voter_count: number;
+        is_complete: boolean;
+        winner_ids: string[];
+      } | null;
+      if (!row) throw new Error("Supabase n’a renvoyé aucun résultat de vote.");
+      setManOfTheMatchPoll({
+        myVote: row.my_vote,
+        voteTotals: (row.vote_totals ?? []).map((vote) => ({
+          candidateId: vote.candidate_id,
+          voteCount: vote.vote_count,
+        })),
+        voteCount: row.vote_count,
+        eligibleVoterCount: row.eligible_voter_count,
+        isComplete: row.is_complete,
+        winnerIds: row.winner_ids ?? [],
+      });
+      if (row.is_complete && organizationId) {
+        const { data: stats, error: statsError } = await supabase
+          .from("players")
+          .select(
+            "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, goals",
+          )
+          .eq("organization_id", organizationId);
+        if (statsError) throw statsError;
+        setPlayerStats((stats ?? []) as OrganizationPlayerStats[]);
+      }
+    } catch (error) {
+      setManOfTheMatchVoteError(
+        `Impossible d’enregistrer votre vote : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+    } finally {
+      setManOfTheMatchVoteSaving(false);
+    }
+  }
   const [venue, setVenue] = useState("");
   const [matchDate, setMatchDate] = useState(dateAfter(3));
   const [matchTime, setMatchTime] = useState("19:30");
@@ -196,6 +349,7 @@ export function WorkspaceLayout() {
     <ModalManager
       kind={visibleModal}
       matchDialog={{
+        organizationName: organization,
         date: matchDate,
         minDate: dateAfter(0),
         time: matchTime,
@@ -296,7 +450,7 @@ export function WorkspaceLayout() {
       setModal("match");
     },
     matches: filteredMatches,
-    allMatches: visibleMatches,
+    allMatches: matchState.allMatches,
     selectedMatchId: selectedMatch?.id,
     currentAttendeeId,
     matchRegistering,
@@ -304,7 +458,7 @@ export function WorkspaceLayout() {
     matchNotice,
     onFilterChange: setMatchFilter,
     onOpenMatch: (matchId: string) => {
-      const match = visibleMatches.find((item) => item.id === matchId);
+      const match = matchState.allMatches.find((item) => item.id === matchId);
       if (match?.status === "in_progress" || match?.status === "paused") {
         navigate(`/app/live?match=${encodeURIComponent(matchId)}`);
         return;
@@ -317,8 +471,35 @@ export function WorkspaceLayout() {
         navigate(`/app/live?match=${encodeURIComponent(matchId)}`);
       }
     },
-    onSetMatchState: (matchId, action) => void setMatchState(matchId, action),
+    onSetMatchState: (matchId, action) => {
+      void (async () => {
+        const updated = await setMatchState(matchId, action);
+        if (!updated || action !== "finish" || !supabase || !organizationId)
+          return;
+
+        const { data, error } = await supabase
+          .from("players")
+          .select(
+            "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, goals",
+          )
+          .eq("organization_id", organizationId);
+        if (error) {
+          setPlayerStatsNotice(
+            `Impossible d’actualiser les statistiques des joueurs : ${error.message}`,
+          );
+          return;
+        }
+        setPlayerStats((data ?? []) as OrganizationPlayerStats[]);
+        setPlayerStatsNotice("");
+      })();
+    },
     onRecordGoal: (matchId, scorerId) => void recordGoal(matchId, scorerId),
+    manOfTheMatchPoll,
+    manOfTheMatchPollLoading,
+    manOfTheMatchVoteSaving,
+    manOfTheMatchVoteError,
+    onVoteForManOfTheMatch: (candidateId) =>
+      void voteForManOfTheMatch(candidateId),
     onSwapPlayers: (matchId, redPlayerId, bluePlayerId) =>
       void swapPlayers(matchId, redPlayerId, bluePlayerId),
     drawerMatch: selectedMatch,

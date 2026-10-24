@@ -1,6 +1,7 @@
 @layer components {
   .dashboard-hero {
     isolation: isolate;
+    overflow-x: clip;
   }
 
   .dashboard-hero > * {

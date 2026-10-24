@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Share2, Shield, UserMinus } from "lucide-react";
+import { LogOut, Share2, UserMinus } from "lucide-react";
 import type { OrganizationMember, OrganizationPlayerStats } from "../../types";
 import "./OrganizationRoster.css";
 
@@ -106,6 +106,7 @@ export function OrganizationRoster({
             "NULS",
             "DÉFAITES",
             "HOMME DU MATCH",
+            "MEILLEUR BUTEUR",
             "BUTS",
           ].map((label) => (
             <span key={label} role="columnheader">
@@ -148,6 +149,7 @@ export function OrganizationRoster({
               <span role="cell">{stats?.draws ?? "—"}</span>
               <span role="cell">{stats?.losses ?? "—"}</span>
               <span role="cell">{stats?.man_of_the_match_count ?? "—"}</span>
+              <span role="cell">{stats?.best_scorer_count ?? "—"}</span>
               <span
                 className="flex items-center justify-between gap-1 text-(--text-primary) max-[680px]:text-[9px]"
                 role="cell"
@@ -195,6 +197,43 @@ export function OrganizationRoster({
                       <span className="max-[680px]:sr-only">Retirer</span>
                     </button>
                   ))}
+                {canLeave &&
+                  member.user_id === currentUserId &&
+                  (confirmingLeave ? (
+                    <span className="inline-flex shrink-0 items-center gap-1">
+                      <button
+                        className="cursor-pointer border-0 bg-transparent p-1 text-[10px] text-(--muted) hover:text-(--ink)"
+                        disabled={isLeaving}
+                        onClick={() => setConfirmingLeave(false)}
+                        type="button"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        className="cursor-pointer border-0 bg-transparent p-1 text-[10px] font-semibold text-(--team-a-red) hover:underline disabled:cursor-wait disabled:opacity-50"
+                        disabled={isLeaving}
+                        onClick={() => {
+                          void onLeave().then((didLeave) => {
+                            if (didLeave) setConfirmingLeave(false);
+                          });
+                        }}
+                        type="button"
+                      >
+                        {isLeaving ? "Départ…" : "Confirmer"}
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      aria-label="Quitter le club"
+                      className="inline-flex min-h-7 shrink-0 cursor-pointer items-center gap-1 rounded-sm border border-(--border-neutral) bg-transparent px-1.5 text-[9px] font-semibold text-(--text-secondary) hover:border-(--team-a-red) hover:text-(--team-a-red)"
+                      onClick={() => setConfirmingLeave(true)}
+                      title="Quitter le club"
+                      type="button"
+                    >
+                      <LogOut size={12} aria-hidden="true" />
+                      <span className="max-[680px]:sr-only">Quitter</span>
+                    </button>
+                  ))}
               </span>
             </div>
           );
@@ -205,60 +244,24 @@ export function OrganizationRoster({
           Aucun joueur dans ce club pour le moment.
         </p>
       )}
-      <p className="mt-4.5 flex items-center gap-2.25 text-[11px] text-(--text-secondary) [&>svg]:text-(--team-b-blue)">
-        <Shield size={16} /> Les équipes sont réparties selon l'équilibre des
-        postes, de l'attaque, de la défense et de l'endurance.
-      </p>
       {canLeave && (
-        <div className="mt-8 flex flex-col items-end border-t border-(--line) pt-3">
-          {leaveNotice && (
-            <p className="mb-2 w-full text-xs text-(--team-a-red)" role="alert">
-              {leaveNotice}
+        <div className="mt-3">
+          {confirmingLeave && (
+            <p className="mb-2 text-xs leading-relaxed text-(--text-secondary)">
+              Confirmer le départ de {organization} ?
+              {isCurrentUserOwner && (
+                <>
+                  {" "}
+                  En tant que propriétaire, ton rôle sera transmis à un autre
+                  membre. Le dernier propriétaire ne peut pas quitter seul.
+                </>
+              )}
             </p>
           )}
-          {confirmingLeave ? (
-            <div className="flex w-full flex-wrap items-center justify-between gap-3">
-              <p className="m-0 max-w-xl text-xs leading-relaxed text-(--text-secondary)">
-                Confirmer le départ de {organization} ?
-                {isCurrentUserOwner && (
-                  <>
-                    {" "}
-                    En tant que propriétaire, ton rôle sera transmis à un autre
-                    membre. Le dernier propriétaire ne peut pas quitter seul.
-                  </>
-                )}
-              </p>
-              <div className="flex items-center gap-3">
-                <button
-                  className="cursor-pointer border-0 bg-transparent p-1 text-xs text-(--muted) hover:text-(--ink)"
-                  disabled={isLeaving}
-                  onClick={() => setConfirmingLeave(false)}
-                  type="button"
-                >
-                  Annuler
-                </button>
-                <button
-                  className="cursor-pointer border-0 bg-transparent p-1 text-xs font-semibold text-(--team-a-red) hover:underline disabled:cursor-wait disabled:opacity-50"
-                  disabled={isLeaving}
-                  onClick={() => {
-                    void onLeave().then((didLeave) => {
-                      if (didLeave) setConfirmingLeave(false);
-                    });
-                  }}
-                  type="button"
-                >
-                  {isLeaving ? "Départ…" : "Confirmer le départ"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              className="cursor-pointer border-0 bg-transparent p-1 text-[11px] text-(--muted) hover:text-(--team-a-red)"
-              onClick={() => setConfirmingLeave(true)}
-              type="button"
-            >
-              Quitter le club
-            </button>
+          {leaveNotice && (
+            <p className="mb-2 text-xs text-(--team-a-red)" role="alert">
+              {leaveNotice}
+            </p>
           )}
         </div>
       )}

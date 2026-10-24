@@ -7,6 +7,7 @@ import "./DashboardDialog.css";
 export type DashboardDialogProps = {
   kind: DialogKind;
   children: ReactNode;
+  eyebrow?: string;
   onClose: () => void;
 };
 
@@ -33,6 +34,7 @@ const dialogEyebrows: Record<DialogKind, string> = {
 export function DashboardDialog({
   kind,
   children,
+  eyebrow,
   onClose,
 }: DashboardDialogProps) {
   function closeOnBackdrop(event: MouseEvent<HTMLDivElement>) {
@@ -46,7 +48,7 @@ export function DashboardDialog({
       onMouseDown={closeOnBackdrop}
     >
       <section
-        className="dashboard-dialog__panel w-full max-w-107.5 border border-(--border-neutral) bg-(--bg-elevated) p-6.25 text-(--text-primary) shadow-[0_18px_50px_#17271f30]"
+        className={`dashboard-dialog__panel w-full ${kind === "match" ? "max-w-150" : "max-w-107.5"} border border-(--border-neutral) bg-(--bg-elevated) p-6.25 text-(--text-primary) shadow-[0_18px_50px_#17271f30]`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
@@ -54,7 +56,7 @@ export function DashboardDialog({
         <div className="mb-5.75 flex items-center justify-between gap-5">
           <div>
             <p className="mb-1.75 text-[10px] font-bold tracking-[1.7px] text-(--muted)">
-              {dialogEyebrows[kind]}
+              {eyebrow ?? dialogEyebrows[kind]}
             </p>
             <h2
               className="mb-0 font-sans text-2xl font-normal"

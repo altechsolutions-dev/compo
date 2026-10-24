@@ -4,6 +4,7 @@ import { DashboardDialog } from "../../components/DashboardDialog/DashboardDialo
 import "./CreateMatchDialogContainer.css";
 
 export type CreateMatchDialogContainerProps = {
+  organizationName: string;
   date: string;
   minDate: string;
   time: string;
@@ -21,6 +22,7 @@ export type CreateMatchDialogContainerProps = {
 };
 
 export function CreateMatchDialogContainer({
+  organizationName,
   date,
   minDate,
   time,
@@ -37,7 +39,11 @@ export function CreateMatchDialogContainer({
   onSubmit,
 }: CreateMatchDialogContainerProps) {
   return (
-    <DashboardDialog kind="match" onClose={onClose}>
+    <DashboardDialog
+      eyebrow={organizationName || "CLUB"}
+      kind="match"
+      onClose={onClose}
+    >
       <form className="create-match-dialog-form" onSubmit={onSubmit}>
         <label htmlFor="match-date">Date du match</label>
         <input
@@ -84,7 +90,7 @@ export function CreateMatchDialogContainer({
           <span>M’inscrire à ce match</span>
         </label>
         <button
-          className="create-match-dialog-form__submit"
+          className="create-match-dialog-form__submit bg-(--team-b-blue) text-(--bg-main)"
           disabled={saving}
           type="submit"
         >

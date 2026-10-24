@@ -30,12 +30,17 @@ describe("MatchDrawerContainer", () => {
         onRegister={vi.fn()}
         onStartMatch={vi.fn()}
         onRecordGoal={vi.fn()}
+        manOfTheMatchPoll={null}
+        manOfTheMatchPollLoading={false}
+        manOfTheMatchVoteSaving={false}
+        manOfTheMatchVoteError=""
+        onVoteForManOfTheMatch={vi.fn()}
       />,
     );
 
-    expect(
-      screen.getByRole("dialog", { name: /19:30.*Foot à 5/ }),
-    ).toBeInTheDocument();
+    const drawer = screen.getByRole("dialog", { name: /19:30.*Foot à 5/ });
+    expect(drawer).toBeInTheDocument();
+    expect(drawer).toHaveClass("max-w-240", "max-[600px]:max-w-full");
     expect(screen.getByText("MATCH COMPLET")).toBeInTheDocument();
     expect(screen.getByText("Composition du match")).toBeInTheDocument();
     expect(
@@ -57,6 +62,11 @@ describe("MatchDrawerContainer", () => {
         onRegister={vi.fn()}
         onStartMatch={vi.fn()}
         onRecordGoal={vi.fn()}
+        manOfTheMatchPoll={null}
+        manOfTheMatchPollLoading={false}
+        manOfTheMatchVoteSaving={false}
+        manOfTheMatchVoteError=""
+        onVoteForManOfTheMatch={vi.fn()}
       />,
     );
     expect(container).toBeEmptyDOMElement();

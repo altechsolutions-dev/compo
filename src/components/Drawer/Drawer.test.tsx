@@ -4,7 +4,7 @@ import { Drawer } from "./Drawer";
 
 function renderDrawer({ mounted = true, open = true } = {}) {
   const onClose = vi.fn();
-  render(
+  const { unmount } = render(
     <Drawer
       mounted={mounted}
       open={open}
@@ -18,7 +18,7 @@ function renderDrawer({ mounted = true, open = true } = {}) {
       <button type="button">Action</button>
     </Drawer>,
   );
-  return { onClose };
+  return { onClose, unmount };
 }
 
 describe("Drawer", () => {
@@ -39,6 +39,30 @@ describe("Drawer", () => {
     expect(dialog).not.toHaveClass("is-open");
     expect(backdrop).toHaveAttribute("aria-hidden", "true");
     expect(backdrop).toHaveAttribute("inert");
+  });
+
+  it("verrouille le scroll de fond puis restaure les styles à la fermeture", () => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyPaddingRight = document.body.style.paddingRight;
+    const previousRootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "auto";
+    document.body.style.paddingRight = "7px";
+    document.documentElement.style.overflow = "scroll";
+
+    const { unmount } = renderDrawer();
+
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.body.style.paddingRight).toBe("7px");
+    expect(document.documentElement.style.overflow).toBe("hidden");
+
+    unmount();
+
+    expect(document.body.style.overflow).toBe("auto");
+    expect(document.body.style.paddingRight).toBe("7px");
+    expect(document.documentElement.style.overflow).toBe("scroll");
+    document.body.style.overflow = previousBodyOverflow;
+    document.body.style.paddingRight = previousBodyPaddingRight;
+    document.documentElement.style.overflow = previousRootOverflow;
   });
 
   it("ouvre le drawer et ferme uniquement au clic extérieur ou avec Échap", () => {

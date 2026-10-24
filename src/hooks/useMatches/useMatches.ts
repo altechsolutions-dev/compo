@@ -31,18 +31,22 @@ type UseMatchesOptions = {
   session: Session | null;
   organizationId: string | null;
   organizationMembers: OrganizationMember[];
+  isLiveView?: boolean;
 };
 
 export function useMatches({
   session,
   organizationId,
   organizationMembers,
+  isLiveView = false,
 }: UseMatchesOptions) {
   const [matches, setMatches] = useState(() =>
     supabase && session ? [] : readMatches(),
   );
   const [selectedMatchId, setSelectedMatchId] = useState(matches[0]?.id ?? "");
-  const [matchFilter, setMatchFilter] = useState<"all" | "available">("all");
+  const [matchFilter, setMatchFilter] = useState<
+    "all" | "available" | "finished"
+  >("all");
   const [matchDrawerOpen, setMatchDrawerOpen] = useState(false);
   const [matchDrawerMounted, setMatchDrawerMounted] = useState(false);
   const [matchNotice, setMatchNotice] = useState("");
@@ -102,7 +106,7 @@ export function useMatches({
     return () => {
       cancelled = true;
     };
-  }, [organizationId, sessionUserId]);
+  }, [isLiveView, organizationId, sessionUserId]);
 
   useEffect(() => {
     if (!supabase || !sessionUserId || !organizationId) return;
@@ -140,7 +144,7 @@ export function useMatches({
               : (loadedMatches[0]?.id ?? ""),
           );
         });
-    }, 5000);
+    }, 60_000);
     return () => window.clearInterval(refreshTimer);
   }, [organizationId, sessionUserId]);
 
@@ -167,19 +171,23 @@ export function useMatches({
     matchDrawerCloseTimer.current = window.setTimeout(() => {
       setMatchDrawerMounted(false);
       matchDrawerCloseTimer.current = null;
-    }, 260);
+    }, 300);
   }
 
   const currentAttendeeId = session?.user.id ?? currentPlayerId;
   const selectedMatch = matches.find((match) => match.id === selectedMatchId);
-  const visibleMatches = matches;
-  const filteredMatches = visibleMatches.filter(
-    (match) =>
-      matchFilter === "all" ||
-      match.status === "in_progress" ||
-      match.status === "paused" ||
-      match.attendees.length < match.maxPlayers,
-  );
+  const allMatches = matches;
+  const visibleMatches = matches.filter((match) => match.status !== "finished");
+  const filteredMatches =
+    matchFilter === "finished"
+      ? matches.filter((match) => match.status === "finished")
+      : visibleMatches.filter(
+          (match) =>
+            matchFilter === "all" ||
+            match.status === "in_progress" ||
+            match.status === "paused" ||
+            match.attendees.length < match.maxPlayers,
+        );
   const playerNames = Object.fromEntries([
     ...players.map((player) => [player.id, player.name]),
     ...organizationMembers.map((member) => [
@@ -190,6 +198,7 @@ export function useMatches({
 
   return {
     matches,
+    allMatches,
     setMatches,
     selectedMatchId,
     setSelectedMatchId,

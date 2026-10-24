@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import type { MatchSlot } from "../../types";
@@ -81,6 +87,22 @@ describe("LiveMatchPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("ne montre pas un match terminé dans l’onglet En direct, même demandé par son identifiant", () => {
+    renderLivePage({
+      ...liveMatch,
+      status: "finished",
+      startedAt: undefined,
+      elapsedSeconds: 3600,
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Pas de match à l’écran" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Résumé du match" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("affiche la composition uniquement à la demande avant le coup d’envoi", async () => {
     const scheduledMatch: MatchSlot = {
       ...liveMatch,
@@ -120,10 +142,12 @@ describe("LiveMatchPage", () => {
       screen.queryByRole("dialog", { name: "Composition du match" }),
     ).not.toBeInTheDocument();
     expect(openComposition).toHaveFocus();
-    expect(document.body.style.overflow).toBe("");
+    expect(document.body.style.overflow).toBe("hidden");
     expect(document.getElementById("match-composition-drawer")).not.toHaveClass(
       "is-open",
     );
+    await waitFor(() => expect(document.body.style.overflow).toBe(""));
+    expect(document.getElementById("match-composition-drawer")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Voir la compo" }));
     await screen.findByRole("dialog", { name: "Composition du match" });
@@ -138,16 +162,20 @@ describe("LiveMatchPage", () => {
 
     const openGoalPicker = screen.getByRole("button", { name: "But !" });
     fireEvent.click(openGoalPicker);
+    const goalDialog = screen.getByRole("dialog", { name: "Qui a marqué ?" });
+    expect(goalDialog).toBeInTheDocument();
     expect(
-      screen.getByRole("dialog", { name: "Qui a marqué ?" }),
-    ).toBeInTheDocument();
+      within(goalDialog)
+        .getAllByRole("region")
+        .map((teamRegion) => teamRegion.getAttribute("aria-label")),
+    ).toEqual(["Équipe bleue", "Équipe rouge"]);
     const cancelGoal = screen.getByRole("button", {
       name: "Annuler la saisie du but",
     });
     expect(cancelGoal).toHaveFocus();
     expect(document.body.style.overflow).toBe("hidden");
-    screen.getByRole("button", { name: "Théo Bernard" }).focus();
-    fireEvent.keyDown(screen.getByRole("button", { name: "Théo Bernard" }), {
+    screen.getByRole("button", { name: "Lucas Martin" }).focus();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Lucas Martin" }), {
       key: "Tab",
     });
     expect(cancelGoal).toHaveFocus();

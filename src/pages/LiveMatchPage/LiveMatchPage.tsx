@@ -131,8 +131,8 @@ export function LiveMatchPage({
     (match) =>
       match.status === "in_progress" ||
       match.status === "paused" ||
-      match.attendees.length >= match.maxPlayers ||
-      (match.status === "finished" && match.id === requestedMatchId),
+      (match.status !== "finished" &&
+        match.attendees.length >= match.maxPlayers),
   );
   const match =
     liveCandidates.find((item) => item.id === requestedMatchId) ??
@@ -197,7 +197,7 @@ export function LiveMatchPage({
     compositionCloseTimerRef.current = window.setTimeout(() => {
       setCompositionMounted(false);
       compositionCloseTimerRef.current = null;
-    }, 260);
+    }, 300);
   }, []);
 
   useDialogAccessibility(
@@ -417,6 +417,10 @@ export function LiveMatchPage({
         )}
       </header>
 
+      {isFinished && (
+        <h2 className="mb-0 mt-6 text-lg font-bold">Résumé du match</h2>
+      )}
+
       {confirmFinish &&
         createPortal(
           <div
@@ -505,8 +509,8 @@ export function LiveMatchPage({
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                {teams.map((teamPlayers, teamIndex) => {
-                  const team = teamIndex as 0 | 1;
+                {([1, 0] as const).map((team) => {
+                  const teamPlayers = teams[team];
                   const isRedTeam = team === 0;
                   return (
                     <section
@@ -717,7 +721,9 @@ export function LiveMatchPage({
         </span>
       </div>
 
-      <div className="mt-3 grid items-start gap-4 lg:items-stretch lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]">
+      <div
+        className={`mt-3 grid items-start gap-4 lg:items-stretch ${isFinished ? "grid-cols-1" : "lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]"}`}
+      >
         <section
           className="order-2 min-h-80 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-2 sm:p-6 lg:order-1"
           aria-labelledby="match-events-title"
@@ -728,7 +734,7 @@ export function LiveMatchPage({
                 FIL DU MATCH
               </p>
               <h2 className="m-0 text-base font-bold" id="match-events-title">
-                Buts &amp; événements
+                {isFinished ? "Buteurs" : "Buts & événements"}
               </h2>
             </div>
             <span className="rounded-full bg-(--bg-elevated) px-2.5 py-1 text-[9px] text-(--text-secondary)">
@@ -776,57 +782,59 @@ export function LiveMatchPage({
           )}
         </section>
 
-        <aside className="order-1 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-1 sm:p-6 lg:order-2">
-          <div className="border-b border-(--line) pb-4">
-            <p className="mb-1 text-[9px] font-bold tracking-[1.4px] text-(--text-secondary)">
-              TABLE DE MARQUE
-            </p>
-            <h2 className="m-0 text-base font-bold">Actions rapides</h2>
-          </div>
+        {!isFinished && (
+          <aside className="order-1 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-1 sm:p-6 lg:order-2">
+            <div className="border-b border-(--line) pb-4">
+              <p className="mb-1 text-[9px] font-bold tracking-[1.4px] text-(--text-secondary)">
+                TABLE DE MARQUE
+              </p>
+              <h2 className="m-0 text-base font-bold">Actions rapides</h2>
+            </div>
 
-          <div className="border-b border-(--line) py-4">
-            <button
-              aria-expanded={goalPickerOpen}
-              aria-controls="goal-scorer-picker"
-              className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-md border-0 bg-(--team-b-blue) px-3 text-base font-extrabold text-(--bg-main) disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={!canRecordActions}
-              onClick={() => setGoalPickerOpen(true)}
-              ref={goalTriggerRef}
-              type="button"
-            >
-              <Goal aria-hidden="true" size={20} /> But !
-            </button>
-          </div>
+            <div className="border-b border-(--line) py-4">
+              <button
+                aria-expanded={goalPickerOpen}
+                aria-controls="goal-scorer-picker"
+                className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-md border-0 bg-(--team-b-blue) px-3 text-base font-extrabold text-(--bg-main) disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!canRecordActions}
+                onClick={() => setGoalPickerOpen(true)}
+                ref={goalTriggerRef}
+                type="button"
+              >
+                <Goal aria-hidden="true" size={20} /> But !
+              </button>
+            </div>
 
-          <div className="border-b border-(--line) py-3">
-            <button
-              aria-expanded={swapPickerOpen}
-              aria-controls="swap-players-picker"
-              className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 border-0 bg-transparent p-0 text-left text-xs font-bold text-(--text-secondary)"
-              disabled={!canRecordActions}
-              onClick={() => {
-                setRedPlayerToSwap("");
-                setBluePlayerToSwap("");
-                setSwapPickerOpen(true);
-              }}
-              ref={swapTriggerRef}
-              type="button"
-            >
-              Échanger deux joueurs
-              <ArrowRightLeft aria-hidden="true" size={16} />
-            </button>
-          </div>
+            <div className="border-b border-(--line) py-3">
+              <button
+                aria-expanded={swapPickerOpen}
+                aria-controls="swap-players-picker"
+                className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 border-0 bg-transparent p-0 text-left text-xs font-bold text-(--text-secondary)"
+                disabled={!canRecordActions}
+                onClick={() => {
+                  setRedPlayerToSwap("");
+                  setBluePlayerToSwap("");
+                  setSwapPickerOpen(true);
+                }}
+                ref={swapTriggerRef}
+                type="button"
+              >
+                Échanger deux joueurs
+                <ArrowRightLeft aria-hidden="true" size={16} />
+              </button>
+            </div>
 
-          {!canRecordActions && (
-            <p className="mb-0 mt-3 text-center text-[9px] text-(--text-secondary)">
-              {isPaused
-                ? "Reprenez le match pour enregistrer des actions."
-                : isFinished
-                  ? "Le match est terminé, les actions sont désactivées."
-                  : "Les actions seront disponibles au coup d’envoi."}
-            </p>
-          )}
-        </aside>
+            {!canRecordActions && (
+              <p className="mb-0 mt-3 text-center text-[9px] text-(--text-secondary)">
+                {isPaused
+                  ? "Reprenez le match pour enregistrer des actions."
+                  : isFinished
+                    ? "Le match est terminé, les actions sont désactivées."
+                    : "Les actions seront disponibles au coup d’envoi."}
+              </p>
+            )}
+          </aside>
+        )}
       </div>
     </section>
   );

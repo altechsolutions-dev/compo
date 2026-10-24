@@ -2,12 +2,16 @@
   .organization-roster__columns {
     display: grid;
     min-width: 700px;
-    grid-template-columns: minmax(160px, 1.7fr) repeat(7, minmax(55px, 0.65fr));
+    grid-template-columns: minmax(160px, 1.7fr) repeat(8, minmax(55px, 0.65fr));
     gap: 15px;
   }
 
   .organization-roster__table {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
   }
 
   .organization-roster__row > :first-child {

@@ -22,6 +22,15 @@ export type MatchGoal = {
   createdAt: string;
 };
 
+export type MatchManOfTheMatchPoll = {
+  myVote: string | null;
+  voteTotals: { candidateId: string; voteCount: number }[];
+  voteCount: number;
+  eligibleVoterCount: number;
+  isComplete: boolean;
+  winnerIds: string[];
+};
+
 export type Player = {
   id: string;
   name: string;
@@ -45,6 +54,7 @@ export type OrganizationPlayerStats = {
   draws: number;
   losses: number;
   man_of_the_match_count: number;
+  best_scorer_count: number;
   goals: number;
 };
 

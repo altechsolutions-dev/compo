@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { OrganizationRoster } from "./OrganizationRoster";
 import type { OrganizationMember, OrganizationPlayerStats } from "../../types";
@@ -17,6 +17,7 @@ const playerStats: OrganizationPlayerStats[] = [
     draws: 2,
     losses: 2,
     man_of_the_match_count: 3,
+    best_scorer_count: 2,
     goals: 5,
   },
 ];
@@ -53,11 +54,16 @@ describe("OrganizationRoster", () => {
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("8")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
+    const alexRow = screen.getByRole("row", { name: /Alex Martin/ });
+    expect(within(alexRow).getAllByRole("cell")[7]).toHaveTextContent("2");
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(
       screen.getByRole("columnheader", { name: "BUTS" }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("—")).toHaveLength(7);
+    expect(
+      screen.getByRole("columnheader", { name: "MEILLEUR BUTEUR" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("—")).toHaveLength(8);
   });
 
   it("signale un effectif vide et permet de déclencher une invitation", () => {
@@ -91,7 +97,7 @@ describe("OrganizationRoster", () => {
     expect(onInvite).toHaveBeenCalledOnce();
   });
 
-  it("garde le départ discret et demande une confirmation", () => {
+  it("affiche le départ comme une action admin et demande une confirmation", () => {
     const onLeave = vi.fn().mockResolvedValue(true);
     render(
       <OrganizationRoster
@@ -99,6 +105,7 @@ describe("OrganizationRoster", () => {
         members={members}
         playerStats={playerStats}
         playerStatsNotice=""
+        currentUserId="player-1"
         canInvite
         canLeave
         isCurrentUserOwner
@@ -113,13 +120,17 @@ describe("OrganizationRoster", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Quitter le club" }));
+    const ownRow = screen.getByRole("row", { name: /Alex Martin/ });
+    const leaveButton = within(ownRow).getByRole("button", {
+      name: "Quitter le club",
+    });
+    expect(leaveButton).toHaveClass("border-(--border-neutral)");
+    expect(leaveButton.querySelector("svg")).toBeInTheDocument();
+    fireEvent.click(leaveButton);
     expect(
       screen.getByText(/ton rôle sera transmis à un autre membre/),
     ).toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Confirmer le départ" }),
-    );
+    fireEvent.click(within(ownRow).getByRole("button", { name: "Confirmer" }));
     expect(onLeave).toHaveBeenCalledOnce();
   });
 

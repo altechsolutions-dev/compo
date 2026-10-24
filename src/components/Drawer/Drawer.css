@@ -2,6 +2,8 @@
   .match-drawer-backdrop {
     background: #11151fcc;
     opacity: 0;
+    overflow-x: clip;
+    overscroll-behavior: contain;
     transition: opacity 280ms ease;
   }
 

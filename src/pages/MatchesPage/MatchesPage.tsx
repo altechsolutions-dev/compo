@@ -13,6 +13,7 @@ export function MatchesPage() {
     matchCount,
     onCreateMatch,
     matches,
+    allMatches,
     selectedMatchId,
     currentAttendeeId,
     matchRegistering,
@@ -23,6 +24,11 @@ export function MatchesPage() {
     onRegisterForMatch,
     onStartMatch,
     onRecordGoal,
+    manOfTheMatchPoll,
+    manOfTheMatchPollLoading,
+    manOfTheMatchVoteSaving,
+    manOfTheMatchVoteError,
+    onVoteForManOfTheMatch,
     drawerMatch,
     drawerMounted,
     drawerOpen,
@@ -47,6 +53,14 @@ export function MatchesPage() {
     return <OrganizationRequired onJoinWithCode={onJoinWithCode} />;
   }
 
+  const latestFinishedMatch = allMatches
+    .filter((match) => match.status === "finished")
+    .sort((first, second) =>
+      `${second.date}T${second.time}`.localeCompare(
+        `${first.date}T${first.time}`,
+      ),
+    )[0];
+
   return (
     <>
       <DashboardHero
@@ -58,12 +72,17 @@ export function MatchesPage() {
       <div className="match-layout grid grid-cols-1 items-start gap-8 pb-12 max-[680px]:gap-6 max-[680px]:pb-7.5">
         <MatchList
           matches={matches}
-          totalMatchCount={matchCount}
+          totalMatchCount={
+            matchFilter === "finished"
+              ? allMatches.filter((match) => match.status === "finished").length
+              : matchCount
+          }
           selectedMatchId={selectedMatchId}
           currentAttendeeId={currentAttendeeId}
           matchRegistering={matchRegistering}
           filter={matchFilter}
           notice={matchNotice}
+          latestFinishedMatch={latestFinishedMatch}
           onFilterChange={onFilterChange}
           onOpenMatch={onOpenMatch}
           onRegister={onRegisterForMatch}
@@ -80,6 +99,11 @@ export function MatchesPage() {
           onRegister={onRegisterForMatch}
           onStartMatch={onStartMatch}
           onRecordGoal={onRecordGoal}
+          manOfTheMatchPoll={manOfTheMatchPoll}
+          manOfTheMatchPollLoading={manOfTheMatchPollLoading}
+          manOfTheMatchVoteSaving={manOfTheMatchVoteSaving}
+          manOfTheMatchVoteError={manOfTheMatchVoteError}
+          onVoteForManOfTheMatch={onVoteForManOfTheMatch}
         />
       </div>
     </>

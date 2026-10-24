@@ -1,5 +1,6 @@
 @layer components {
   .dashboard-page {
     min-height: 100svh;
+    overflow-x: clip;
   }
 }

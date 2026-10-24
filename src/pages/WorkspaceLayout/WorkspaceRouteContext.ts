@@ -1,5 +1,6 @@
 import type {
   MatchSlot,
+  MatchManOfTheMatchPoll,
   OrganizationMember,
   OrganizationPlayerStats,
   Player,
@@ -18,14 +19,19 @@ export type WorkspaceRouteContext = {
   selectedMatchId?: string;
   currentAttendeeId: string;
   matchRegistering: boolean;
-  matchFilter: "all" | "available";
+  matchFilter: "all" | "available" | "finished";
   matchNotice: string;
-  onFilterChange: (filter: "all" | "available") => void;
+  onFilterChange: (filter: "all" | "available" | "finished") => void;
   onOpenMatch: (matchId: string) => void;
   onRegisterForMatch: (matchId: string) => void;
   onStartMatch: (matchId: string, teams: [string[], string[]]) => void;
   onSetMatchState: (matchId: string, action: MatchStateAction) => void;
   onRecordGoal: (matchId: string, scorerId: string) => void;
+  manOfTheMatchPoll: MatchManOfTheMatchPoll | null;
+  manOfTheMatchPollLoading: boolean;
+  manOfTheMatchVoteSaving: boolean;
+  manOfTheMatchVoteError: string;
+  onVoteForManOfTheMatch: (candidateId: string) => void;
   onSwapPlayers: (
     matchId: string,
     redPlayerId: string,

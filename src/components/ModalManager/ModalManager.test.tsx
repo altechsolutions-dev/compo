@@ -6,6 +6,7 @@ function createProps(kind: "match" | "organizations" | null) {
   return {
     kind,
     matchDialog: {
+      organizationName: "Club test",
       date: "2030-06-15",
       minDate: "2030-06-14",
       time: "19:30",
