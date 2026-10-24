@@ -56,7 +56,7 @@ export function DashboardHeader({
         />
       </Link>
       <nav
-        className="main-nav flex min-h-12.25 items-center gap-6.25 max-[680px]:col-span-full max-[680px]:row-2 max-[680px]:gap-7"
+        className="main-nav flex min-h-12.25 items-center gap-6.25 max-[680px]:col-span-full max-[680px]:row-2 max-[680px]:gap-4"
         aria-label="Navigation principale"
         role="tablist"
       >
@@ -67,7 +67,8 @@ export function DashboardHeader({
           role="tab"
           aria-selected={activeView === "matches"}
         >
-          <CalendarDays size={16} /> Matchs
+          <CalendarDays size={16} />
+          <span className="max-[380px]:sr-only">Matchs</span>
         </button>
         <button
           className={`relative inline-flex h-12.25 cursor-pointer items-center gap-2 border-0 bg-transparent text-xs ${activeView === "live" ? "font-semibold text-(--ink) after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-(--team-b-blue) after:content-['']" : "text-(--muted)"}`}
@@ -76,7 +77,8 @@ export function DashboardHeader({
           role="tab"
           aria-selected={activeView === "live"}
         >
-          <span className="size-1.5 rounded-full bg-(--team-a-red)" /> En direct
+          <span className="size-1.5 rounded-full bg-(--team-a-red)" />
+          <span className="max-[380px]:sr-only">En direct</span>
         </button>
         <button
           className={`relative inline-flex h-12.25 cursor-pointer items-center gap-2 border-0 bg-transparent text-xs ${activeView === "organization" ? "font-semibold text-(--ink) after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-(--team-b-blue) after:content-['']" : "text-(--muted)"}`}
@@ -85,7 +87,8 @@ export function DashboardHeader({
           role="tab"
           aria-selected={activeView === "organization"}
         >
-          <Users size={16} /> Club
+          <Users size={16} />
+          <span className="max-[380px]:sr-only">Club</span>
           <span className="min-w-4.5 rounded-[9px] bg-(--bg-elevated) px-1.25 py-px text-center text-[10px] text-(--text-secondary)">
             {organizationMemberCount}
           </span>

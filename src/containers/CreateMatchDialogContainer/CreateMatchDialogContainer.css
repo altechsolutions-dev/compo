@@ -50,9 +50,7 @@
     margin-top: 12px;
     border: 0;
     border-radius: 3px;
-    background: var(--team-a-red);
     padding: 0 14px;
-    color: var(--text-primary);
     font-size: 12px;
     font-weight: 600;
     transition: transform 150ms ease;

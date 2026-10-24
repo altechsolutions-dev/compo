@@ -1,6 +1,6 @@
 import { Drawer } from "../../components/Drawer/Drawer";
 import { renderMatchDetailsContent } from "../../components/MatchDetails/matchDetailsContent";
-import type { MatchSlot } from "../../types";
+import type { MatchManOfTheMatchPoll, MatchSlot } from "../../types";
 import "./MatchDrawerContainer.css";
 
 export type MatchDrawerContainerProps = {
@@ -15,6 +15,11 @@ export type MatchDrawerContainerProps = {
   onRegister: (matchId: string) => void;
   onStartMatch: (matchId: string, teams: [string[], string[]]) => void;
   onRecordGoal: (matchId: string, scorerId: string) => void;
+  manOfTheMatchPoll: MatchManOfTheMatchPoll | null;
+  manOfTheMatchPollLoading: boolean;
+  manOfTheMatchVoteSaving: boolean;
+  manOfTheMatchVoteError: string;
+  onVoteForManOfTheMatch: (candidateId: string) => void;
 };
 
 export function MatchDrawerContainer({
@@ -29,6 +34,11 @@ export function MatchDrawerContainer({
   onRegister,
   onStartMatch,
   onRecordGoal,
+  manOfTheMatchPoll,
+  manOfTheMatchPollLoading,
+  manOfTheMatchVoteSaving,
+  manOfTheMatchVoteError,
+  onVoteForManOfTheMatch,
 }: MatchDrawerContainerProps) {
   if (!match) return null;
 
@@ -43,7 +53,7 @@ export function MatchDrawerContainer({
         open={open}
         onClose={onClose}
         labelledBy="match-drawer-title"
-        panelClassName="h-full w-full max-w-180 overflow-y-auto border-l border-(--line) bg-(--bg-main) p-8 text-(--text-primary) shadow-[-18px_0_48px_#0005] max-[600px]:max-w-full max-[600px]:border-l-0 max-[600px]:p-5 [&>h2]:mb-2.25 [&>h2]:font-sans [&>h2]:text-2xl [&>h2]:font-normal [&>h2_span]:text-[#9bb5a4]"
+        panelClassName="h-full w-full max-w-240 overflow-y-auto border-l border-(--line) bg-(--bg-main) p-8 text-(--text-primary) shadow-[-18px_0_48px_#0005] max-[600px]:max-w-full max-[600px]:border-l-0 max-[600px]:p-5 [&>h2]:mb-2.25 [&>h2]:font-sans [&>h2]:text-2xl [&>h2]:font-normal [&>h2_span]:text-[#9bb5a4]"
       >
         {renderMatchDetailsContent({
           match,
@@ -56,6 +66,11 @@ export function MatchDrawerContainer({
           onRegister: () => onRegister(match.id),
           onStartMatch: (nextTeams) => onStartMatch(match.id, nextTeams),
           onRecordGoal: (scorerId) => onRecordGoal(match.id, scorerId),
+          manOfTheMatchPoll,
+          manOfTheMatchPollLoading,
+          manOfTheMatchVoteSaving,
+          manOfTheMatchVoteError,
+          onVoteForManOfTheMatch,
         })}
       </Drawer>
     </div>

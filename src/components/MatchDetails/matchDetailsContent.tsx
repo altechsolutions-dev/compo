@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { ArrowRight, Check, CircleDot, MapPin, Shirt, X } from "lucide-react";
-import type { MatchSlot } from "../../types";
+import type { MatchManOfTheMatchPoll, MatchSlot } from "../../types";
 import { formatMatchDate } from "../../helpers/formatMatchDate/formatMatchDate";
 import { LiveMatchPanel } from "../LiveMatchPanel/LiveMatchPanel";
 import "./MatchDetails.css";
@@ -16,6 +16,11 @@ export type MatchDetailsContentOptions = {
   onRegister: () => void;
   onStartMatch?: (teams: [string[], string[]]) => void;
   onRecordGoal?: (scorerId: string) => void;
+  manOfTheMatchPoll?: MatchManOfTheMatchPoll | null;
+  manOfTheMatchPollLoading?: boolean;
+  manOfTheMatchVoteSaving?: boolean;
+  manOfTheMatchVoteError?: string;
+  onVoteForManOfTheMatch?: (candidateId: string) => void;
 };
 
 export function renderMatchDetailsContent({
@@ -29,8 +34,299 @@ export function renderMatchDetailsContent({
   onRegister,
   onStartMatch,
   onRecordGoal,
+  manOfTheMatchPoll,
+  manOfTheMatchPollLoading = false,
+  manOfTheMatchVoteSaving = false,
+  manOfTheMatchVoteError = "",
+  onVoteForManOfTheMatch,
 }: MatchDetailsContentOptions): ReactNode {
   const spotsRemaining = match.maxPlayers - match.attendees.length;
+
+  if (match.status === "finished") {
+    const goals = match.goals ?? [];
+    const score = [
+      goals.filter((goal) => goal.team === 0).length,
+      goals.filter((goal) => goal.team === 1).length,
+    ];
+    const scorerTotals = goals.reduce<Record<string, number>>(
+      (totals, goal) => {
+        totals[goal.scorerId] = (totals[goal.scorerId] ?? 0) + 1;
+        return totals;
+      },
+      {},
+    );
+    const bestScorerCount = Math.max(0, ...Object.values(scorerTotals));
+    const bestScorerIds = Object.entries(scorerTotals)
+      .filter(([, count]) => count === bestScorerCount && count > 0)
+      .map(([id]) => id);
+    const matchTeams = teams ?? match.teams;
+
+    return (
+      <>
+        <div className="mb-5.5 flex items-center justify-between">
+          <span className="text-[9px] font-bold tracking-[1.5px] text-(--text-secondary)">
+            MATCH TERMINÉ
+          </span>
+          <button
+            className="grid size-9 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-surface) text-(--ink)"
+            onClick={onClose}
+            type="button"
+            aria-label="Fermer les détails du match"
+          >
+            <X size={17} />
+          </button>
+        </div>
+        <p className="mb-2 text-xs capitalize text-(--text-secondary)">
+          {formatMatchDate(match.date)} · {match.time}
+        </p>
+        <h2 id="match-drawer-title">{match.venue}</h2>
+
+        <section
+          aria-label="Résultat final"
+          className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-y border-(--line) py-5 text-center"
+        >
+          <div>
+            <p className="mb-1 text-[9px] font-bold uppercase text-(--team-a-red)">
+              Équipe rouge
+            </p>
+            <strong className="font-mono text-4xl tabular-nums text-(--team-a-red)">
+              {score[0]}
+            </strong>
+          </div>
+          <div>
+            <p className="mb-1 text-[9px] font-bold uppercase text-(--text-secondary)">
+              Chrono
+            </p>
+            <strong className="font-mono text-lg tabular-nums text-(--text-primary)">
+              {formatElapsedTime(match.elapsedSeconds ?? 0)}
+            </strong>
+          </div>
+          <div>
+            <p className="mb-1 text-[9px] font-bold uppercase text-(--team-b-blue)">
+              Équipe bleue
+            </p>
+            <strong className="font-mono text-4xl tabular-nums text-(--team-b-blue)">
+              {score[1]}
+            </strong>
+          </div>
+        </section>
+
+        <section
+          aria-label="Distinctions du match"
+          className="mt-6 grid gap-x-10 gap-y-5 border-y border-(--line) py-5 sm:grid-cols-2"
+        >
+          <div className="min-w-0">
+            <h3 className="mb-2 text-sm font-bold text-(--text-primary)">
+              Homme du match
+            </h3>
+            {manOfTheMatchPollLoading ? (
+              <p className="m-0 text-xs text-(--text-secondary)" role="status">
+                Chargement du sondage…
+              </p>
+            ) : manOfTheMatchPoll?.isComplete ? (
+              <p className="m-0 text-sm font-semibold text-(--team-b-blue)">
+                {manOfTheMatchPoll.winnerIds
+                  .map((id) => playerNames[id] ?? "Joueur")
+                  .join(", ") || "Aucun vote"}
+              </p>
+            ) : manOfTheMatchPoll ? (
+              <>
+                <p
+                  className="mb-3 text-[10px] text-(--text-secondary)"
+                  role="status"
+                >
+                  Vote en cours · {manOfTheMatchPoll.voteCount}/
+                  {manOfTheMatchPoll.eligibleVoterCount} votes
+                </p>
+                <p className="-mt-2 mb-3 text-[10px] text-(--text-secondary)">
+                  Clôture après 48 h si au moins 3 votes.
+                </p>
+                <div className="grid gap-1.5">
+                  {match.attendees.map((candidateId) => {
+                    const candidateVotes =
+                      manOfTheMatchPoll.voteTotals.find(
+                        (vote) => vote.candidateId === candidateId,
+                      )?.voteCount ?? 0;
+                    const isSelected = manOfTheMatchPoll.myVote === candidateId;
+
+                    return (
+                      <button
+                        aria-pressed={isSelected}
+                        className={`flex min-h-10 items-center justify-between gap-3 rounded-md border px-3 text-left text-xs font-semibold ${isSelected ? "border-(--team-b-blue) bg-(--team-b-blue)/10 text-(--team-b-blue)" : "border-(--line) bg-(--bg-surface) text-(--text-primary)"}`}
+                        disabled={
+                          manOfTheMatchVoteSaving || !onVoteForManOfTheMatch
+                        }
+                        key={candidateId}
+                        onClick={() => onVoteForManOfTheMatch?.(candidateId)}
+                        type="button"
+                      >
+                        <span className="truncate">
+                          {playerNames[candidateId] ?? "Joueur"}
+                          {isSelected ? " · Votre vote" : ""}
+                        </span>
+                        <span className="shrink-0 font-mono tabular-nums">
+                          {candidateVotes}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {manOfTheMatchVoteError && (
+                  <p
+                    className="mb-0 mt-2 text-xs text-(--team-a-red)"
+                    role="alert"
+                  >
+                    {manOfTheMatchVoteError}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="m-0 text-xs text-(--text-secondary)" role="status">
+                {manOfTheMatchVoteError || "Sondage indisponible."}
+              </p>
+            )}
+          </div>
+          <div>
+            <h3 className="mb-2 text-sm font-bold text-(--text-primary)">
+              Meilleur buteur
+            </h3>
+            {bestScorerIds.length ? (
+              <ul className="m-0 list-none space-y-1 p-0 text-sm font-semibold">
+                {bestScorerIds.map((id) => {
+                  const team = matchTeams?.findIndex((players) =>
+                    players.includes(id),
+                  );
+
+                  return (
+                    <li
+                      className={
+                        team === 0
+                          ? "text-(--team-a-red)"
+                          : team === 1
+                            ? "text-(--team-b-blue)"
+                            : "text-(--text-primary)"
+                      }
+                      key={id}
+                    >
+                      {playerNames[id] ?? "Joueur"} · {bestScorerCount} but
+                      {bestScorerCount === 1 ? "" : "s"}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="m-0 text-xs text-(--text-secondary)">
+                Aucun buteur
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="mt-6" aria-labelledby="finished-scorers-title">
+          <h3
+            className="mb-4 text-sm font-bold text-(--text-primary)"
+            id="finished-scorers-title"
+          >
+            Buteurs
+          </h3>
+          <div className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
+            {([0, 1] as const).map((team) => {
+              const teamGoals = goals.filter((goal) => goal.team === team);
+              const teamLabel = team === 0 ? "rouge" : "bleue";
+
+              return (
+                <section
+                  aria-label={`Buteurs de l'équipe ${teamLabel}`}
+                  className="min-w-0 border-t border-(--line) pt-3"
+                  key={team}
+                >
+                  <h4
+                    className={`mb-3 text-[10px] font-bold uppercase ${team === 0 ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
+                  >
+                    Équipe {teamLabel}
+                  </h4>
+                  {teamGoals.length ? (
+                    <table className="w-full border-collapse text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-(--line) text-[9px] uppercase text-(--text-secondary)">
+                          <th className="py-2 font-semibold">Buteur</th>
+                          <th className="py-2 text-right font-semibold">
+                            Minute
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {teamGoals.map((goal) => (
+                          <tr
+                            className="border-b border-(--line)"
+                            key={goal.id}
+                          >
+                            <td className="py-2.5 text-(--text-primary)">
+                              {playerNames[goal.scorerId] ?? "Joueur"}
+                            </td>
+                            <td className="py-2.5 text-right font-mono tabular-nums text-(--text-secondary)">
+                              {formatElapsedTime(goal.elapsedSeconds)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="m-0 text-xs text-(--text-secondary)">
+                      Aucun but
+                    </p>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </section>
+
+        <section
+          aria-labelledby="finished-composition-title"
+          className="mt-7 border-t border-(--line) pt-5"
+        >
+          <h3
+            className="mb-4 text-sm font-bold text-(--text-primary)"
+            id="finished-composition-title"
+          >
+            Composition
+          </h3>
+          <div className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
+            {([0, 1] as const).map((team) => {
+              const teamLabel = team === 0 ? "rouge" : "bleue";
+              const teamPlayers = teams?.[team] ?? match.teams?.[team] ?? [];
+
+              return (
+                <section
+                  aria-label={`Composition de l'équipe ${teamLabel}`}
+                  className="min-w-0 border-t border-(--line) pt-3"
+                  key={team}
+                >
+                  <h4
+                    className={`mb-2 text-[10px] font-bold uppercase ${team === 0 ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
+                  >
+                    Équipe {teamLabel}
+                  </h4>
+                  {teamPlayers.length ? (
+                    <ul className="m-0 list-none space-y-1 p-0 text-xs text-(--text-secondary)">
+                      {teamPlayers.map((id) => (
+                        <li key={id}>{playerNames[id] ?? "Joueur"}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="m-0 text-xs text-(--text-secondary)">
+                      Composition non enregistrée
+                    </p>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        </section>
+      </>
+    );
+  }
 
   return (
     <>
@@ -200,4 +496,8 @@ export function renderMatchDetailsContent({
       </p>
     </>
   );
+}
+
+function formatElapsedTime(totalSeconds: number) {
+  return `${String(Math.floor(totalSeconds / 60)).padStart(2, "0")}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }

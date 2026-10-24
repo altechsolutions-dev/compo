@@ -14,6 +14,7 @@ function renderContainer() {
   };
   render(
     <CreateMatchDialogContainer
+      organizationName="Les Panthères"
       date="2026-10-23"
       minDate="2026-10-20"
       time="19:30"
@@ -34,6 +35,10 @@ describe("CreateMatchDialogContainer", () => {
     expect(
       screen.getByRole("dialog", { name: "Nouveau créneau" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Les Panthères")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Nouveau créneau" })).toHaveClass(
+      "max-w-150",
+    );
     expect(screen.getByLabelText("Date du match")).toHaveValue("2026-10-23");
     fireEvent.change(screen.getByLabelText("Terrain"), {
       target: { value: "Five Paris" },
@@ -43,6 +48,14 @@ describe("CreateMatchDialogContainer", () => {
     });
     fireEvent.click(screen.getByLabelText("M’inscrire à ce match"));
 
+    const submitButton = screen.getByRole("button", {
+      name: "Créer le créneau",
+    });
+    expect(submitButton).toHaveClass(
+      "create-match-dialog-form__submit",
+      "bg-(--team-b-blue)",
+    );
+    expect(submitButton.parentElement?.lastElementChild).toBe(submitButton);
     expect(callbacks.onVenueChange).toHaveBeenCalledWith("Five Paris");
     expect(callbacks.onMaxPlayersChange).toHaveBeenCalledWith(12);
     expect(callbacks.onJoinOnCreateChange).toHaveBeenCalledWith(false);
@@ -57,6 +70,7 @@ describe("CreateMatchDialogContainer", () => {
 
     render(
       <CreateMatchDialogContainer
+        organizationName="Les Panthères"
         date="2026-10-23"
         minDate="2026-10-20"
         time="19:30"

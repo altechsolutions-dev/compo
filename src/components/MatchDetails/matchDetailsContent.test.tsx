@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderMatchDetailsContent } from "./matchDetailsContent";
 import type { MatchSlot } from "../../types";
@@ -82,5 +82,177 @@ describe("MatchDetailsContent", () => {
     fireEvent.click(screen.getByRole("button", { name: /Je m'inscris/ }));
 
     expect(onRegister).toHaveBeenCalledOnce();
+  });
+
+  it("affiche les buteurs dans des tableaux séparés par équipe pour un match terminé", () => {
+    const finishedMatch: MatchSlot = {
+      ...match,
+      status: "finished",
+      elapsedSeconds: 3600,
+      teams: [
+        ["alex", "sarah"],
+        ["malik", "ines"],
+      ],
+      goals: [
+        {
+          id: "goal-red",
+          scorerId: "alex",
+          team: 0,
+          elapsedSeconds: 125,
+          createdAt: "2026-10-22T19:32:05.000Z",
+        },
+        {
+          id: "goal-blue",
+          scorerId: "malik",
+          team: 1,
+          elapsedSeconds: 245,
+          createdAt: "2026-10-22T19:34:05.000Z",
+        },
+      ],
+    };
+    render(
+      renderMatchDetailsContent({
+        match: finishedMatch,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        teams: finishedMatch.teams,
+        playerNames,
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+      }),
+    );
+
+    expect(screen.getAllByText("1", { selector: "strong" })).toHaveLength(2);
+    expect(
+      within(screen.getByRole("region", { name: "Résultat final" })).getByText(
+        "60:00",
+      ),
+    ).toBeInTheDocument();
+    const redScorers = screen.getByRole("region", {
+      name: "Buteurs de l'équipe rouge",
+    });
+    const blueScorers = screen.getByRole("region", {
+      name: "Buteurs de l'équipe bleue",
+    });
+    expect(within(redScorers).getByText("Alex Martin")).toBeInTheDocument();
+    expect(within(redScorers).getByText("02:05")).toBeInTheDocument();
+    expect(within(blueScorers).getByText("Malik Diallo")).toBeInTheDocument();
+    expect(within(blueScorers).getByText("04:05")).toBeInTheDocument();
+    expect(
+      within(redScorers).queryByText("Malik Diallo"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(blueScorers).queryByText("Alex Martin"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Composition" }),
+    ).toBeInTheDocument();
+    const redComposition = screen.getByRole("region", {
+      name: "Composition de l'équipe rouge",
+    });
+    const blueComposition = screen.getByRole("region", {
+      name: "Composition de l'équipe bleue",
+    });
+    expect(
+      within(redComposition).getByText("Sarah Benali"),
+    ).toBeInTheDocument();
+    expect(
+      within(blueComposition).getByText("Inès Laurent"),
+    ).toBeInTheDocument();
+  });
+
+  it("affiche les meilleurs buteurs ex æquo et permet de voter pour l'homme du match", () => {
+    const finishedMatch: MatchSlot = {
+      ...match,
+      status: "finished",
+      teams: [
+        ["alex", "sarah"],
+        ["malik", "ines"],
+      ],
+      goals: [
+        {
+          id: "goal-1",
+          scorerId: "alex",
+          team: 0,
+          elapsedSeconds: 120,
+          createdAt: "2026-10-22T19:32:00.000Z",
+        },
+        {
+          id: "goal-2",
+          scorerId: "malik",
+          team: 1,
+          elapsedSeconds: 180,
+          createdAt: "2026-10-22T19:33:00.000Z",
+        },
+      ],
+    };
+    const onVote = vi.fn();
+    render(
+      renderMatchDetailsContent({
+        match: finishedMatch,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        teams: finishedMatch.teams,
+        playerNames,
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+        manOfTheMatchPoll: {
+          myVote: null,
+          voteTotals: [{ candidateId: "alex", voteCount: 1 }],
+          voteCount: 1,
+          eligibleVoterCount: 4,
+          isComplete: false,
+          winnerIds: [],
+        },
+        onVoteForManOfTheMatch: onVote,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Malik Diallo/ }));
+
+    expect(onVote).toHaveBeenCalledWith("malik");
+    expect(
+      screen.getByRole("heading", { name: "Meilleur buteur" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Alex Martin · 1 but").closest("li")).toHaveClass(
+      "text-(--team-a-red)",
+    );
+    expect(screen.getByText("Malik Diallo · 1 but").closest("li")).toHaveClass(
+      "text-(--team-b-blue)",
+    );
+  });
+
+  it("affiche tous les hommes du match en cas d'égalité", () => {
+    const finishedMatch: MatchSlot = {
+      ...match,
+      status: "finished",
+      goals: [],
+    };
+    render(
+      renderMatchDetailsContent({
+        match: finishedMatch,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        playerNames,
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+        manOfTheMatchPoll: {
+          myVote: "alex",
+          voteTotals: [
+            { candidateId: "alex", voteCount: 2 },
+            { candidateId: "malik", voteCount: 2 },
+          ],
+          voteCount: 4,
+          eligibleVoterCount: 4,
+          isComplete: true,
+          winnerIds: ["alex", "malik"],
+        },
+      }),
+    );
+
+    expect(screen.getByText("Alex Martin, Malik Diallo")).toBeInTheDocument();
   });
 });

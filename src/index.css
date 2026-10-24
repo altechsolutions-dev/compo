@@ -20,6 +20,7 @@
   --accent: var(--team-a-red);
   --lime: var(--team-b-blue);
   --paper: var(--bg-elevated);
+  scrollbar-gutter: stable;
   color: var(--text-primary);
   background: var(--bg-main);
   color-scheme: dark;

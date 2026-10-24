@@ -42,6 +42,18 @@ describe("useMatches", () => {
           teams: [["player-1"], ["player-2"]],
           goals: [],
         },
+        {
+          id: "finished",
+          date: "2030-06-18",
+          time: "19:30",
+          venue: "Terrain D",
+          maxPlayers: 2,
+          attendees: ["player-1", "player-2"],
+          status: "finished",
+          elapsedSeconds: 3600,
+          teams: [["player-1"], ["player-2"]],
+          goals: [],
+        },
       ]),
     );
     const { result } = renderHook(() =>
@@ -58,6 +70,12 @@ describe("useMatches", () => {
       "open",
       "live",
     ]);
+    expect(
+      result.current.visibleMatches.map((match) => match.id),
+    ).not.toContain("finished");
+    expect(result.current.allMatches.map((match) => match.id)).toContain(
+      "finished",
+    );
 
     act(() => result.current.setMatches([]));
 
@@ -85,5 +103,66 @@ describe("useMatches", () => {
     expect(supabaseRpc).toHaveBeenCalledWith("get_match_slots", {
       p_organization_id: "organization-1",
     });
+  });
+
+  it("rafraîchit les matchs toutes les minutes", async () => {
+    vi.useFakeTimers();
+    supabaseRpc.mockResolvedValue({
+      data: [
+        {
+          id: "match-1",
+          match_date: "2030-06-17",
+          match_time: "19:30",
+          venue: "Terrain A",
+          max_players: 2,
+          attendees: ["user-1", "user-2"],
+          status: "in_progress",
+          started_at: "2030-06-17T19:30:00.000Z",
+          elapsed_seconds: 0,
+          team_a: ["user-1"],
+          team_b: ["user-2"],
+          goals: [],
+        },
+      ],
+      error: null,
+    });
+    const session = { user: { id: "user-1" } } as Session;
+    const { rerender, unmount } = renderHook(
+      ({ isLiveView }) =>
+        useMatches({
+          session,
+          organizationId: "organization-1",
+          organizationMembers: [],
+          isLiveView,
+        }),
+      { initialProps: { isLiveView: false } },
+    );
+
+    try {
+      await act(async () => {
+        await supabaseRpc.mock.results[0].value;
+        await Promise.resolve();
+      });
+      expect(supabaseRpc).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(59_999);
+      });
+      expect(supabaseRpc).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(supabaseRpc).toHaveBeenCalledTimes(2);
+
+      rerender({ isLiveView: false });
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(supabaseRpc).toHaveBeenCalledTimes(2);
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
   });
 });
