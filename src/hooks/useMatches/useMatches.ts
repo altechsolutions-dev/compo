@@ -4,7 +4,7 @@ import { currentPlayerId } from "../../data/currentPlayerId/currentPlayerId";
 import { players } from "../../data/players/players";
 import { readMatches } from "../../data/readMatches/readMatches";
 import { supabase } from "../../lib/supabase/supabase";
-import type { MatchSlot, OrganizationMember } from "../../types";
+import type { MatchGoal, MatchSlot, OrganizationMember } from "../../types";
 
 type MatchSlotRow = {
   id: string;
@@ -13,6 +13,18 @@ type MatchSlotRow = {
   venue: string;
   max_players: number;
   attendees: string[];
+  status?: MatchSlot["status"];
+  started_at?: string | null;
+  elapsed_seconds?: number;
+  team_a?: string[] | null;
+  team_b?: string[] | null;
+  goals?: {
+    id: string;
+    scorer_id: string;
+    team: number;
+    elapsed_seconds: number;
+    created_at: string;
+  }[];
 };
 
 type UseMatchesOptions = {
@@ -62,6 +74,20 @@ export function useMatches({
             venue: row.venue,
             maxPlayers: row.max_players,
             attendees: row.attendees ?? [],
+            status: row.status ?? "scheduled",
+            startedAt: row.started_at ?? undefined,
+            elapsedSeconds: row.elapsed_seconds ?? 0,
+            teams:
+              row.team_a && row.team_b ? [row.team_a, row.team_b] : undefined,
+            goals: (row.goals ?? []).map(
+              (goal): MatchGoal => ({
+                id: goal.id,
+                scorerId: goal.scorer_id,
+                team: goal.team === 0 ? 0 : 1,
+                elapsedSeconds: goal.elapsed_seconds,
+                createdAt: goal.created_at,
+              }),
+            ),
           }),
         );
         setMatches(loadedMatches);
@@ -76,6 +102,46 @@ export function useMatches({
     return () => {
       cancelled = true;
     };
+  }, [organizationId, sessionUserId]);
+
+  useEffect(() => {
+    if (!supabase || !sessionUserId || !organizationId) return;
+    const refreshTimer = window.setInterval(() => {
+      void supabase
+        ?.rpc("get_match_slots", { p_organization_id: organizationId })
+        .then(({ data, error }) => {
+          if (error) return;
+          const loadedMatches = ((data ?? []) as MatchSlotRow[]).map(
+            (row): MatchSlot => ({
+              id: row.id,
+              date: row.match_date,
+              time: row.match_time,
+              venue: row.venue,
+              maxPlayers: row.max_players,
+              attendees: row.attendees ?? [],
+              status: row.status ?? "scheduled",
+              startedAt: row.started_at ?? undefined,
+              elapsedSeconds: row.elapsed_seconds ?? 0,
+              teams:
+                row.team_a && row.team_b ? [row.team_a, row.team_b] : undefined,
+              goals: (row.goals ?? []).map((goal) => ({
+                id: goal.id,
+                scorerId: goal.scorer_id,
+                team: goal.team === 0 ? (0 as const) : (1 as const),
+                elapsedSeconds: goal.elapsed_seconds,
+                createdAt: goal.created_at,
+              })),
+            }),
+          );
+          setMatches(loadedMatches);
+          setSelectedMatchId((current) =>
+            loadedMatches.some((match) => match.id === current)
+              ? current
+              : (loadedMatches[0]?.id ?? ""),
+          );
+        });
+    }, 5000);
+    return () => window.clearInterval(refreshTimer);
   }, [organizationId, sessionUserId]);
 
   useEffect(
@@ -109,7 +175,10 @@ export function useMatches({
   const visibleMatches = matches;
   const filteredMatches = visibleMatches.filter(
     (match) =>
-      matchFilter === "all" || match.attendees.length < match.maxPlayers,
+      matchFilter === "all" ||
+      match.status === "in_progress" ||
+      match.status === "paused" ||
+      match.attendees.length < match.maxPlayers,
   );
   const playerNames = Object.fromEntries([
     ...players.map((player) => [player.id, player.name]),

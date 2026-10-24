@@ -21,6 +21,8 @@ export function MatchesPage() {
     onFilterChange,
     onOpenMatch,
     onRegisterForMatch,
+    onStartMatch,
+    onRecordGoal,
     drawerMatch,
     drawerMounted,
     drawerOpen,
@@ -76,6 +78,8 @@ export function MatchesPage() {
           composeTeams={composeTeams}
           onClose={onCloseDrawer}
           onRegister={onRegisterForMatch}
+          onStartMatch={onStartMatch}
+          onRecordGoal={onRecordGoal}
         />
       </div>
     </>

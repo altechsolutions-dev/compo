@@ -26,6 +26,10 @@ vi.mock("../pages/OrganizationPage/OrganizationPage", () => ({
   OrganizationPage: () => <div>Clubs</div>,
 }));
 
+vi.mock("../pages/LiveMatchPage/LiveMatchPage", () => ({
+  LiveMatchPage: () => <div>Tableau du match en direct</div>,
+}));
+
 function LoginLocation() {
   const location = useLocation();
   return (
@@ -37,6 +41,22 @@ function LoginLocation() {
 }
 
 describe("AppRouter", () => {
+  it("ouvre la page live dans le workspace authentifié", () => {
+    render(
+      <MemoryRouter initialEntries={["/app/live?match=match-1"]}>
+        <AppRouter
+          authLoading={false}
+          isConnected
+          hasSupabase
+          loginPage={null}
+          consentPage={null}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Tableau du match en direct")).toBeInTheDocument();
+  });
+
   it("conserve le code d’invitation lors de la redirection d’une session active", async () => {
     render(
       <MemoryRouter initialEntries={["/?invite=ABC123"]}>

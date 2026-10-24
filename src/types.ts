@@ -6,6 +6,20 @@ export type MatchSlot = {
   maxPlayers: number;
   attendees: string[];
   teams?: [string[], string[]];
+  status?: "scheduled" | "in_progress" | "paused" | "finished";
+  startedAt?: string;
+  elapsedSeconds?: number;
+  goals?: MatchGoal[];
+};
+
+export type MatchStateAction = "pause" | "resume" | "finish";
+
+export type MatchGoal = {
+  id: string;
+  scorerId: string;
+  team: 0 | 1;
+  elapsedSeconds: number;
+  createdAt: string;
 };
 
 export type Player = {

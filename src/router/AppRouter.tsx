@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { WorkspaceLayout } from "../pages/WorkspaceLayout/WorkspaceLayout";
 import { MatchesPage } from "../pages/MatchesPage/MatchesPage";
 import { OrganizationPage } from "../pages/OrganizationPage/OrganizationPage";
+import { LiveMatchPage } from "../pages/LiveMatchPage/LiveMatchPage";
 
 type AppRouterProps = {
   authLoading: boolean;
@@ -65,6 +66,7 @@ export function AppRouter({
       >
         <Route index element={<Navigate to="matches" replace />} />
         <Route path="matches" element={<MatchesPage />} />
+        <Route path="live" element={<LiveMatchPage />} />
         <Route path="organizations" element={<OrganizationPage />} />
         <Route path="*" element={<Navigate to="matches" replace />} />
       </Route>

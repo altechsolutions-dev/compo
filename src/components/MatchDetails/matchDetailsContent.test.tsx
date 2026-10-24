@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { MatchDrawer } from "./MatchDrawer";
+import { renderMatchDetailsContent } from "./matchDetailsContent";
 import type { MatchSlot } from "../../types";
 
 const match: MatchSlot = {
@@ -19,8 +19,7 @@ const playerNames = {
   ines: "Inès Laurent",
 };
 
-function renderDrawer({
-  isOpen = true,
+function renderContent({
   isFull = true,
   isRegistered = true,
   teams = [
@@ -35,27 +34,24 @@ function renderDrawer({
     : { ...match, attendees: match.attendees.slice(0, 2) };
   const renderedTeams = isFull ? teams : undefined;
   render(
-    <MatchDrawer
-      match={renderedMatch}
-      mounted
-      open={isOpen}
-      isFull={isFull}
-      isRegistered={isRegistered}
-      isRegistering={false}
-      teams={renderedTeams}
-      playerNames={playerNames}
-      onClose={onClose}
-      onRegister={onRegister}
-    />,
+    renderMatchDetailsContent({
+      match: renderedMatch,
+      isFull,
+      isRegistered,
+      isRegistering: false,
+      teams: renderedTeams,
+      playerNames,
+      onClose,
+      onRegister,
+    }),
   );
   return { onClose, onRegister };
 }
 
-describe("MatchDrawer", () => {
+describe("MatchDetailsContent", () => {
   it("affiche les deux équipes et les inscrits du match complet", () => {
-    renderDrawer();
+    renderContent();
 
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Composition du match" }),
     ).toBeInTheDocument();
@@ -66,19 +62,18 @@ describe("MatchDrawer", () => {
     ).toBeInTheDocument();
   });
 
-  it("ferme le drawer via le bouton et la touche Échap", () => {
-    const { onClose } = renderDrawer();
+  it("demande la fermeture via son bouton", () => {
+    const { onClose } = renderContent();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Fermer les détails du match" }),
     );
-    fireEvent.keyDown(window, { key: "Escape" });
 
-    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onClose).toHaveBeenCalledOnce();
   });
 
   it("propose l’inscription tant que des places restent libres", () => {
-    const { onRegister } = renderDrawer({
+    const { onRegister } = renderContent({
       isFull: false,
       isRegistered: false,
       teams: undefined,

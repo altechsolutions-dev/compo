@@ -43,4 +43,40 @@ describe("DashboardLayout", () => {
       "false",
     );
   });
+
+  it("sélectionne l’onglet En direct sur sa route", () => {
+    render(
+      <MemoryRouter initialEntries={["/app/live"]}>
+        <Routes>
+          <Route
+            path="/app/*"
+            element={
+              <DashboardLayout
+                organization="Les Panthères"
+                organizationMemberCount={4}
+                avatarLabel="AM"
+                isSignedIn
+                canShareInvite
+                canInstall={false}
+                onNavigate={vi.fn()}
+                onChooseOrganization={vi.fn()}
+                onShareInvite={vi.fn()}
+                onJoinWithCode={vi.fn()}
+                onSignOut={vi.fn()}
+                onInstall={vi.fn()}
+                isSynchronized
+              >
+                <div />
+              </DashboardLayout>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("tab", { name: "En direct" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+  });
 });

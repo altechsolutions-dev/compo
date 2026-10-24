@@ -157,7 +157,14 @@ export function WorkspaceLayout() {
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(
     null,
   );
-  const { registerForMatch, createMatch } = useMatchActions({
+  const {
+    registerForMatch,
+    createMatch,
+    startMatch,
+    setMatchState,
+    recordGoal,
+    swapPlayers,
+  } = useMatchActions({
     matches,
     setMatches,
     session,
@@ -253,8 +260,14 @@ export function WorkspaceLayout() {
     isSignedIn: Boolean(session),
     canShareInvite: Boolean(organizationId && inviteCode),
     canInstall: Boolean(installPrompt),
-    onNavigate: (nextView: "matches" | "organization") =>
-      navigate(nextView === "matches" ? "/app/matches" : "/app/organizations"),
+    onNavigate: (nextView: "matches" | "live" | "organization") =>
+      navigate(
+        nextView === "matches"
+          ? "/app/matches"
+          : nextView === "live"
+            ? "/app/live"
+            : "/app/organizations",
+      ),
     onChooseOrganization: () => setModal("organizations"),
     onShareInvite: () => openInviteDialog(organization, inviteCode),
     onJoinWithCode: () => {
@@ -283,14 +296,31 @@ export function WorkspaceLayout() {
       setModal("match");
     },
     matches: filteredMatches,
+    allMatches: visibleMatches,
     selectedMatchId: selectedMatch?.id,
     currentAttendeeId,
     matchRegistering,
     matchFilter,
     matchNotice,
     onFilterChange: setMatchFilter,
-    onOpenMatch: openMatchDrawer,
+    onOpenMatch: (matchId: string) => {
+      const match = visibleMatches.find((item) => item.id === matchId);
+      if (match?.status === "in_progress" || match?.status === "paused") {
+        navigate(`/app/live?match=${encodeURIComponent(matchId)}`);
+        return;
+      }
+      openMatchDrawer(matchId);
+    },
     onRegisterForMatch: (matchId: string) => void registerForMatch(matchId),
+    onStartMatch: async (matchId, teams) => {
+      if (await startMatch(matchId, teams)) {
+        navigate(`/app/live?match=${encodeURIComponent(matchId)}`);
+      }
+    },
+    onSetMatchState: (matchId, action) => void setMatchState(matchId, action),
+    onRecordGoal: (matchId, scorerId) => void recordGoal(matchId, scorerId),
+    onSwapPlayers: (matchId, redPlayerId, bluePlayerId) =>
+      void swapPlayers(matchId, redPlayerId, bluePlayerId),
     drawerMatch: selectedMatch,
     drawerMounted: matchDrawerMounted,
     drawerOpen: matchDrawerOpen,

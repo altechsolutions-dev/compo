@@ -70,6 +70,15 @@ export function DashboardHeader({
           <CalendarDays size={16} /> Matchs
         </button>
         <button
+          className={`relative inline-flex h-12.25 cursor-pointer items-center gap-2 border-0 bg-transparent text-xs ${activeView === "live" ? "font-semibold text-(--ink) after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-(--team-b-blue) after:content-['']" : "text-(--muted)"}`}
+          onClick={() => onNavigate("live")}
+          type="button"
+          role="tab"
+          aria-selected={activeView === "live"}
+        >
+          <span className="size-1.5 rounded-full bg-(--team-a-red)" /> En direct
+        </button>
+        <button
           className={`relative inline-flex h-12.25 cursor-pointer items-center gap-2 border-0 bg-transparent text-xs ${activeView === "organization" ? "font-semibold text-(--ink) after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-(--team-b-blue) after:content-['']" : "text-(--muted)"}`}
           onClick={() => onNavigate("organization")}
           type="button"

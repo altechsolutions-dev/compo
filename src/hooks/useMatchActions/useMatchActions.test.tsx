@@ -33,8 +33,12 @@ function setup(matches: MatchSlot[]) {
     closeMatchDialog: vi.fn(),
     showMatchesView: vi.fn(),
   };
+  const hook = renderHook(() =>
+    useMatchActions({ ...props, matches: currentMatches }),
+  );
   return {
-    ...renderHook(() => useMatchActions(props)),
+    ...hook,
+    rerenderMatches: () => hook.rerender(),
     props,
     getMatches: () => currentMatches,
   };
@@ -71,5 +75,125 @@ describe("useMatchActions", () => {
     });
     expect(props.closeMatchDialog).toHaveBeenCalledOnce();
     expect(props.showMatchesView).toHaveBeenCalledOnce();
+  });
+
+  it("lance un match complet et attribue un but à la bonne équipe", async () => {
+    const match: MatchSlot = {
+      id: "match-live",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 2,
+      attendees: ["alex", "sam"],
+    };
+    const { result, getMatches, rerenderMatches } = setup([match]);
+
+    await act(() =>
+      result.current.startMatch("match-live", [["alex"], ["sam"]]),
+    );
+
+    expect(getMatches()[0]).toMatchObject({
+      status: "in_progress",
+      teams: [["alex"], ["sam"]],
+    });
+    rerenderMatches();
+    await act(() => result.current.recordGoal("match-live", "alex"));
+
+    expect(getMatches()[0].goals).toHaveLength(1);
+    expect(getMatches()[0].goals?.[0]).toMatchObject({
+      scorerId: "alex",
+      team: 0,
+    });
+  });
+
+  it("échange un joueur de chaque équipe en conservant les effectifs", async () => {
+    const match: MatchSlot = {
+      id: "match-live",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 4,
+      attendees: ["alex", "ava", "sam", "sasha"],
+      status: "in_progress",
+      startedAt: "2030-06-15T19:30:00.000Z",
+      teams: [
+        ["alex", "ava"],
+        ["sam", "sasha"],
+      ],
+      goals: [],
+    };
+    const { result, getMatches } = setup([match]);
+
+    await act(() => result.current.swapPlayers("match-live", "alex", "sasha"));
+
+    expect(getMatches()[0].teams).toEqual([
+      ["sasha", "ava"],
+      ["sam", "alex"],
+    ]);
+  });
+
+  it("autorise les buts et échanges pendant la pause sans avancer le chrono", async () => {
+    const match: MatchSlot = {
+      id: "match-paused",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 4,
+      attendees: ["alex", "ava", "sam", "sasha"],
+      status: "paused",
+      elapsedSeconds: 78,
+      teams: [
+        ["alex", "ava"],
+        ["sam", "sasha"],
+      ],
+      goals: [],
+    };
+    const { result, getMatches } = setup([match]);
+
+    await act(() => result.current.recordGoal("match-paused", "alex"));
+    await act(() =>
+      result.current.swapPlayers("match-paused", "alex", "sasha"),
+    );
+
+    expect(getMatches()[0].goals?.[0]).toMatchObject({
+      scorerId: "alex",
+      elapsedSeconds: 78,
+    });
+    expect(getMatches()[0].teams).toEqual([
+      ["sasha", "ava"],
+      ["sam", "alex"],
+    ]);
+  });
+
+  it("met en pause, reprend puis termine un match en conservant le temps", async () => {
+    const match: MatchSlot = {
+      id: "match-live",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 2,
+      attendees: ["alex", "sam"],
+      status: "in_progress",
+      startedAt: new Date(Date.now() - 5_000).toISOString(),
+      elapsedSeconds: 12,
+      teams: [["alex"], ["sam"]],
+      goals: [],
+    };
+    const { result, getMatches, rerenderMatches } = setup([match]);
+
+    await act(() => result.current.setMatchState("match-live", "pause"));
+    expect(getMatches()[0]).toMatchObject({ status: "paused" });
+    expect(getMatches()[0].elapsedSeconds).toBeGreaterThanOrEqual(17);
+    const elapsedAtPause = getMatches()[0].elapsedSeconds;
+
+    rerenderMatches();
+    await act(() => result.current.setMatchState("match-live", "resume"));
+    expect(getMatches()[0]).toMatchObject({ status: "in_progress" });
+    expect(getMatches()[0].elapsedSeconds).toBe(elapsedAtPause);
+
+    rerenderMatches();
+    await act(() => result.current.setMatchState("match-live", "finish"));
+    expect(getMatches()[0]).toMatchObject({ status: "finished" });
+    expect(getMatches()[0].startedAt).toBeUndefined();
   });
 });
