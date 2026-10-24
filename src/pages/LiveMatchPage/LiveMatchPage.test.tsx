@@ -164,21 +164,50 @@ describe("LiveMatchPage", () => {
       screen.queryByRole("dialog", { name: "Qui a marqué ?" }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Échanger deux joueurs"));
+    const openSwapPicker = screen.getByRole("button", {
+      name: "Échanger deux joueurs",
+    });
+    fireEvent.click(openSwapPicker);
+    const swapDialog = screen.getByRole("dialog", {
+      name: "Quels joueurs échanger ?",
+    });
+    const cancelSwap = screen.getByRole("button", {
+      name: "Annuler l’échange des joueurs",
+    });
+    expect(cancelSwap).toHaveFocus();
+    expect(document.body.style.overflow).toBe("hidden");
+    const confirmSwap = within(swapDialog).getByRole("button", {
+      name: "Échanger les joueurs",
+    });
+    expect(confirmSwap).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Joueur de l’équipe rouge"), {
       target: { value: "lucas" },
     });
     fireEvent.change(screen.getByLabelText("Joueur de l’équipe bleue"), {
       target: { value: "theo" },
     });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Échanger les joueurs" }),
-    );
+    expect(confirmSwap).toBeEnabled();
+    fireEvent.click(confirmSwap);
     expect(context.onSwapPlayers).toHaveBeenCalledWith(
       "match-live",
       "lucas",
       "theo",
     );
+    expect(
+      screen.queryByRole("dialog", { name: "Quels joueurs échanger ?" }),
+    ).not.toBeInTheDocument();
+    expect(openSwapPicker).toHaveFocus();
+    expect(document.body.style.overflow).toBe("");
+
+    fireEvent.click(openSwapPicker);
+    expect(
+      screen.getByRole("dialog", { name: "Quels joueurs échanger ?" }),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(
+      screen.queryByRole("dialog", { name: "Quels joueurs échanger ?" }),
+    ).not.toBeInTheDocument();
+    expect(openSwapPicker).toHaveFocus();
   });
 
   it("propose la pause et la fin pendant le match", () => {
@@ -225,7 +254,12 @@ describe("LiveMatchPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Théo Bernard" }));
     expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
 
-    fireEvent.click(screen.getByText("Échanger deux joueurs"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Échanger deux joueurs" }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Quels joueurs échanger ?" }),
+    ).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Joueur de l’équipe rouge"), {
       target: { value: "lucas" },
     });

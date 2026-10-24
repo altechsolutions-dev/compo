@@ -3,7 +3,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type FormEvent,
   type RefObject,
 } from "react";
 import {
@@ -165,6 +164,7 @@ export function LiveMatchPage({
     ),
   );
   const [goalPickerOpen, setGoalPickerOpen] = useState(false);
+  const [swapPickerOpen, setSwapPickerOpen] = useState(false);
   const [compositionOpen, setCompositionOpen] = useState(false);
   const [compositionMounted, setCompositionMounted] = useState(false);
   const [redPlayerToSwap, setRedPlayerToSwap] = useState("");
@@ -172,9 +172,11 @@ export function LiveMatchPage({
   const [confirmFinish, setConfirmFinish] = useState(false);
   const compositionDialogRef = useRef<HTMLElement | null>(null);
   const goalDialogRef = useRef<HTMLElement | null>(null);
+  const swapDialogRef = useRef<HTMLElement | null>(null);
   const finishDialogRef = useRef<HTMLElement | null>(null);
   const compositionTriggerRef = useRef<HTMLButtonElement | null>(null);
   const goalTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const swapTriggerRef = useRef<HTMLButtonElement | null>(null);
   const finishTriggerRef = useRef<HTMLButtonElement | null>(null);
   const compositionCloseTimerRef = useRef<number | null>(null);
 
@@ -204,6 +206,7 @@ export function LiveMatchPage({
     compositionTriggerRef,
   );
   useDialogAccessibility(goalPickerOpen, goalDialogRef, goalTriggerRef);
+  useDialogAccessibility(swapPickerOpen, swapDialogRef, swapTriggerRef);
   useDialogAccessibility(confirmFinish, finishDialogRef, finishTriggerRef);
 
   useEffect(() => {
@@ -238,6 +241,19 @@ export function LiveMatchPage({
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [goalPickerOpen]);
+
+  useEffect(() => {
+    if (!swapPickerOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSwapPickerOpen(false);
+        setRedPlayerToSwap("");
+        setBluePlayerToSwap("");
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [swapPickerOpen]);
 
   useEffect(() => {
     if (!confirmFinish) return;
@@ -291,13 +307,18 @@ export function LiveMatchPage({
     setGoalPickerOpen(false);
   }
 
-  function submitTeamChange(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function confirmTeamSwap() {
     if (!canRecordActions || !redPlayerToSwap || !bluePlayerToSwap) return;
     context?.onSwapPlayers(match.id, redPlayerToSwap, bluePlayerToSwap);
     setRedPlayerToSwap("");
     setBluePlayerToSwap("");
-    setGoalPickerOpen(false);
+    setSwapPickerOpen(false);
+  }
+
+  function cancelTeamSwap() {
+    setRedPlayerToSwap("");
+    setBluePlayerToSwap("");
+    setSwapPickerOpen(false);
   }
 
   return (
@@ -521,6 +542,102 @@ export function LiveMatchPage({
           document.body,
         )}
 
+      {swapPickerOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/70 p-0 sm:p-4"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) cancelTeamSwap();
+            }}
+            role="presentation"
+          >
+            <section
+              aria-labelledby="swap-players-title"
+              aria-modal="true"
+              className="my-auto w-full rounded-none border-x-0 border-y border-(--line) bg-(--bg-surface) p-4 text-(--text-primary) shadow-xl sm:max-w-xl sm:rounded-lg sm:border-x sm:p-6"
+              id="swap-players-picker"
+              onMouseDown={(event) => event.stopPropagation()}
+              ref={swapDialogRef}
+              role="dialog"
+              tabIndex={-1}
+            >
+              <div className="mb-4 flex items-center justify-between gap-3 border-b border-(--line) pb-4">
+                <div>
+                  <p className="mb-1 text-[9px] font-bold tracking-[1.4px] text-(--text-secondary)">
+                    CHANGEMENT D’ÉQUIPE
+                  </p>
+                  <h2
+                    className="m-0 text-base font-bold"
+                    id="swap-players-title"
+                  >
+                    Quels joueurs échanger ?
+                  </h2>
+                </div>
+                <button
+                  aria-label="Annuler l’échange des joueurs"
+                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-main) text-(--text-secondary)"
+                  onClick={cancelTeamSwap}
+                  type="button"
+                >
+                  <X aria-hidden="true" size={16} />
+                </button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label
+                  className="block text-xs text-(--team-a-red)"
+                  htmlFor="swap-red-player"
+                >
+                  Joueur de l’équipe rouge
+                  <select
+                    className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
+                    id="swap-red-player"
+                    onChange={(event) => setRedPlayerToSwap(event.target.value)}
+                    value={redPlayerToSwap}
+                  >
+                    <option value="">Choisir un joueur rouge</option>
+                    {teams[0].map((id) => (
+                      <option key={id} value={id}>
+                        {context.playerNames[id] ?? "Joueur"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label
+                  className="block text-xs text-(--team-b-blue)"
+                  htmlFor="swap-blue-player"
+                >
+                  Joueur de l’équipe bleue
+                  <select
+                    className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
+                    id="swap-blue-player"
+                    onChange={(event) =>
+                      setBluePlayerToSwap(event.target.value)
+                    }
+                    value={bluePlayerToSwap}
+                  >
+                    <option value="">Choisir un joueur bleu</option>
+                    {teams[1].map((id) => (
+                      <option key={id} value={id}>
+                        {context.playerNames[id] ?? "Joueur"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <button
+                className="mt-4 inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) text-sm font-bold text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!redPlayerToSwap || !bluePlayerToSwap}
+                onClick={confirmTeamSwap}
+                type="button"
+              >
+                <ArrowRightLeft aria-hidden="true" size={16} />
+                Échanger les joueurs
+              </button>
+            </section>
+          </div>,
+          document.body,
+        )}
+
       {context.matchNotice && (
         <p className="my-3 text-sm text-(--team-a-red)" role="alert">
           {context.matchNotice}
@@ -681,67 +798,24 @@ export function LiveMatchPage({
             </button>
           </div>
 
-          <details className="group border-b border-(--line) py-3">
-            <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-(--text-secondary) [&::-webkit-details-marker]:hidden">
+          <div className="border-b border-(--line) py-3">
+            <button
+              aria-expanded={swapPickerOpen}
+              aria-controls="swap-players-picker"
+              className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 border-0 bg-transparent p-0 text-left text-xs font-bold text-(--text-secondary)"
+              disabled={!canRecordActions}
+              onClick={() => {
+                setRedPlayerToSwap("");
+                setBluePlayerToSwap("");
+                setSwapPickerOpen(true);
+              }}
+              ref={swapTriggerRef}
+              type="button"
+            >
               Échanger deux joueurs
               <ArrowRightLeft aria-hidden="true" size={16} />
-            </summary>
-            <form className="pt-2" onSubmit={submitTeamChange}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label
-                  className="block text-xs text-(--team-a-red)"
-                  htmlFor="swap-red-player"
-                >
-                  Joueur de l’équipe rouge
-                  <select
-                    className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
-                    disabled={!canRecordActions}
-                    id="swap-red-player"
-                    onChange={(event) => setRedPlayerToSwap(event.target.value)}
-                    value={redPlayerToSwap}
-                  >
-                    <option value="">Choisir un joueur rouge</option>
-                    {teams[0].map((id) => (
-                      <option key={id} value={id}>
-                        {context.playerNames[id] ?? "Joueur"}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label
-                  className="block text-xs text-(--team-b-blue)"
-                  htmlFor="swap-blue-player"
-                >
-                  Joueur de l’équipe bleue
-                  <select
-                    className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
-                    disabled={!canRecordActions}
-                    id="swap-blue-player"
-                    onChange={(event) =>
-                      setBluePlayerToSwap(event.target.value)
-                    }
-                    value={bluePlayerToSwap}
-                  >
-                    <option value="">Choisir un joueur bleu</option>
-                    {teams[1].map((id) => (
-                      <option key={id} value={id}>
-                        {context.playerNames[id] ?? "Joueur"}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <button
-                className="mt-2 inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) text-sm font-bold text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={
-                  !canRecordActions || !redPlayerToSwap || !bluePlayerToSwap
-                }
-                type="submit"
-              >
-                Échanger les joueurs
-              </button>
-            </form>
-          </details>
+            </button>
+          </div>
 
           {!canRecordActions && (
             <p className="mb-0 mt-3 text-center text-[9px] text-(--text-secondary)">
