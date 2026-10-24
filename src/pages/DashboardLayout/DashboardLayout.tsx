@@ -42,8 +42,7 @@ export function DashboardLayout({
   const activeView: DashboardView =
     location.pathname === "/app/organizations"
       ? "organization"
-      : location.pathname === "/app/live" ||
-          location.pathname === "/mock/match-en-direct"
+      : location.pathname === "/app/live"
         ? "live"
         : "matches";
 

@@ -3,9 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { WorkspaceLayout } from "../pages/WorkspaceLayout/WorkspaceLayout";
 import { MatchesPage } from "../pages/MatchesPage/MatchesPage";
 import { OrganizationPage } from "../pages/OrganizationPage/OrganizationPage";
-import { FullMatchMock } from "../pages/FullMatchMock/FullMatchMock";
 import { LiveMatchPage } from "../pages/LiveMatchPage/LiveMatchPage";
-import { LiveMatchMockPage } from "../pages/LiveMatchMockPage/LiveMatchMockPage";
 
 type AppRouterProps = {
   authLoading: boolean;
@@ -42,8 +40,6 @@ export function AppRouter({
 
   return (
     <Routes>
-      <Route path="/mock/match-complet" element={<FullMatchMock />} />
-      <Route path="/mock/match-en-direct" element={<LiveMatchMockPage />} />
       <Route
         path="/"
         element={
