@@ -246,6 +246,18 @@ export function OrganizationRoster({
       )}
       {canLeave && (
         <div className="mt-3">
+          {confirmingLeave && (
+            <p className="mb-2 text-xs leading-relaxed text-(--text-secondary)">
+              Confirmer le départ de {organization} ?
+              {isCurrentUserOwner && (
+                <>
+                  {" "}
+                  En tant que propriétaire, ton rôle sera transmis à un autre
+                  membre. Le dernier propriétaire ne peut pas quitter seul.
+                </>
+              )}
+            </p>
+          )}
           {leaveNotice && (
             <p className="mb-2 text-xs text-(--team-a-red)" role="alert">
               {leaveNotice}

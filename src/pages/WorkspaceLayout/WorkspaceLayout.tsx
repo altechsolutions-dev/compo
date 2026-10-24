@@ -183,6 +183,7 @@ export function WorkspaceLayout() {
       if (cancelled) return;
       if (error) {
         setManOfTheMatchVoteError(error.message);
+        setManOfTheMatchPollLoading(false);
         return;
       }
       const row = (data?.[0] ?? null) as {
