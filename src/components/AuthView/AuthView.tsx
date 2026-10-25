@@ -98,7 +98,7 @@ export function AuthView({
         backdropClassName="auth-view-drawer-backdrop z-3"
       >
         <section>
-          <h1 className="absolute top-8 left-[clamp(28px,7vw,112px)] right-[clamp(28px,7vw,112px)] mx-auto hidden max-w-140 max-[900px]:block">
+          <h1 className="auth-view__mobile-logo">
             <img className="block h-auto w-33" src={logo} alt="Compo" />
           </h1>
           <div className="mx-auto w-full max-w-140">

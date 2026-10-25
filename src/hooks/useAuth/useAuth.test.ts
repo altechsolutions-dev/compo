@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { shouldOfferPasskey } from "./useAuth";
 
 describe("shouldOfferPasskey", () => {
-  it("proposes une passkey uniquement si le compte n’en a aucune", () => {
-    expect(shouldOfferPasskey([])).toBe(true);
-    expect(shouldOfferPasskey([{ id: "registered-passkey" }])).toBe(false);
+  it("propose une passkey si elle n’a pas été enregistrée sur cet appareil", () => {
+    expect(shouldOfferPasskey(false)).toBe(true);
+    expect(shouldOfferPasskey(true)).toBe(false);
   });
 });

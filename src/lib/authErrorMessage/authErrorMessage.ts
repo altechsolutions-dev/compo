@@ -7,7 +7,7 @@ export function authErrorMessage(message: string) {
     normalized.includes("operation either timed out or was not allowed") ||
     normalized.includes("notallowederror")
   ) {
-    return "La demande Face ID a été annulée ou a expiré. Réessayez depuis l’adresse localhost autorisée dans Supabase et validez la fenêtre biométrique.";
+    return "Aucune passkey disponible sur cet appareil, ou demande Face ID annulée/expirée. Connectez-vous avec votre e-mail et mot de passe, puis enregistrez une passkey sur cet appareil.";
   }
   if (normalized.includes("invalid login credentials")) {
     return "Adresse e-mail ou mot de passe incorrect.";

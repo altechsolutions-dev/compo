@@ -17,6 +17,11 @@ import {
 import type { AuthMode } from "../../types";
 
 const passkeyOfferStorageKey = "compo:offer-passkey-after-sign-in";
+const passkeyRegisteredStoragePrefix = "compo:passkey-registered:";
+
+function passkeyRegisteredStorageKey(userId: string) {
+  return `${passkeyRegisteredStoragePrefix}${userId}`;
+}
 
 export function getAuthenticatedDestination(
   search: string,
@@ -30,8 +35,8 @@ export function getAuthenticatedDestination(
     : "/app/matches";
 }
 
-export function shouldOfferPasskey(passkeys: readonly unknown[]) {
-  return passkeys.length === 0;
+export function shouldOfferPasskey(isRegisteredOnDevice: boolean) {
+  return !isRegisteredOnDevice;
 }
 
 export function useAuth() {
@@ -69,7 +74,6 @@ export function useAuth() {
   const [passkeySubmitting, setPasskeySubmitting] = useState(false);
   const [passkeyNotice, setPasskeyNotice] = useState("");
   const [passkeyPromptOpen, setPasskeyPromptOpen] = useState(false);
-  const [passkeyCheckUserId, setPasskeyCheckUserId] = useState("");
   const [rememberSession, setRememberSessionState] =
     useState(readRememberSession);
   const [session, setSession] = useState<Session | null>(null);
@@ -170,11 +174,14 @@ export function useAuth() {
         window.sessionStorage.getItem(passkeyOfferStorageKey) === "1"
       ) {
         window.sessionStorage.removeItem(passkeyOfferStorageKey);
-        setPasskeyCheckUserId(nextSession.user.id);
+        const isRegisteredOnDevice =
+          window.localStorage.getItem(
+            passkeyRegisteredStorageKey(nextSession.user.id),
+          ) === "1";
+        setPasskeyPromptOpen(shouldOfferPasskey(isRegisteredOnDevice));
       }
       if (event === "SIGNED_OUT") {
         setPasskeyPromptOpen(false);
-        setPasskeyCheckUserId("");
       }
       if (event === "PASSWORD_RECOVERY") {
         setAuthMode("update-password");
@@ -198,35 +205,6 @@ export function useAuth() {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
-
-  const sessionUserId = session?.user.id;
-  useEffect(() => {
-    if (
-      !supabase ||
-      !passkeyCheckUserId ||
-      passkeyCheckUserId !== sessionUserId
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-    void supabase.auth.passkey
-      .list()
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        setPasskeyPromptOpen(!error && shouldOfferPasskey(data));
-        setPasskeyCheckUserId("");
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setPasskeyPromptOpen(false);
-        setPasskeyCheckUserId("");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [passkeyCheckUserId, sessionUserId]);
 
   async function signInWithGoogle() {
     if (!supabase) {
@@ -316,6 +294,10 @@ export function useAuth() {
     try {
       const { error } = await supabase.auth.registerPasskey();
       if (error) throw error;
+      window.localStorage.setItem(
+        passkeyRegisteredStorageKey(session.user.id),
+        "1",
+      );
       setPasskeyPromptOpen(false);
       setPasskeyNotice(
         "Passkey ajoutée à votre compte et conservée par le gestionnaire de passkeys de votre appareil.",

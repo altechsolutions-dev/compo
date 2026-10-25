@@ -14,12 +14,12 @@ describe("authErrorMessage", () => {
     );
   });
 
-  it("guide la reprise après une demande Face ID annulée ou expirée", () => {
+  it("guide si aucune passkey locale n’est disponible ou si la demande est annulée", () => {
     expect(
       authErrorMessage(
         "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/",
       ),
-    ).toContain("La demande Face ID a été annulée ou a expiré");
+    ).toContain("Aucune passkey disponible sur cet appareil");
   });
 
   it("préserve le détail d’une erreur inconnue et couvre les messages vides", () => {
