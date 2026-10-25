@@ -91,6 +91,30 @@ create or replace trigger organization_members_create_player_after_player_update
 
 revoke all on function public.create_player_for_membership() from public;
 
+create or replace function public.remove_departed_member_from_match_signups()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  delete from public.match_slot_attendees as attendee
+  using public.match_slots as slot
+  where attendee.match_slot_id = slot.id
+    and slot.organization_id = old.organization_id
+    and slot.status = 'scheduled'
+    and attendee.user_id = old.user_id;
+
+  return old;
+end;
+$$;
+
+create or replace trigger organization_members_remove_scheduled_signups_after_delete
+  after delete on public.organization_members
+  for each row execute function public.remove_departed_member_from_match_signups();
+
+revoke all on function public.remove_departed_member_from_match_signups() from public;
+
 insert into public.players (organization_id, user_id)
 select membership.organization_id, membership.user_id
 from public.organization_members as membership
