@@ -12,7 +12,10 @@ const baseMatch: MatchSlot = {
   attendees: ["alex", "sarah"],
 };
 
-function renderCard(match: MatchSlot = baseMatch) {
+function renderCard(
+  match: MatchSlot = baseMatch,
+  playerNames: Record<string, string> = {},
+) {
   const onOpen = vi.fn();
   const onRegister = vi.fn();
   render(
@@ -21,6 +24,7 @@ function renderCard(match: MatchSlot = baseMatch) {
       isSelected={false}
       currentAttendeeId="current-player"
       matchRegistering={false}
+      playerNames={playerNames}
       onOpen={onOpen}
       onRegister={onRegister}
     />,
@@ -29,19 +33,33 @@ function renderCard(match: MatchSlot = baseMatch) {
 }
 
 describe("MatchCard", () => {
-  it("affiche les inscriptions et ouvre le drawer depuis la date", () => {
-    const { onOpen } = renderCard();
+  it("affiche directement les bulles des inscrits sans ouvrir le drawer", () => {
+    const { onOpen } = renderCard(baseMatch, {
+      alex: "Alex Martin",
+      sarah: "Sarah Doe",
+    });
 
     expect(screen.getByRole("progressbar")).toHaveAttribute(
       "aria-valuenow",
       "2",
     );
     expect(screen.getByText("Urban Soccer")).toBeInTheDocument();
+    expect(screen.getByTitle("Alex Martin")).toHaveTextContent("AM");
+    expect(screen.getByTitle("Sarah Doe")).toHaveTextContent("SD");
+    expect(
+      screen.getByRole("button", { name: /Afficher les inscrits du match/ }),
+    ).toHaveAttribute("aria-expanded", "true");
 
     fireEvent.click(
-      screen.getByRole("button", { name: /Afficher les détails du match/ }),
+      screen.getByRole("button", { name: /Afficher les inscrits du match/ }),
     );
-    expect(onOpen).toHaveBeenCalledOnce();
+    expect(onOpen).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Match de foot à 5" }));
+    expect(onOpen).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: /Afficher les inscrits du match/ }),
+    ).toHaveAttribute("aria-expanded", "true");
   });
 
   it("signale un match complet et désactive l’inscription", () => {
@@ -49,7 +67,7 @@ describe("MatchCard", () => {
       ...baseMatch,
       attendees: Array.from({ length: 10 }, (_, index) => `player-${index}`),
     };
-    const { onRegister } = renderCard(fullMatch);
+    const { onOpen, onRegister } = renderCard(fullMatch);
 
     expect(screen.getByText("COMPLET · COMPO DISPONIBLE")).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute(
@@ -62,6 +80,11 @@ describe("MatchCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Match complet" }));
     expect(onRegister).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Afficher les détails du match/ }),
+    );
+    expect(onOpen).toHaveBeenCalledOnce();
   });
 
   it("déclenche l’inscription sans ouvrir le drawer", () => {

@@ -9,13 +9,15 @@ vi.mock("./lib/supabase/supabase", () => ({
 }));
 
 describe("App routes", () => {
-  it("redirige les visiteurs non connectés vers la page d’accueil depuis l’espace privé", () => {
+  it("redirige les visiteurs non connectés vers la page d’accueil depuis l’espace privé", async () => {
     render(
       <MemoryRouter initialEntries={["/app/organizations"]}>
         <App />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("heading", { name: "Connecte-toi" })).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "Connecte-toi" }),
+    ).toBeVisible();
   });
 });

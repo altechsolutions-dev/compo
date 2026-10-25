@@ -16,10 +16,8 @@ export function renderLiveMatchComposition({
     <>
       <div className="mb-7 flex items-center justify-between gap-4 border-b border-(--line) pb-4">
         <div>
-          <p className="mb-1 text-[9px] font-bold tracking-[1.5px] text-(--text-secondary)">
-            AVANT LE COUP D’ENVOI
-          </p>
-          <h2 className="m-0 text-xl font-bold" id="match-composition-title">
+          <p className="drawer-eyebrow mb-1">AVANT LE COUP D’ENVOI</p>
+          <h2 className="drawer-title m-0" id="match-composition-title">
             Composition du match
           </h2>
         </div>

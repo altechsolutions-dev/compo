@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { currentPlayerId } from "../../data/currentPlayerId/currentPlayerId";
 import { players } from "../../data/players/players";
 import { readMatches } from "../../data/readMatches/readMatches";
 import { supabase } from "../../lib/supabase/supabase";
+import { useDrawerTransition } from "../useDrawerTransition/useDrawerTransition";
 import type { MatchGoal, MatchSlot, OrganizationMember } from "../../types";
 
 type MatchSlotRow = {
@@ -47,10 +48,10 @@ export function useMatches({
   const [matchFilter, setMatchFilter] = useState<
     "all" | "available" | "finished"
   >("all");
-  const [matchDrawerOpen, setMatchDrawerOpen] = useState(false);
-  const [matchDrawerMounted, setMatchDrawerMounted] = useState(false);
+  const [matchDrawerRequestedOpen, setMatchDrawerRequestedOpen] =
+    useState(false);
+  const matchDrawerTransition = useDrawerTransition(matchDrawerRequestedOpen);
   const [matchNotice, setMatchNotice] = useState("");
-  const matchDrawerCloseTimer = useRef<number | null>(null);
   const sessionUserId = session?.user.id ?? null;
 
   useEffect(() => {
@@ -148,30 +149,13 @@ export function useMatches({
     return () => window.clearInterval(refreshTimer);
   }, [organizationId, sessionUserId]);
 
-  useEffect(
-    () => () => {
-      if (matchDrawerCloseTimer.current !== null) {
-        window.clearTimeout(matchDrawerCloseTimer.current);
-      }
-    },
-    [],
-  );
-
   function openMatchDrawer(matchId: string) {
-    if (matchDrawerCloseTimer.current !== null) {
-      window.clearTimeout(matchDrawerCloseTimer.current);
-    }
     setSelectedMatchId(matchId);
-    setMatchDrawerMounted(true);
-    requestAnimationFrame(() => setMatchDrawerOpen(true));
+    setMatchDrawerRequestedOpen(true);
   }
 
   function closeMatchDrawer() {
-    setMatchDrawerOpen(false);
-    matchDrawerCloseTimer.current = window.setTimeout(() => {
-      setMatchDrawerMounted(false);
-      matchDrawerCloseTimer.current = null;
-    }, 300);
+    setMatchDrawerRequestedOpen(false);
   }
 
   const currentAttendeeId = session?.user.id ?? currentPlayerId;
@@ -205,8 +189,8 @@ export function useMatches({
     selectedMatch,
     matchFilter,
     setMatchFilter,
-    matchDrawerOpen,
-    matchDrawerMounted,
+    matchDrawerOpen: matchDrawerTransition.open,
+    matchDrawerMounted: matchDrawerTransition.mounted,
     matchNotice,
     setMatchNotice,
     currentAttendeeId,

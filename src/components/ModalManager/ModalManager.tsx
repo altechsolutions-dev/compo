@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { CreateMatchDialogContainer } from "../../containers/CreateMatchDialogContainer/CreateMatchDialogContainer";
 import type { CreateMatchDialogContainerProps } from "../../containers/CreateMatchDialogContainer/CreateMatchDialogContainer";
 import {
@@ -5,6 +6,7 @@ import {
   type OrganizationDialogsContainerProps,
 } from "../../containers/OrganizationDialogsContainer/OrganizationDialogsContainer";
 import type { DialogKind } from "../../types";
+import { useDrawerTransition } from "../../hooks/useDrawerTransition/useDrawerTransition";
 import "./ModalManager.css";
 
 export type ModalManagerProps = {
@@ -18,14 +20,36 @@ export function ModalManager({
   matchDialog,
   organizationDialog,
 }: ModalManagerProps) {
-  if (!kind) return null;
+  const transition = useDrawerTransition(Boolean(kind));
+  const [retainedKind, setRetainedKind] = useState<DialogKind | null>(null);
+
+  if (kind && retainedKind !== kind) setRetainedKind(kind);
+
+  const displayedKind = kind ?? retainedKind;
+
+  useEffect(() => {
+    if (kind || !retainedKind) return;
+    const timer = window.setTimeout(() => setRetainedKind(null), 300);
+    return () => window.clearTimeout(timer);
+  }, [kind, retainedKind]);
+
+  if (!displayedKind || !transition.mounted) return null;
 
   return (
     <div className="modal-manager">
-      {kind === "match" ? (
-        <CreateMatchDialogContainer {...matchDialog} />
+      {displayedKind === "match" ? (
+        <CreateMatchDialogContainer
+          {...matchDialog}
+          mounted={transition.mounted}
+          open={transition.open}
+        />
       ) : (
-        <OrganizationDialogsContainer {...organizationDialog} kind={kind} />
+        <OrganizationDialogsContainer
+          {...organizationDialog}
+          kind={displayedKind}
+          mounted={transition.mounted}
+          open={transition.open}
+        />
       )}
     </div>
   );

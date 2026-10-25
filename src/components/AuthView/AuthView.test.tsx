@@ -22,22 +22,24 @@ function renderAuthView() {
 }
 
 describe("AuthView", () => {
-  it("affiche la connexion et permet de basculer vers l’inscription", () => {
+  it("affiche la connexion et permet de basculer vers l’inscription", async () => {
     const { onAuthModeChange, onClearNotice } = renderAuthView();
 
     expect(
-      screen.getByRole("heading", { name: "Connecte-toi" }),
+      await screen.findByRole("heading", { name: "Connecte-toi" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Inscription" }));
     expect(onAuthModeChange).toHaveBeenCalledWith("signup");
     expect(onClearNotice).toHaveBeenCalledOnce();
   });
 
-  it("transmet la soumission et la connexion Google", () => {
+  it("transmet la soumission et la connexion Google", async () => {
     const { onSubmit, onSignInWithGoogle } = renderAuthView();
 
     fireEvent.submit(
-      screen.getByRole("button", { name: "Se connecter" }).closest("form")!,
+      (await screen.findByRole("button", { name: "Se connecter" })).closest(
+        "form",
+      )!,
     );
     fireEvent.click(
       screen.getByRole("button", { name: "Continuer avec Google" }),

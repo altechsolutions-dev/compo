@@ -18,13 +18,14 @@ import {
   Play,
   X,
 } from "lucide-react";
-import { createPortal } from "react-dom";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import { Drawer } from "../../components/Drawer/Drawer";
 import { renderLiveMatchComposition } from "../../components/LiveMatchComposition/renderLiveMatchComposition";
 import { OrganizationRequired } from "../../components/OrganizationRequired/OrganizationRequired";
+import { useDrawerTransition } from "../../hooks/useDrawerTransition/useDrawerTransition";
 import type { MatchGoal, MatchSlot } from "../../types";
 import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteContext";
+import "./LiveMatchPage.css";
 
 function formatClock(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -72,7 +73,6 @@ function useDialogAccessibility(
         ? document.activeElement
         : null;
     const returnFocusTarget = triggerRef.current ?? previousFocus;
-    const previousOverflow = document.body.style.overflow;
     const focusableSelector =
       'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
     const getFocusableElements = () =>
@@ -80,8 +80,9 @@ function useDialogAccessibility(
     const focusWithoutScrolling = (element: HTMLElement) =>
       element.focus({ preventScroll: true });
 
-    document.body.style.overflow = "hidden";
-    focusWithoutScrolling(getFocusableElements()[0] ?? dialog);
+    const focusTimer = window.setTimeout(() => {
+      focusWithoutScrolling(getFocusableElements()[0] ?? dialog);
+    }, 40);
 
     const keepFocusInside = (event: KeyboardEvent) => {
       if (event.key !== "Tab") return;
@@ -110,8 +111,8 @@ function useDialogAccessibility(
 
     document.addEventListener("keydown", keepFocusInside, true);
     return () => {
+      window.clearTimeout(focusTimer);
       document.removeEventListener("keydown", keepFocusInside, true);
-      document.body.style.overflow = previousOverflow;
       if (returnFocusTarget?.isConnected)
         focusWithoutScrolling(returnFocusTarget);
     };
@@ -170,6 +171,9 @@ export function LiveMatchPage({
   const [redPlayerToSwap, setRedPlayerToSwap] = useState("");
   const [bluePlayerToSwap, setBluePlayerToSwap] = useState("");
   const [confirmFinish, setConfirmFinish] = useState(false);
+  const goalDrawer = useDrawerTransition(goalPickerOpen);
+  const swapDrawer = useDrawerTransition(swapPickerOpen);
+  const finishDrawer = useDrawerTransition(confirmFinish);
   const compositionDialogRef = useRef<HTMLElement | null>(null);
   const goalDialogRef = useRef<HTMLElement | null>(null);
   const swapDialogRef = useRef<HTMLElement | null>(null);
@@ -205,9 +209,9 @@ export function LiveMatchPage({
     compositionDialogRef,
     compositionTriggerRef,
   );
-  useDialogAccessibility(goalPickerOpen, goalDialogRef, goalTriggerRef);
-  useDialogAccessibility(swapPickerOpen, swapDialogRef, swapTriggerRef);
-  useDialogAccessibility(confirmFinish, finishDialogRef, finishTriggerRef);
+  useDialogAccessibility(goalDrawer.open, goalDialogRef, goalTriggerRef);
+  useDialogAccessibility(swapDrawer.open, swapDialogRef, swapTriggerRef);
+  useDialogAccessibility(finishDrawer.open, finishDialogRef, finishTriggerRef);
 
   useEffect(() => {
     const updateClock = () =>
@@ -232,37 +236,6 @@ export function LiveMatchPage({
     },
     [],
   );
-
-  useEffect(() => {
-    if (!goalPickerOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setGoalPickerOpen(false);
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [goalPickerOpen]);
-
-  useEffect(() => {
-    if (!swapPickerOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setSwapPickerOpen(false);
-        setRedPlayerToSwap("");
-        setBluePlayerToSwap("");
-      }
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [swapPickerOpen]);
-
-  useEffect(() => {
-    if (!confirmFinish) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setConfirmFinish(false);
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [confirmFinish]);
 
   if (!context) return null;
 
@@ -421,226 +394,180 @@ export function LiveMatchPage({
         <h2 className="mb-0 mt-6 text-lg font-bold">Résumé du match</h2>
       )}
 
-      {confirmFinish &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-0 sm:p-5"
-            onClick={() => setConfirmFinish(false)}
-            role="presentation"
-          >
-            <section
-              aria-labelledby="finish-match-title"
-              aria-modal="true"
-              className="w-full rounded-none border-x-0 border-y border-(--line) bg-(--bg-surface) p-5 shadow-xl sm:max-w-sm sm:rounded-lg sm:border-x"
-              onClick={(event) => event.stopPropagation()}
-              ref={finishDialogRef}
-              role="alertdialog"
-              tabIndex={-1}
+      <Drawer
+        mounted={finishDrawer.mounted}
+        open={finishDrawer.open}
+        onClose={() => setConfirmFinish(false)}
+        labelledBy="finish-match-title"
+        panelClassName="live-match-action-drawer"
+        backdropClassName="z-50"
+        dialogRole="alertdialog"
+        panelRef={finishDialogRef}
+      >
+        <div className="live-match-action-drawer__content">
+          <h2 className="drawer-title m-0" id="finish-match-title">
+            Siffler la fin du match ?
+          </h2>
+          <p className="mb-0 mt-2 text-sm text-(--text-secondary)">
+            Le chrono sera arrêté et les actions de jeu désactivées.
+          </p>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <button
+              className="min-h-12 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-3 text-sm font-bold text-(--text-primary)"
+              onClick={() => setConfirmFinish(false)}
+              type="button"
             >
-              <h2 className="m-0 text-lg font-bold" id="finish-match-title">
-                Siffler la fin du match ?
-              </h2>
-              <p className="mb-0 mt-2 text-sm text-(--text-secondary)">
-                Le chrono sera arrêté et les actions de jeu désactivées.
-              </p>
-              <div className="mt-5 grid grid-cols-2 gap-2">
-                <button
-                  className="min-h-12 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-3 text-sm font-bold text-(--text-primary)"
-                  onClick={() => setConfirmFinish(false)}
-                  type="button"
-                >
-                  Continuer le match
-                </button>
-                <button
-                  className="min-h-12 cursor-pointer rounded-md border-0 bg-(--team-a-red) px-3 text-sm font-bold text-(--bg-main)"
-                  onClick={() => {
-                    context.onSetMatchState(match.id, "finish");
-                    setConfirmFinish(false);
-                  }}
-                  type="button"
-                >
-                  Confirmer la fin
-                </button>
-              </div>
-            </section>
-          </div>,
-          document.body,
-        )}
+              Continuer le match
+            </button>
+            <button
+              className="min-h-12 cursor-pointer rounded-md border-0 bg-(--team-a-red) px-3 text-sm font-bold text-(--bg-main)"
+              onClick={() => {
+                context.onSetMatchState(match.id, "finish");
+                setConfirmFinish(false);
+              }}
+              type="button"
+            >
+              Confirmer la fin
+            </button>
+          </div>
+        </div>
+      </Drawer>
 
-      {goalPickerOpen &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/70 p-0 sm:p-4"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget)
-                setGoalPickerOpen(false);
-            }}
-            role="presentation"
+      <Drawer
+        mounted={goalDrawer.mounted}
+        open={goalDrawer.open}
+        onClose={() => setGoalPickerOpen(false)}
+        labelledBy="goal-scorer-title"
+        panelClassName="live-match-action-drawer live-match-action-drawer--wide"
+        backdropClassName="z-50"
+        panelRef={goalDialogRef}
+      >
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-(--line) pb-4">
+          <div>
+            <p className="drawer-eyebrow mb-1">NOUVEAU BUT</p>
+            <h2 className="drawer-title m-0" id="goal-scorer-title">
+              Qui a marqué ?
+            </h2>
+          </div>
+          <button
+            aria-label="Annuler la saisie du but"
+            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-main) text-(--text-secondary)"
+            onClick={() => setGoalPickerOpen(false)}
+            type="button"
           >
-            <section
-              aria-labelledby="goal-scorer-title"
-              aria-modal="true"
-              className="my-auto w-full rounded-none border-x-0 border-y border-(--line) bg-(--bg-surface) p-4 text-(--text-primary) shadow-xl sm:max-w-xl sm:rounded-lg sm:border-x sm:p-6"
-              id="goal-scorer-picker"
-              onMouseDown={(event) => event.stopPropagation()}
-              ref={goalDialogRef}
-              role="dialog"
-              tabIndex={-1}
-            >
-              <div className="mb-4 flex items-center justify-between gap-3 border-b border-(--line) pb-4">
-                <div>
-                  <p className="mb-1 text-[9px] font-bold tracking-[1.4px] text-(--text-secondary)">
-                    NOUVEAU BUT
-                  </p>
-                  <h2
-                    className="m-0 text-base font-bold"
-                    id="goal-scorer-title"
-                  >
-                    Qui a marqué ?
-                  </h2>
-                </div>
-                <button
-                  aria-label="Annuler la saisie du but"
-                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-main) text-(--text-secondary)"
-                  onClick={() => setGoalPickerOpen(false)}
-                  type="button"
-                >
-                  <X aria-hidden="true" size={16} />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                {([1, 0] as const).map((team) => {
-                  const teamPlayers = teams[team];
-                  const isRedTeam = team === 0;
-                  return (
-                    <section
-                      aria-label={`Équipe ${isRedTeam ? "rouge" : "bleue"}`}
-                      className={`min-w-0 rounded-md border p-2 sm:p-3 ${isRedTeam ? "border-(--team-a-red)/25 bg-(--team-a-red)/5" : "border-(--team-b-blue)/25 bg-(--team-b-blue)/5"}`}
-                      key={team}
-                    >
-                      <h3
-                        className={`mb-2 mt-0 text-center text-[10px] font-bold uppercase ${isRedTeam ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
-                      >
-                        {isRedTeam ? "Rouge" : "Bleue"}
-                      </h3>
-                      <div className="grid gap-1.5">
-                        {teamPlayers.map((id) => (
-                          <button
-                            className={`min-h-12 cursor-pointer rounded border px-2 text-left text-xs font-semibold leading-tight transition ${isRedTeam ? "border-(--team-a-red)/30 bg-(--bg-main) text-(--text-primary) hover:bg-(--team-a-red)/15" : "border-(--team-b-blue)/30 bg-(--bg-main) text-(--text-primary) hover:bg-(--team-b-blue)/15"}`}
-                            key={id}
-                            onClick={() => recordGoal(id)}
-                            type="button"
-                          >
-                            <span className="block truncate">
-                              {context.playerNames[id] ?? "Joueur"}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
-            </section>
-          </div>,
-          document.body,
-        )}
-
-      {swapPickerOpen &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/70 p-0 sm:p-4"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) cancelTeamSwap();
-            }}
-            role="presentation"
-          >
-            <section
-              aria-labelledby="swap-players-title"
-              aria-modal="true"
-              className="my-auto w-full rounded-none border-x-0 border-y border-(--line) bg-(--bg-surface) p-4 text-(--text-primary) shadow-xl sm:max-w-xl sm:rounded-lg sm:border-x sm:p-6"
-              id="swap-players-picker"
-              onMouseDown={(event) => event.stopPropagation()}
-              ref={swapDialogRef}
-              role="dialog"
-              tabIndex={-1}
-            >
-              <div className="mb-4 flex items-center justify-between gap-3 border-b border-(--line) pb-4">
-                <div>
-                  <p className="mb-1 text-[9px] font-bold tracking-[1.4px] text-(--text-secondary)">
-                    CHANGEMENT D’ÉQUIPE
-                  </p>
-                  <h2
-                    className="m-0 text-base font-bold"
-                    id="swap-players-title"
-                  >
-                    Quels joueurs échanger ?
-                  </h2>
-                </div>
-                <button
-                  aria-label="Annuler l’échange des joueurs"
-                  className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-main) text-(--text-secondary)"
-                  onClick={cancelTeamSwap}
-                  type="button"
-                >
-                  <X aria-hidden="true" size={16} />
-                </button>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label
-                  className="block text-xs text-(--team-a-red)"
-                  htmlFor="swap-red-player"
-                >
-                  Joueur de l’équipe rouge
-                  <select
-                    className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
-                    id="swap-red-player"
-                    onChange={(event) => setRedPlayerToSwap(event.target.value)}
-                    value={redPlayerToSwap}
-                  >
-                    <option value="">Choisir un joueur rouge</option>
-                    {teams[0].map((id) => (
-                      <option key={id} value={id}>
-                        {context.playerNames[id] ?? "Joueur"}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label
-                  className="block text-xs text-(--team-b-blue)"
-                  htmlFor="swap-blue-player"
-                >
-                  Joueur de l’équipe bleue
-                  <select
-                    className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
-                    id="swap-blue-player"
-                    onChange={(event) =>
-                      setBluePlayerToSwap(event.target.value)
-                    }
-                    value={bluePlayerToSwap}
-                  >
-                    <option value="">Choisir un joueur bleu</option>
-                    {teams[1].map((id) => (
-                      <option key={id} value={id}>
-                        {context.playerNames[id] ?? "Joueur"}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <button
-                className="mt-4 inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) text-sm font-bold text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={!redPlayerToSwap || !bluePlayerToSwap}
-                onClick={confirmTeamSwap}
-                type="button"
+            <X aria-hidden="true" size={16} />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          {([1, 0] as const).map((team) => {
+            const teamPlayers = teams[team];
+            const isRedTeam = team === 0;
+            return (
+              <section
+                aria-label={`Équipe ${isRedTeam ? "rouge" : "bleue"}`}
+                className={`min-w-0 rounded-md border p-2 sm:p-3 ${isRedTeam ? "border-(--team-a-red)/25 bg-(--team-a-red)/5" : "border-(--team-b-blue)/25 bg-(--team-b-blue)/5"}`}
+                key={team}
               >
-                <ArrowRightLeft aria-hidden="true" size={16} />
-                Échanger les joueurs
-              </button>
-            </section>
-          </div>,
-          document.body,
-        )}
+                <h3
+                  className={`mb-2 mt-0 text-center text-[10px] font-bold uppercase ${isRedTeam ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
+                >
+                  {isRedTeam ? "Rouge" : "Bleue"}
+                </h3>
+                <div className="grid gap-1.5">
+                  {teamPlayers.map((id) => (
+                    <button
+                      className={`min-h-12 cursor-pointer rounded border px-2 text-left text-xs font-semibold leading-tight transition ${isRedTeam ? "border-(--team-a-red)/30 bg-(--bg-main) text-(--text-primary) hover:bg-(--team-a-red)/15" : "border-(--team-b-blue)/30 bg-(--bg-main) text-(--text-primary) hover:bg-(--team-b-blue)/15"}`}
+                      key={id}
+                      onClick={() => recordGoal(id)}
+                      type="button"
+                    >
+                      <span className="block truncate">
+                        {context.playerNames[id] ?? "Joueur"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      </Drawer>
+
+      <Drawer
+        mounted={swapDrawer.mounted}
+        open={swapDrawer.open}
+        onClose={cancelTeamSwap}
+        labelledBy="swap-players-title"
+        panelClassName="live-match-action-drawer live-match-action-drawer--wide"
+        backdropClassName="z-50"
+        panelRef={swapDialogRef}
+      >
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-(--line) pb-4">
+          <div>
+            <p className="drawer-eyebrow mb-1">CHANGEMENT D’ÉQUIPE</p>
+            <h2 className="drawer-title m-0" id="swap-players-title">
+              Quels joueurs échanger ?
+            </h2>
+          </div>
+          <button
+            aria-label="Annuler l’échange des joueurs"
+            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-main) text-(--text-secondary)"
+            onClick={cancelTeamSwap}
+            type="button"
+          >
+            <X aria-hidden="true" size={16} />
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label
+            className="block text-xs text-(--team-a-red)"
+            htmlFor="swap-red-player"
+          >
+            Joueur de l’équipe rouge
+            <select
+              className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
+              id="swap-red-player"
+              onChange={(event) => setRedPlayerToSwap(event.target.value)}
+              value={redPlayerToSwap}
+            >
+              <option value="">Choisir un joueur rouge</option>
+              {teams[0].map((id) => (
+                <option key={id} value={id}>
+                  {context.playerNames[id] ?? "Joueur"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label
+            className="block text-xs text-(--team-b-blue)"
+            htmlFor="swap-blue-player"
+          >
+            Joueur de l’équipe bleue
+            <select
+              className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
+              id="swap-blue-player"
+              onChange={(event) => setBluePlayerToSwap(event.target.value)}
+              value={bluePlayerToSwap}
+            >
+              <option value="">Choisir un joueur bleu</option>
+              {teams[1].map((id) => (
+                <option key={id} value={id}>
+                  {context.playerNames[id] ?? "Joueur"}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <button
+          className="mt-4 inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) text-sm font-bold text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={!redPlayerToSwap || !bluePlayerToSwap}
+          onClick={confirmTeamSwap}
+          type="button"
+        >
+          <ArrowRightLeft aria-hidden="true" size={16} />
+          Échanger les joueurs
+        </button>
+      </Drawer>
 
       {context.matchNotice && (
         <p className="my-3 text-sm text-(--team-a-red)" role="alert">

@@ -12,6 +12,8 @@ export type CreateMatchDialogContainerProps = {
   maxPlayers: number;
   joinOnCreate: boolean;
   saving: boolean;
+  mounted?: boolean;
+  open?: boolean;
   onClose: () => void;
   onDateChange: (value: string) => void;
   onTimeChange: (value: string) => void;
@@ -30,6 +32,8 @@ export function CreateMatchDialogContainer({
   maxPlayers,
   joinOnCreate,
   saving,
+  mounted,
+  open,
   onClose,
   onDateChange,
   onTimeChange,
@@ -42,6 +46,8 @@ export function CreateMatchDialogContainer({
     <DashboardDialog
       eyebrow={organizationName || "CLUB"}
       kind="match"
+      mounted={mounted}
+      open={open}
       onClose={onClose}
     >
       <form className="create-match-dialog-form" onSubmit={onSubmit}>

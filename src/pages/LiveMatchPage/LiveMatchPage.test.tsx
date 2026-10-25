@@ -122,9 +122,11 @@ describe("LiveMatchPage", () => {
     const composition = await screen.findByRole("dialog", {
       name: "Composition du match",
     });
-    expect(
-      screen.getByRole("button", { name: "Fermer la composition" }),
-    ).toHaveFocus();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Fermer la composition" }),
+      ).toHaveFocus(),
+    );
     expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
     focusSpy.mockRestore();
     expect(document.body.style.overflow).toBe("hidden");
@@ -157,12 +159,14 @@ describe("LiveMatchPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("permet de valider un but et d’échanger deux joueurs d’équipes opposées", () => {
+  it("permet de valider un but et d’échanger deux joueurs d’équipes opposées", async () => {
     const { context } = renderLivePage();
 
     const openGoalPicker = screen.getByRole("button", { name: "But !" });
     fireEvent.click(openGoalPicker);
-    const goalDialog = screen.getByRole("dialog", { name: "Qui a marqué ?" });
+    const goalDialog = await screen.findByRole("dialog", {
+      name: "Qui a marqué ?",
+    });
     expect(goalDialog).toBeInTheDocument();
     expect(
       within(goalDialog)
@@ -172,7 +176,7 @@ describe("LiveMatchPage", () => {
     const cancelGoal = screen.getByRole("button", {
       name: "Annuler la saisie du but",
     });
-    expect(cancelGoal).toHaveFocus();
+    await waitFor(() => expect(cancelGoal).toHaveFocus());
     expect(document.body.style.overflow).toBe("hidden");
     screen.getByRole("button", { name: "Lucas Martin" }).focus();
     fireEvent.keyDown(screen.getByRole("button", { name: "Lucas Martin" }), {
@@ -180,29 +184,42 @@ describe("LiveMatchPage", () => {
     });
     expect(cancelGoal).toHaveFocus();
     fireEvent.keyDown(window, { key: "Escape" });
-    expect(
-      screen.queryByRole("dialog", { name: "Qui a marqué ?" }),
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", {
+          name: "Qui a marqué ?",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
     expect(openGoalPicker).toHaveFocus();
+    await waitFor(() => expect(document.body.style.overflow).toBe(""));
     expect(document.body.style.overflow).toBe("");
     fireEvent.click(screen.getByRole("button", { name: "But !" }));
+    await screen.findByRole("dialog", { name: "Qui a marqué ?" });
     fireEvent.click(screen.getByRole("button", { name: "Théo Bernard" }));
     expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
-    expect(
-      screen.queryByRole("dialog", { name: "Qui a marqué ?" }),
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", {
+          name: "Qui a marqué ?",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
+    await waitFor(() => expect(document.body.style.overflow).toBe(""));
 
     const openSwapPicker = screen.getByRole("button", {
       name: "Échanger deux joueurs",
     });
     fireEvent.click(openSwapPicker);
-    const swapDialog = screen.getByRole("dialog", {
+    const swapDialog = await screen.findByRole("dialog", {
       name: "Quels joueurs échanger ?",
     });
     const cancelSwap = screen.getByRole("button", {
       name: "Annuler l’échange des joueurs",
     });
-    expect(cancelSwap).toHaveFocus();
+    await waitFor(() => expect(cancelSwap).toHaveFocus());
     expect(document.body.style.overflow).toBe("hidden");
     const confirmSwap = within(swapDialog).getByRole("button", {
       name: "Échanger les joueurs",
@@ -221,24 +238,37 @@ describe("LiveMatchPage", () => {
       "lucas",
       "theo",
     );
-    expect(
-      screen.queryByRole("dialog", { name: "Quels joueurs échanger ?" }),
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", {
+          name: "Quels joueurs échanger ?",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
     expect(openSwapPicker).toHaveFocus();
+    await waitFor(() => expect(document.body.style.overflow).toBe(""));
     expect(document.body.style.overflow).toBe("");
 
     fireEvent.click(openSwapPicker);
+    await screen.findByRole("dialog", { name: "Quels joueurs échanger ?" });
     expect(
       screen.getByRole("dialog", { name: "Quels joueurs échanger ?" }),
     ).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "Escape" });
-    expect(
-      screen.queryByRole("dialog", { name: "Quels joueurs échanger ?" }),
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", {
+          name: "Quels joueurs échanger ?",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
     expect(openSwapPicker).toHaveFocus();
+    await waitFor(() => expect(document.body.style.overflow).toBe(""));
   });
 
-  it("propose la pause et la fin pendant le match", () => {
+  it("propose la pause et la fin pendant le match", async () => {
     const { context } = renderLivePage();
 
     fireEvent.click(screen.getByRole("button", { name: "Mettre en pause" }));
@@ -246,19 +276,31 @@ describe("LiveMatchPage", () => {
       name: "Siffler la fin",
     });
     fireEvent.click(openFinishDialog);
-    expect(
-      screen.getByRole("button", { name: "Continuer le match" }),
-    ).toHaveFocus();
+    await screen.findByRole("alertdialog", {
+      name: "Siffler la fin du match ?",
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Continuer le match" }),
+      ).toHaveFocus(),
+    );
     expect(document.body.style.overflow).toBe("hidden");
     fireEvent.keyDown(window, { key: "Escape" });
-    expect(
-      screen.queryByRole("alertdialog", {
-        name: "Siffler la fin du match ?",
-      }),
-    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("alertdialog", {
+          name: "Siffler la fin du match ?",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
     expect(openFinishDialog).toHaveFocus();
+    await waitFor(() => expect(document.body.style.overflow).toBe(""));
     expect(document.body.style.overflow).toBe("");
     fireEvent.click(openFinishDialog);
+    await screen.findByRole("alertdialog", {
+      name: "Siffler la fin du match ?",
+    });
 
     expect(context.onSetMatchState).toHaveBeenCalledWith("match-live", "pause");
     expect(context.onSetMatchState).toHaveBeenCalledTimes(1);
@@ -269,7 +311,7 @@ describe("LiveMatchPage", () => {
     );
   });
 
-  it("garde les actions de saisie disponibles pendant la pause", () => {
+  it("garde les actions de saisie disponibles pendant la pause", async () => {
     const pausedMatch: MatchSlot = {
       ...liveMatch,
       status: "paused",
@@ -279,12 +321,14 @@ describe("LiveMatchPage", () => {
     const { context } = renderLivePage(pausedMatch);
 
     fireEvent.click(screen.getByRole("button", { name: "But !" }));
+    await screen.findByRole("dialog", { name: "Qui a marqué ?" });
     fireEvent.click(screen.getByRole("button", { name: "Théo Bernard" }));
     expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
 
     fireEvent.click(
       screen.getByRole("button", { name: "Échanger deux joueurs" }),
     );
+    await screen.findByRole("dialog", { name: "Quels joueurs échanger ?" });
     expect(
       screen.getByRole("dialog", { name: "Quels joueurs échanger ?" }),
     ).toBeInTheDocument();

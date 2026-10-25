@@ -9,6 +9,7 @@ export type DrawerProps = {
   labelledBy: string;
   panelClassName: string;
   backdropClassName?: string;
+  dialogRole?: "dialog" | "alertdialog";
   panelId?: string;
   panelRef?: RefObject<HTMLElement | null>;
   children: ReactNode;
@@ -21,6 +22,7 @@ export function Drawer({
   labelledBy,
   panelClassName,
   backdropClassName = "z-20",
+  dialogRole = "dialog",
   panelId,
   panelRef,
   children,
@@ -70,7 +72,7 @@ export function Drawer({
         id={panelId}
         onMouseDown={(event) => event.stopPropagation()}
         ref={panelRef}
-        role="dialog"
+        role={dialogRole}
         tabIndex={-1}
       >
         {children}
