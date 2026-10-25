@@ -1,6 +1,6 @@
-import type { MouseEvent, ReactNode } from "react";
-import { createPortal } from "react-dom";
+import type { ReactNode } from "react";
 import { X } from "lucide-react";
+import { Drawer } from "../Drawer/Drawer";
 import type { DialogKind } from "../../types";
 import "./DashboardDialog.css";
 
@@ -8,6 +8,8 @@ export type DashboardDialogProps = {
   kind: DialogKind;
   children: ReactNode;
   eyebrow?: string;
+  mounted?: boolean;
+  open?: boolean;
   onClose: () => void;
 };
 
@@ -35,33 +37,27 @@ export function DashboardDialog({
   kind,
   children,
   eyebrow,
+  mounted = true,
+  open = true,
   onClose,
 }: DashboardDialogProps) {
-  function closeOnBackdrop(event: MouseEvent<HTMLDivElement>) {
-    if (event.target === event.currentTarget) onClose();
-  }
-
-  return createPortal(
-    <div
-      className="dashboard-dialog fixed inset-0 z-5 grid place-items-center bg-[#11151fcc] p-5"
-      role="presentation"
-      onMouseDown={closeOnBackdrop}
+  return (
+    <Drawer
+      mounted={mounted}
+      open={open}
+      onClose={onClose}
+      labelledBy="modal-title"
+      panelClassName={`dashboard-dialog__panel ${kind === "match" ? "dashboard-dialog__panel--match" : ""}`}
+      backdropClassName="z-50"
+      panelId="dashboard-dialog-panel"
     >
-      <section
-        className={`dashboard-dialog__panel w-full ${kind === "match" ? "max-w-150" : "max-w-107.5"} border border-(--border-neutral) bg-(--bg-elevated) p-6.25 text-(--text-primary) shadow-[0_18px_50px_#17271f30]`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-      >
+      <div className="dashboard-dialog__content">
         <div className="mb-5.75 flex items-center justify-between gap-5">
           <div>
-            <p className="mb-1.75 text-[10px] font-bold tracking-[1.7px] text-(--muted)">
+            <p className="drawer-eyebrow mb-1.75">
               {eyebrow ?? dialogEyebrows[kind]}
             </p>
-            <h2
-              className="mb-0 font-sans text-2xl font-normal"
-              id="modal-title"
-            >
+            <h2 className="drawer-title mb-0" id="modal-title">
               {dialogTitles[kind]}
             </h2>
           </div>
@@ -75,8 +71,7 @@ export function DashboardDialog({
           </button>
         </div>
         {children}
-      </section>
-    </div>,
-    document.body,
+      </div>
+    </Drawer>
   );
 }

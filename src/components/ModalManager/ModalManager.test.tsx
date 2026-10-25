@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ModalManager } from "./ModalManager";
 
@@ -54,16 +54,35 @@ describe("ModalManager", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("monte le formulaire de création de match selon le type sélectionné", () => {
+  it("monte le formulaire de création de match selon le type sélectionné", async () => {
     render(<ModalManager {...createProps("match")} />);
-    expect(screen.getByLabelText("Date du match")).toBeVisible();
-    expect(screen.getByLabelText("Terrain")).toBeVisible();
+    expect(await screen.findByLabelText("Date du match")).toBeVisible();
+    expect(await screen.findByLabelText("Terrain")).toBeVisible();
   });
 
-  it("délègue les modales de club au conteneur dédié", () => {
+  it("monte le drawer fermé avant sa frame d’ouverture", () => {
+    let openFrame: FrameRequestCallback | undefined;
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      openFrame = callback;
+      return 1;
+    });
+    vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+
+    render(<ModalManager {...createProps("match")} />);
+
+    const drawer = screen.getByRole("dialog", { hidden: true });
+    expect(drawer).not.toHaveClass("is-open");
+
+    act(() => openFrame?.(0));
+
+    expect(drawer).toHaveClass("is-open");
+    vi.restoreAllMocks();
+  });
+
+  it("délègue les modales de club au conteneur dédié", async () => {
     render(<ModalManager {...createProps("organizations")} />);
     expect(
-      screen.getByText("Vous n’avez pas encore rejoint de club."),
+      await screen.findByText("Vous n’avez pas encore rejoint de club."),
     ).toBeVisible();
   });
 });

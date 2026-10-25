@@ -6,4 +6,26 @@
   .match-list__empty {
     min-height: 8rem;
   }
+
+  .match-list__winner-gradient[data-winner="red"] {
+    background-image: linear-gradient(
+      to left,
+      color-mix(in srgb, var(--team-a-red) 15%, transparent),
+      transparent
+    );
+    background-position: right;
+    background-repeat: no-repeat;
+    background-size: 50% 100%;
+  }
+
+  .match-list__winner-gradient[data-winner="blue"] {
+    background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--team-b-blue) 15%, transparent),
+      transparent
+    );
+    background-position: left;
+    background-repeat: no-repeat;
+    background-size: 50% 100%;
+  }
 }

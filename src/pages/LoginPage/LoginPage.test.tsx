@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { LoginPage } from "./LoginPage";
 
 describe("LoginPage", () => {
-  it("présente la connexion comme page d’accueil", () => {
+  it("présente la connexion comme page d’accueil", async () => {
     render(
       <LoginPage
         authMode="login"
@@ -17,6 +17,8 @@ describe("LoginPage", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Connecte-toi" })).toBeVisible();
+    expect(
+      await screen.findByRole("heading", { name: "Connecte-toi" }),
+    ).toBeVisible();
   });
 });

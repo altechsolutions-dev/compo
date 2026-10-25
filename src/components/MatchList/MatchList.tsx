@@ -11,6 +11,7 @@ export type MatchListProps = {
   selectedMatchId?: string;
   currentAttendeeId: string;
   matchRegistering: boolean;
+  playerNames?: Record<string, string>;
   filter: MatchFilter;
   notice: string;
   latestFinishedMatch?: MatchSlot;
@@ -25,6 +26,7 @@ export function MatchList({
   selectedMatchId,
   currentAttendeeId,
   matchRegistering,
+  playerNames = {},
   filter,
   notice,
   latestFinishedMatch,
@@ -124,6 +126,7 @@ export function MatchList({
                 isSelected={selectedMatchId === match.id}
                 currentAttendeeId={currentAttendeeId}
                 matchRegistering={matchRegistering}
+                playerNames={playerNames}
                 onOpen={() => onOpenMatch(match.id)}
                 onRegister={() => onRegister(match.id)}
               />
@@ -153,10 +156,18 @@ function FinishedMatchCard({
     2,
     "0",
   );
+  const winnerTeam = featured
+    ? redScore > blueScore
+      ? "red"
+      : blueScore > redScore
+        ? "blue"
+        : undefined
+    : undefined;
 
   return (
     <article
-      className={`min-w-0 rounded-lg border border-(--line) bg-(--bg-surface) p-4 ${featured ? "sm:flex sm:items-center sm:justify-between sm:gap-5" : ""}`}
+      className={`min-w-0 rounded-lg border border-(--line) bg-(--bg-surface) p-4 ${winnerTeam ? "match-list__winner-gradient" : ""} ${featured ? "sm:flex sm:items-center sm:justify-between sm:gap-5" : ""}`}
+      data-winner={winnerTeam}
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
@@ -176,9 +187,9 @@ function FinishedMatchCard({
             </h3>
           </div>
           <span className="shrink-0 font-mono text-xl font-bold tabular-nums">
-            <span className="text-(--team-a-red)">{redScore}</span>
-            <span className="px-1.5 text-(--text-secondary)">–</span>
             <span className="text-(--team-b-blue)">{blueScore}</span>
+            <span className="px-1.5 text-(--text-secondary)">–</span>
+            <span className="text-(--team-a-red)">{redScore}</span>
           </span>
         </div>
         <p className="mb-0 mt-2 font-mono text-xs tabular-nums text-(--text-secondary)">

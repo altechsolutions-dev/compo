@@ -18,6 +18,8 @@ export type OrganizationDialogsContainerProps = {
   inviteLink: string;
   featureNotice: string;
   copyNotice: string;
+  mounted?: boolean;
+  open?: boolean;
   onClose: () => void;
   onSelectOrganization: (organization: OrganizationSummary) => void;
   onOpenOrganizationCreation: () => void;
@@ -43,6 +45,8 @@ export function OrganizationDialogsContainer({
   inviteLink,
   featureNotice,
   copyNotice,
+  mounted,
+  open,
   onClose,
   onSelectOrganization,
   onOpenOrganizationCreation,
@@ -67,7 +71,12 @@ export function OrganizationDialogsContainer({
   }
 
   return (
-    <DashboardDialog kind={kind} onClose={onClose}>
+    <DashboardDialog
+      kind={kind}
+      mounted={mounted}
+      open={open}
+      onClose={onClose}
+    >
       {kind === "joined" ? (
         <div className="grid justify-items-start gap-4">
           <p

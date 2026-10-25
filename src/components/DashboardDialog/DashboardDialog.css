@@ -1,11 +1,37 @@
 @layer components {
   .dashboard-dialog__panel {
-    max-height: calc(100dvh - 40px);
     overflow-y: auto;
+    width: min(100%, 27rem);
+    height: 100dvh;
+    padding: 1.5rem;
+    border-left: 1px solid var(--border-neutral);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    box-shadow: -18px 0 50px #17271f30;
+  }
+
+  .dashboard-dialog__panel--match {
+    width: min(100%, 44rem);
+    padding: 2rem;
+  }
+
+  .dashboard-dialog__content {
+    max-width: 100%;
   }
 
   .dashboard-dialog__close:focus-visible {
     outline: 2px solid var(--team-b-blue);
     outline-offset: 2px;
+  }
+
+  @media (max-width: 600px) {
+    .dashboard-dialog__panel {
+      width: 100%;
+      border-left: 0;
+    }
+
+    .dashboard-dialog__panel--match {
+      padding: 1.25rem;
+    }
   }
 }

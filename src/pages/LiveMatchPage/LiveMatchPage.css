@@ -1,0 +1,28 @@
+@layer components {
+  .live-match-action-drawer {
+    width: min(100%, 27rem);
+    height: 100dvh;
+    overflow-y: auto;
+    border-left: 1px solid var(--line);
+    background: var(--bg-surface);
+    padding: 1.25rem;
+    color: var(--text-primary);
+    box-shadow: -18px 0 50px #0006;
+  }
+
+  .live-match-action-drawer--wide {
+    width: min(100%, 36rem);
+    padding: 1.5rem;
+  }
+
+  .live-match-action-drawer__content {
+    max-width: 100%;
+  }
+
+  @media (max-width: 600px) {
+    .live-match-action-drawer {
+      width: 100%;
+      border-left: 0;
+    }
+  }
+}

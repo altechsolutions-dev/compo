@@ -37,7 +37,7 @@ describe("CreateMatchDialogContainer", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Les Panthères")).toBeInTheDocument();
     expect(screen.getByRole("dialog", { name: "Nouveau créneau" })).toHaveClass(
-      "max-w-150",
+      "dashboard-dialog__panel--match",
     );
     expect(screen.getByLabelText("Date du match")).toHaveValue("2026-10-23");
     fireEvent.change(screen.getByLabelText("Terrain"), {

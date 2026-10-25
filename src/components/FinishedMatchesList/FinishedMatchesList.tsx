@@ -34,7 +34,10 @@ export function FinishedMatchesList({
   );
 
   return (
-    <ol aria-label="Résultats des matchs terminés" className="m-0 list-none p-0">
+    <ol
+      aria-label="Résultats des matchs terminés"
+      className="m-0 list-none p-0"
+    >
       {orderedMatches.map((match) => {
         const goals = match.goals ?? [];
         const score = [
@@ -70,29 +73,31 @@ export function FinishedMatchesList({
 
               <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-y border-(--line) py-4">
                 <div className="min-w-0">
-                  <p className="m-0 text-[10px] font-bold uppercase text-(--team-a-red)">
-                    Équipe rouge
-                  </p>
-                  <p className="mb-0 mt-1 truncate text-xs text-(--text-secondary)">
-                    {teams[0].map((id) => playerNames[id] ?? "Joueur").join(", ") ||
-                      "Composition non enregistrée"}
-                  </p>
-                </div>
-                <p
-                  aria-label={`Score final : ${score[0]} à ${score[1]}`}
-                  className="m-0 flex items-center gap-2 font-mono text-2xl font-bold tabular-nums"
-                >
-                  <span className="text-(--team-a-red)">{score[0]}</span>
-                  <span className="text-(--text-secondary)">–</span>
-                  <span className="text-(--team-b-blue)">{score[1]}</span>
-                </p>
-                <div className="min-w-0 text-right">
                   <p className="m-0 text-[10px] font-bold uppercase text-(--team-b-blue)">
                     Équipe bleue
                   </p>
                   <p className="mb-0 mt-1 truncate text-xs text-(--text-secondary)">
-                    {teams[1].map((id) => playerNames[id] ?? "Joueur").join(", ") ||
-                      "Composition non enregistrée"}
+                    {teams[1]
+                      .map((id) => playerNames[id] ?? "Joueur")
+                      .join(", ") || "Composition non enregistrée"}
+                  </p>
+                </div>
+                <p
+                  aria-label={`Score final : équipe bleue ${score[1]}, équipe rouge ${score[0]}`}
+                  className="m-0 flex items-center gap-2 font-mono text-2xl font-bold tabular-nums"
+                >
+                  <span className="text-(--team-b-blue)">{score[1]}</span>
+                  <span className="text-(--text-secondary)">–</span>
+                  <span className="text-(--team-a-red)">{score[0]}</span>
+                </p>
+                <div className="min-w-0 text-right">
+                  <p className="m-0 text-[10px] font-bold uppercase text-(--team-a-red)">
+                    Équipe rouge
+                  </p>
+                  <p className="mb-0 mt-1 truncate text-xs text-(--text-secondary)">
+                    {teams[0]
+                      .map((id) => playerNames[id] ?? "Joueur")
+                      .join(", ") || "Composition non enregistrée"}
                   </p>
                 </div>
               </div>

@@ -1,6 +1,8 @@
 import type { FormEventHandler } from "react";
 import { ArrowRight } from "lucide-react";
 import logo from "../../assets/logo.png";
+import { Drawer } from "../Drawer/Drawer";
+import { useDrawerTransition } from "../../hooks/useDrawerTransition/useDrawerTransition";
 import type { AuthMode } from "../../types";
 import "./AuthView.css";
 
@@ -50,6 +52,7 @@ export function AuthView({
   onSubmit,
   onSignInWithGoogle,
 }: AuthViewProps) {
+  const drawer = useDrawerTransition(true);
   const isLoginOrSignup = authMode === "login" || authMode === "signup";
   const hasConfirmationError =
     authNoticeKind === "error" && authNotice.includes("lien de confirmation");
@@ -80,31 +83,27 @@ export function AuthView({
           </p>
         </div>
       </section>
-      <div
-        className="fixed inset-0 z-3 flex justify-end bg-[#11151f20]"
-        role="presentation"
+      <Drawer
+        mounted={drawer.mounted}
+        open={drawer.open}
+        onClose={() => {}}
+        labelledBy="auth-title"
+        panelClassName="auth-view__panel relative flex min-h-svh w-[60%] flex-col justify-center overflow-y-auto border-l border-[#3a3c47] bg-[#242630] px-[clamp(28px,7vw,112px)] py-12 text-(--text-primary) shadow-[-24px_0_80px_#0009] max-[700px]:w-full max-[700px]:border-l-0 max-[700px]:px-5.75 max-[700px]:py-6.75"
+        backdropClassName="auth-view-drawer-backdrop z-3"
       >
-        <section
-          className="auth-view__panel relative flex min-h-svh w-[60%] flex-col justify-center overflow-y-auto border-l border-[#3a3c47] bg-[#242630] px-[clamp(28px,7vw,112px)] py-12 text-(--text-primary) shadow-[-24px_0_80px_#0009] animate-[landing-rise_260ms_ease-out_both] max-[700px]:w-full max-[700px]:border-l-0 max-[700px]:px-5.75 max-[700px]:py-6.75"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="auth-title"
-        >
+        <section>
           <h1 className="absolute top-8 left-[clamp(28px,7vw,112px)] right-[clamp(28px,7vw,112px)] mx-auto hidden max-w-140 max-[900px]:block">
             <img className="block h-auto w-33" src={logo} alt="Compo" />
           </h1>
           <div className="mx-auto w-full max-w-140">
             {isLoginOrSignup && (
-              <p className="mb-2 text-[11px] font-bold tracking-[0.16em] text-(--text-secondary)">
+              <p className="drawer-eyebrow mb-2">
                 {authMode === "login"
                   ? "CONTENT DE TE REVOIR"
                   : "REJOINS TON ÉQUIPE"}
               </p>
             )}
-            <h2
-              className="mb-1.5 font-sans text-[28px] font-semibold text-white"
-              id="auth-title"
-            >
+            <h2 className="drawer-title mb-1.5 text-white" id="auth-title">
               {authTitles[authMode]}
             </h2>
             <p className="mb-6 text-sm text-(--text-secondary)">
@@ -300,7 +299,7 @@ export function AuthView({
             )}
           </div>
         </section>
-      </div>
+      </Drawer>
     </main>
   );
 }

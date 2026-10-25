@@ -80,6 +80,7 @@ export function MatchesPage() {
           selectedMatchId={selectedMatchId}
           currentAttendeeId={currentAttendeeId}
           matchRegistering={matchRegistering}
+          playerNames={playerNames}
           filter={matchFilter}
           notice={matchNotice}
           latestFinishedMatch={latestFinishedMatch}

@@ -23,4 +23,27 @@
   .match-full-badge {
     background: color-mix(in srgb, var(--team-b-blue) 7%, transparent);
   }
+
+  .match-card__attendees {
+    max-height: 0;
+    margin-top: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition:
+      max-height 180ms ease,
+      margin-top 180ms ease,
+      opacity 180ms ease;
+  }
+
+  .match-card__attendees.is-expanded {
+    max-height: 2.5rem;
+    margin-top: 0.75rem;
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .match-card__attendees {
+      transition-duration: 0.01ms;
+    }
+  }
 }

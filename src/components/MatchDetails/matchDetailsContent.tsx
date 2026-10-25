@@ -64,9 +64,7 @@ export function renderMatchDetailsContent({
     return (
       <>
         <div className="mb-5.5 flex items-center justify-between">
-          <span className="text-[9px] font-bold tracking-[1.5px] text-(--text-secondary)">
-            MATCH TERMINÉ
-          </span>
+          <span className="drawer-eyebrow">MATCH TERMINÉ</span>
           <button
             className="grid size-9 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-surface) text-(--ink)"
             onClick={onClose}
@@ -79,7 +77,9 @@ export function renderMatchDetailsContent({
         <p className="mb-2 text-xs capitalize text-(--text-secondary)">
           {formatMatchDate(match.date)} · {match.time}
         </p>
-        <h2 id="match-drawer-title">{match.venue}</h2>
+        <h2 className="drawer-title" id="match-drawer-title">
+          {match.venue}
+        </h2>
 
         <section
           aria-label="Résultat final"
@@ -328,7 +328,7 @@ export function renderMatchDetailsContent({
   return (
     <>
       <div className="mb-5.5 flex items-center justify-between">
-        <span className="text-[9px] font-bold tracking-[1.5px] text-(--text-secondary)">
+        <span className="drawer-eyebrow">
           {match.status === "in_progress"
             ? "MATCH EN COURS"
             : isFull
@@ -347,9 +347,9 @@ export function renderMatchDetailsContent({
       <p className="mb-2 text-xs capitalize text-(--text-secondary)">
         {formatMatchDate(match.date)}
       </p>
-      <h2 id="match-drawer-title">
+      <h2 className="drawer-title" id="match-drawer-title">
         {match.time}
-        <span> · </span> Foot à 5
+        <span className="drawer-title__muted"> · </span> Foot à 5
       </h2>
       <p className="m-0 flex items-center gap-1.75 text-[11px] text-(--text-secondary)">
         <MapPin className="shrink-0 text-(--team-b-blue)" size={15} />
