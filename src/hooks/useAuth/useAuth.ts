@@ -7,10 +7,16 @@ import {
   supabase,
 } from "../../lib/supabase/supabase";
 import {
+  readRememberSession,
+  saveRememberSession,
+} from "../../lib/supabase/authStorage";
+import {
   readPendingInviteCode,
   storePendingInviteCode,
 } from "../../lib/pendingInvite/pendingInvite";
 import type { AuthMode } from "../../types";
+
+const passkeyOfferStorageKey = "compo:offer-passkey-after-sign-in";
 
 export function getAuthenticatedDestination(
   search: string,
@@ -22,6 +28,10 @@ export function getAuthenticatedDestination(
   return inviteCode
     ? `/app/matches?invite=${encodeURIComponent(inviteCode)}`
     : "/app/matches";
+}
+
+export function shouldOfferPasskey(passkeys: readonly unknown[]) {
+  return passkeys.length === 0;
 }
 
 export function useAuth() {
@@ -56,6 +66,12 @@ export function useAuth() {
     initialAuthCallbackMessage ? "error" : "success",
   );
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [passkeySubmitting, setPasskeySubmitting] = useState(false);
+  const [passkeyNotice, setPasskeyNotice] = useState("");
+  const [passkeyPromptOpen, setPasskeyPromptOpen] = useState(false);
+  const [passkeyCheckUserId, setPasskeyCheckUserId] = useState("");
+  const [rememberSession, setRememberSessionState] =
+    useState(readRememberSession);
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(Boolean(supabase));
   const [pendingCreateOrganization, setPendingCreateOrganization] = useState(
@@ -66,6 +82,11 @@ export function useAuth() {
   const [pendingInviteCode, setPendingInviteCode] = useState(
     () => initialPendingInviteCode,
   );
+
+  function setRememberSession(remember: boolean) {
+    saveRememberSession(remember);
+    setRememberSessionState(remember);
+  }
 
   useEffect(() => {
     if (!pendingInviteCode) {
@@ -143,6 +164,18 @@ export function useAuth() {
     } = client.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setAuthLoading(false);
+      if (
+        event === "SIGNED_IN" &&
+        nextSession &&
+        window.sessionStorage.getItem(passkeyOfferStorageKey) === "1"
+      ) {
+        window.sessionStorage.removeItem(passkeyOfferStorageKey);
+        setPasskeyCheckUserId(nextSession.user.id);
+      }
+      if (event === "SIGNED_OUT") {
+        setPasskeyPromptOpen(false);
+        setPasskeyCheckUserId("");
+      }
       if (event === "PASSWORD_RECOVERY") {
         setAuthMode("update-password");
         setAuthNotice("");
@@ -165,6 +198,35 @@ export function useAuth() {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const sessionUserId = session?.user.id;
+  useEffect(() => {
+    if (
+      !supabase ||
+      !passkeyCheckUserId ||
+      passkeyCheckUserId !== sessionUserId
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    void supabase.auth.passkey
+      .list()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        setPasskeyPromptOpen(!error && shouldOfferPasskey(data));
+        setPasskeyCheckUserId("");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPasskeyPromptOpen(false);
+        setPasskeyCheckUserId("");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [passkeyCheckUserId, sessionUserId]);
 
   async function signInWithGoogle() {
     if (!supabase) {
@@ -192,6 +254,7 @@ export function useAuth() {
     setAuthSubmitting(true);
     setAuthNotice("");
     storePendingInviteCode(pendingInviteCode);
+    window.sessionStorage.setItem(passkeyOfferStorageKey, "1");
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -199,12 +262,70 @@ export function useAuth() {
       });
       if (error) throw error;
     } catch (error) {
+      window.sessionStorage.removeItem(passkeyOfferStorageKey);
       setAuthNoticeKind("error");
       setAuthNotice(
         authErrorMessage(error instanceof Error ? error.message : ""),
       );
     } finally {
       setAuthSubmitting(false);
+    }
+  }
+
+  async function signInWithPasskey() {
+    if (!supabase) {
+      setAuthNoticeKind("error");
+      setAuthNotice(
+        "Le service de compte n’est pas configuré pour cette application.",
+      );
+      return;
+    }
+
+    setAuthSubmitting(true);
+    setAuthNotice("");
+    storePendingInviteCode(pendingInviteCode);
+    try {
+      const { data, error } = await supabase.auth.signInWithPasskey();
+      if (error) throw error;
+      setSession(data.session);
+      setAuthMode(null);
+      if (locationRef.current.pathname !== "/oauth/consent") {
+        navigate(
+          getAuthenticatedDestination(
+            locationRef.current.search,
+            pendingInviteCode,
+          ),
+          { replace: true },
+        );
+      }
+    } catch (error) {
+      setAuthNoticeKind("error");
+      setAuthNotice(
+        authErrorMessage(error instanceof Error ? error.message : ""),
+      );
+    } finally {
+      setAuthSubmitting(false);
+    }
+  }
+
+  async function registerPasskey() {
+    if (!supabase || !session) return;
+
+    setPasskeySubmitting(true);
+    setPasskeyNotice("");
+    try {
+      const { error } = await supabase.auth.registerPasskey();
+      if (error) throw error;
+      setPasskeyPromptOpen(false);
+      setPasskeyNotice(
+        "Passkey ajoutée à votre compte et conservée par le gestionnaire de passkeys de votre appareil.",
+      );
+    } catch (error) {
+      setPasskeyNotice(
+        authErrorMessage(error instanceof Error ? error.message : ""),
+      );
+    } finally {
+      setPasskeySubmitting(false);
     }
   }
 
@@ -294,6 +415,7 @@ export function useAuth() {
         return;
       }
 
+      window.sessionStorage.setItem(passkeyOfferStorageKey, "1");
       const result =
         authMode === "signup"
           ? await supabase.auth.signUp({
@@ -308,6 +430,7 @@ export function useAuth() {
 
       if (result.error) throw result.error;
       if (authMode === "signup" && !result.data.session) {
+        window.sessionStorage.removeItem(passkeyOfferStorageKey);
         setAuthNoticeKind("success");
         setAuthNotice(
           "Compte créé. Consultez votre boîte e-mail et confirmez votre adresse avant de vous connecter.",
@@ -333,6 +456,7 @@ export function useAuth() {
         setCreateOrganizationIntentReady(true);
       }
     } catch (error) {
+      window.sessionStorage.removeItem(passkeyOfferStorageKey);
       setAuthNoticeKind("error");
       setAuthNotice(
         authErrorMessage(error instanceof Error ? error.message : ""),
@@ -344,6 +468,7 @@ export function useAuth() {
 
   async function signOut() {
     if (!supabase || !session) return;
+    window.sessionStorage.removeItem(passkeyOfferStorageKey);
     await supabase.auth.signOut();
     setSession(null);
     navigate("/", { replace: true });
@@ -357,6 +482,12 @@ export function useAuth() {
     authNoticeKind,
     setAuthNoticeKind,
     authSubmitting,
+    passkeySubmitting,
+    passkeyNotice,
+    passkeyPromptOpen,
+    setPasskeyPromptOpen,
+    rememberSession,
+    setRememberSession,
     setAuthSubmitting,
     session,
     setSession,
@@ -368,6 +499,8 @@ export function useAuth() {
     pendingInviteCode,
     setPendingInviteCode,
     signInWithGoogle,
+    signInWithPasskey,
+    registerPasskey,
     submitAuth,
     signOut,
   };

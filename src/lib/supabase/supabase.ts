@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { authStorage } from "./authStorage";
 
 export const initialAuthCallbackMessage = (() => {
   if (typeof window === "undefined") return "";
@@ -18,6 +19,8 @@ export const supabase =
           autoRefreshToken: true,
           detectSessionInUrl: true,
           persistSession: true,
+          storage: authStorage,
+          experimental: { passkey: true },
         },
       })
     : null;

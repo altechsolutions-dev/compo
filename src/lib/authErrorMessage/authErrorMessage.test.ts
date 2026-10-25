@@ -8,6 +8,20 @@ describe("authErrorMessage", () => {
     );
   });
 
+  it("explique comment corriger un domaine WebAuthn local invalide", () => {
+    expect(authErrorMessage("127.0.0.1 is an invalid domain")).toContain(
+      "définissez l’identifiant RP sur localhost",
+    );
+  });
+
+  it("guide la reprise après une demande Face ID annulée ou expirée", () => {
+    expect(
+      authErrorMessage(
+        "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/",
+      ),
+    ).toContain("La demande Face ID a été annulée ou a expiré");
+  });
+
   it("préserve le détail d’une erreur inconnue et couvre les messages vides", () => {
     expect(authErrorMessage("Unexpected response")).toContain(
       "Unexpected response",

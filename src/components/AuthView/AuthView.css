@@ -49,6 +49,22 @@
     font-size: 12px;
   }
 
+  .auth-view__form label.auth-view__remember {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    cursor: pointer;
+    color: var(--text-secondary);
+  }
+
+  .auth-view__remember input[type="checkbox"] {
+    width: 16px;
+    min-height: 16px;
+    margin: 0;
+    padding: 0;
+    accent-color: var(--team-b-blue);
+  }
+
   .auth-view__form input {
     min-height: 44px;
     border: 1px solid var(--border-neutral);

@@ -44,6 +44,14 @@ npm run dev
 
 Un organisateur connecté peut créer une organisation et partager son lien ou son code. Les invités doivent créer un compte ou se connecter avant de rejoindre. Les accès directs aux tables sont fermés par RLS ; les opérations passent par des fonctions RPC.
 
+## Connexion Face ID et passkeys
+
+La connexion biométrique utilise les passkeys WebAuthn de Supabase Auth. Dans **Authentication > Passkeys**, activez l’authentification par passkey et configurez le nom d’affichage, l’identifiant RP (le domaine seul, sans protocole ni chemin) ainsi que les origines autorisées. En local, utilisez `localhost` comme identifiant RP et ouvrez l’application avec une origine `http://localhost:<port>` (par exemple `http://localhost:5177`). N’utilisez pas `127.0.0.1` comme identifiant RP : Supabase le rejette. Ajoutez également les origines HTTPS de production. Le domaine RP doit correspondre au domaine ou être un suffixe parent de chaque origine.
+
+Après une connexion par e-mail ou Google, Compo propose d’enregistrer une passkey si le compte n’en possède pas encore. L’utilisateur peut l’enregistrer tout de suite ou choisir « Plus tard ». À la prochaine connexion, le bouton « Se connecter avec Face ID ou une passkey » lance l’authentification biométrique disponible sur l’appareil. L’API passkey de Supabase est expérimentale et nécessite une version récente du service Auth ; elle requiert HTTPS en production. En développement, utilisez `localhost` (autorisé sans HTTPS) plutôt que l’adresse IP `127.0.0.1` pour ce flux.
+
+Le formulaire de connexion propose aussi « Rester connecté sur cet appareil », activé par défaut pour conserver le comportement actuel. Supabase conserve alors la session (jetons, jamais le mot de passe) dans le stockage persistant du navigateur ; si la case est décochée, la session est limitée à l’onglet/la fenêtre en cours et disparaît à sa fermeture. Une passkey est une option distincte : elle permet de se reconnecter sans mot de passe et sa clé privée reste dans le gestionnaire de passkeys de l’appareil.
+
 Les créneaux créés par un utilisateur connecté sont enregistrés dans Supabase et partagés avec les membres de son organisation. Leur capacité est configurable de 2 à 30 joueurs (10 par défaut). Les inscriptions des membres connectés sont également stockées dans Supabase et limitées à la capacité choisie. En mode démo, les matchs et inscriptions restent stockés localement. La PWA conserve son shell hors ligne, mais les opérations Supabase nécessitent une connexion.
 
 ## Stats des joueurs

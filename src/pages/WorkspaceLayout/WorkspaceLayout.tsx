@@ -46,6 +46,11 @@ export function WorkspaceLayout() {
     setAuthNotice,
     setAuthMode,
     signOut,
+    registerPasskey,
+    passkeySubmitting,
+    passkeyNotice,
+    passkeyPromptOpen,
+    setPasskeyPromptOpen,
   } = auth;
   const [modal, setModalState] = useState<DialogKind | null>(() => {
     if (createOrganizationIntentReady) return "organization";
@@ -436,6 +441,11 @@ export function WorkspaceLayout() {
         clearOrganizationSession();
       })();
     },
+    onRegisterPasskey: () => void registerPasskey(),
+    passkeySubmitting,
+    passkeyNotice,
+    passkeyPromptOpen,
+    onDismissPasskeyPrompt: () => setPasskeyPromptOpen(false),
     onInstall: installApp,
     isSynchronized: Boolean(session),
   };

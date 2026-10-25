@@ -1,5 +1,14 @@
 export function authErrorMessage(message: string) {
   const normalized = message.toLowerCase();
+  if (normalized.includes("invalid domain")) {
+    return "Configuration Face ID invalide : dans Supabase, définissez l’identifiant RP sur localhost, puis ouvrez Compo avec http://localhost (pas 127.0.0.1).";
+  }
+  if (
+    normalized.includes("operation either timed out or was not allowed") ||
+    normalized.includes("notallowederror")
+  ) {
+    return "La demande Face ID a été annulée ou a expiré. Réessayez depuis l’adresse localhost autorisée dans Supabase et validez la fenêtre biométrique.";
+  }
   if (normalized.includes("invalid login credentials")) {
     return "Adresse e-mail ou mot de passe incorrect.";
   }

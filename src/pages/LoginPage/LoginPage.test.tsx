@@ -10,10 +10,13 @@ describe("LoginPage", () => {
         authSubmitting={false}
         authNotice=""
         authNoticeKind="success"
+        rememberSession
         onAuthModeChange={vi.fn()}
         onClearNotice={vi.fn()}
+        onRememberSessionChange={vi.fn()}
         onSubmit={vi.fn()}
         onSignInWithGoogle={vi.fn()}
+        onSignInWithPasskey={vi.fn()}
       />,
     );
 

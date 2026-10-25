@@ -64,5 +64,8 @@ describe("DashboardHeader", () => {
     expect(callbacks.onJoinWithCode).toHaveBeenCalledOnce();
     expect(callbacks.onSignOut).toHaveBeenCalledOnce();
     expect(callbacks.onInstall).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByRole("button", { name: "Enregistrer une passkey" }),
+    ).not.toBeInTheDocument();
   });
 });

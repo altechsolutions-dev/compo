@@ -17,11 +17,14 @@ function App() {
   const {
     authMode,
     setAuthMode,
+    rememberSession,
+    setRememberSession,
     authNotice,
     setAuthNotice,
     authNoticeKind,
     setAuthNoticeKind,
     authSubmitting,
+    signInWithPasskey,
     session,
     authLoading,
     signInWithGoogle,
@@ -48,13 +51,16 @@ function App() {
       authSubmitting={authSubmitting}
       authNotice={authNotice}
       authNoticeKind={authNoticeKind}
+      rememberSession={rememberSession}
       onAuthModeChange={(mode) => {
         setAuthMode(mode);
         if (mode === "signup") setAuthNoticeKind("success");
       }}
       onClearNotice={() => setAuthNotice("")}
+      onRememberSessionChange={setRememberSession}
       onSubmit={submitAuth}
       onSignInWithGoogle={() => void signInWithGoogle()}
+      onSignInWithPasskey={() => void signInWithPasskey()}
     />
   ) : null;
 

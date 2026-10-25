@@ -1,5 +1,5 @@
 import type { FormEventHandler } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Fingerprint } from "lucide-react";
 import logo from "../../assets/logo.png";
 import { Drawer } from "../Drawer/Drawer";
 import { useDrawerTransition } from "../../hooks/useDrawerTransition/useDrawerTransition";
@@ -11,10 +11,13 @@ export type AuthViewProps = {
   authSubmitting: boolean;
   authNotice: string;
   authNoticeKind: "error" | "success";
+  rememberSession: boolean;
   onAuthModeChange: (mode: AuthMode) => void;
   onClearNotice: () => void;
+  onRememberSessionChange: (remember: boolean) => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
   onSignInWithGoogle: () => void;
+  onSignInWithPasskey: () => void;
 };
 
 const authTitles: Record<Exclude<AuthMode, null>, string> = {
@@ -47,10 +50,13 @@ export function AuthView({
   authSubmitting,
   authNotice,
   authNoticeKind,
+  rememberSession,
   onAuthModeChange,
   onClearNotice,
+  onRememberSessionChange,
   onSubmit,
   onSignInWithGoogle,
+  onSignInWithPasskey,
 }: AuthViewProps) {
   const drawer = useDrawerTransition(true);
   const isLoginOrSignup = authMode === "login" || authMode === "signup";
@@ -190,6 +196,18 @@ export function AuthView({
                   </label>
                 )}
               {authMode === "login" && (
+                <label className="auth-view__remember">
+                  <input
+                    checked={rememberSession}
+                    onChange={(event) =>
+                      onRememberSessionChange(event.currentTarget.checked)
+                    }
+                    type="checkbox"
+                  />
+                  Rester connecté sur cet appareil
+                </label>
+              )}
+              {authMode === "login" && (
                 <button
                   className="auth-view__recovery"
                   onClick={() => {
@@ -256,6 +274,19 @@ export function AuthView({
                     ? "Redirection vers Google…"
                     : "Continuer avec Google"}
                 </button>
+                {authMode === "login" && (
+                  <button
+                    className="auth-view__google mt-2.5"
+                    disabled={authSubmitting}
+                    onClick={onSignInWithPasskey}
+                    type="button"
+                  >
+                    <Fingerprint size={18} aria-hidden="true" />
+                    {authSubmitting
+                      ? "Vérification en cours…"
+                      : "Se connecter avec Face ID ou une passkey"}
+                  </button>
+                )}
               </div>
             )}
             {isLoginOrSignup && (
@@ -277,7 +308,7 @@ export function AuthView({
             )}
             {authNotice && (
               <p
-                className={`mt-3.5 text-[11px] leading-1.5 ${authNoticeKind === "error" ? "text-(--team-a-red)" : "text-(--status-success)"}`}
+                className={`mt-3.5 text-[11px] ${authNoticeKind === "error" ? "text-(--team-a-red)" : "text-(--status-success)"}`}
                 role={authNoticeKind === "error" ? "alert" : "status"}
               >
                 {authNotice}
