@@ -24,6 +24,8 @@ function App() {
     authNoticeKind,
     setAuthNoticeKind,
     authSubmitting,
+    googleSubmitting,
+    passkeyAuthSubmitting,
     signInWithPasskey,
     session,
     authLoading,
@@ -49,6 +51,8 @@ function App() {
     <LoginPage
       authMode={authMode}
       authSubmitting={authSubmitting}
+      googleSubmitting={googleSubmitting}
+      passkeyAuthSubmitting={passkeyAuthSubmitting}
       authNotice={authNotice}
       authNoticeKind={authNoticeKind}
       rememberSession={rememberSession}

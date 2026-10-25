@@ -8,6 +8,8 @@ describe("LoginPage", () => {
       <LoginPage
         authMode="login"
         authSubmitting={false}
+        googleSubmitting={false}
+        passkeyAuthSubmitting={false}
         authNotice=""
         authNoticeKind="success"
         rememberSession

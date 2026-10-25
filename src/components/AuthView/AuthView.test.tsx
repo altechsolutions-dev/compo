@@ -2,7 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AuthView } from "./AuthView";
 
-function renderAuthView() {
+function renderAuthView(
+  submitting: { google?: boolean; passkey?: boolean } = {},
+) {
   const callbacks = {
     onAuthModeChange: vi.fn(),
     onClearNotice: vi.fn(),
@@ -15,6 +17,8 @@ function renderAuthView() {
     <AuthView
       authMode="login"
       authSubmitting={false}
+      googleSubmitting={submitting.google ?? false}
+      passkeyAuthSubmitting={submitting.passkey ?? false}
       authNotice=""
       authNoticeKind="success"
       rememberSession
@@ -66,5 +70,18 @@ describe("AuthView", () => {
     expect(onSignInWithGoogle).toHaveBeenCalledOnce();
     expect(onSignInWithPasskey).toHaveBeenCalledOnce();
     expect(onRememberSessionChange).toHaveBeenCalledWith(false);
+  });
+
+  it("affiche le chargement uniquement sur le fournisseur sélectionné", async () => {
+    renderAuthView({ google: true });
+
+    expect(
+      await screen.findByRole("button", { name: "Redirection vers Google…" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Se connecter avec Face ID ou une passkey",
+      }),
+    ).toBeDisabled();
   });
 });

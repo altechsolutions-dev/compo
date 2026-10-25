@@ -71,6 +71,8 @@ export function useAuth() {
     initialAuthCallbackMessage ? "error" : "success",
   );
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [passkeyAuthSubmitting, setPasskeyAuthSubmitting] = useState(false);
   const [passkeySubmitting, setPasskeySubmitting] = useState(false);
   const [passkeyNotice, setPasskeyNotice] = useState("");
   const [passkeyPromptOpen, setPasskeyPromptOpen] = useState(false);
@@ -182,6 +184,8 @@ export function useAuth() {
       }
       if (event === "SIGNED_OUT") {
         setPasskeyPromptOpen(false);
+        setAuthMode("login");
+        setAuthNotice("");
       }
       if (event === "PASSWORD_RECOVERY") {
         setAuthMode("update-password");
@@ -229,7 +233,7 @@ export function useAuth() {
       redirect.searchParams.set("authorization_id", authorizationId);
     }
 
-    setAuthSubmitting(true);
+    setGoogleSubmitting(true);
     setAuthNotice("");
     storePendingInviteCode(pendingInviteCode);
     window.sessionStorage.setItem(passkeyOfferStorageKey, "1");
@@ -246,7 +250,7 @@ export function useAuth() {
         authErrorMessage(error instanceof Error ? error.message : ""),
       );
     } finally {
-      setAuthSubmitting(false);
+      setGoogleSubmitting(false);
     }
   }
 
@@ -259,7 +263,7 @@ export function useAuth() {
       return;
     }
 
-    setAuthSubmitting(true);
+    setPasskeyAuthSubmitting(true);
     setAuthNotice("");
     storePendingInviteCode(pendingInviteCode);
     try {
@@ -282,7 +286,7 @@ export function useAuth() {
         authErrorMessage(error instanceof Error ? error.message : ""),
       );
     } finally {
-      setAuthSubmitting(false);
+      setPasskeyAuthSubmitting(false);
     }
   }
 
@@ -464,6 +468,8 @@ export function useAuth() {
     authNoticeKind,
     setAuthNoticeKind,
     authSubmitting,
+    googleSubmitting,
+    passkeyAuthSubmitting,
     passkeySubmitting,
     passkeyNotice,
     passkeyPromptOpen,

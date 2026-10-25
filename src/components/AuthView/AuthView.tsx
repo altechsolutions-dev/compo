@@ -9,6 +9,8 @@ import "./AuthView.css";
 export type AuthViewProps = {
   authMode: Exclude<AuthMode, null>;
   authSubmitting: boolean;
+  googleSubmitting: boolean;
+  passkeyAuthSubmitting: boolean;
   authNotice: string;
   authNoticeKind: "error" | "success";
   rememberSession: boolean;
@@ -48,6 +50,8 @@ const submitLabels: Record<Exclude<AuthMode, null>, string> = {
 export function AuthView({
   authMode,
   authSubmitting,
+  googleSubmitting,
+  passkeyAuthSubmitting,
   authNotice,
   authNoticeKind,
   rememberSession,
@@ -62,6 +66,8 @@ export function AuthView({
   const isLoginOrSignup = authMode === "login" || authMode === "signup";
   const hasConfirmationError =
     authNoticeKind === "error" && authNotice.includes("lien de confirmation");
+  const isAuthSubmitting =
+    authSubmitting || googleSubmitting || passkeyAuthSubmitting;
 
   return (
     <main className="auth-view relative isolate grid min-h-svh w-full place-items-center overflow-hidden bg-(--bg-main) text-(--text-primary)">
@@ -238,7 +244,7 @@ export function AuthView({
               )}
               <button
                 className="auth-view__submit"
-                disabled={authSubmitting}
+                disabled={isAuthSubmitting}
                 type="submit"
               >
                 {authSubmitting ? (
@@ -260,7 +266,7 @@ export function AuthView({
                 </div>
                 <button
                   className="auth-view__google"
-                  disabled={authSubmitting}
+                  disabled={isAuthSubmitting}
                   onClick={onSignInWithGoogle}
                   type="button"
                 >
@@ -270,19 +276,19 @@ export function AuthView({
                   >
                     G
                   </span>
-                  {authSubmitting
+                  {googleSubmitting
                     ? "Redirection vers Google…"
                     : "Continuer avec Google"}
                 </button>
                 {authMode === "login" && (
                   <button
                     className="auth-view__google mt-2.5"
-                    disabled={authSubmitting}
+                    disabled={isAuthSubmitting}
                     onClick={onSignInWithPasskey}
                     type="button"
                   >
                     <Fingerprint size={18} aria-hidden="true" />
-                    {authSubmitting
+                    {passkeyAuthSubmitting
                       ? "Vérification en cours…"
                       : "Se connecter avec Face ID ou une passkey"}
                   </button>
