@@ -18,4 +18,11 @@
   .live-match-action-drawer__content {
     max-width: 100%;
   }
+
+  @media (max-width: 600px) {
+    .live-match-action-drawer {
+      width: 100%;
+      border-left: 0;
+    }
+  }
 }

@@ -25,6 +25,11 @@
   }
 
   @media (max-width: 600px) {
+    .dashboard-dialog__panel {
+      width: 100%;
+      border-left: 0;
+    }
+
     .dashboard-dialog__panel--match {
       padding: 1.25rem;
     }
