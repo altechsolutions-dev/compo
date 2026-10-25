@@ -13,6 +13,11 @@ describe("renderLiveMatchComposition", () => {
     );
 
     expect(
+      screen
+        .getAllByRole("region")
+        .map((region) => region.getAttribute("aria-label")),
+    ).toEqual(["Équipe bleue", "Équipe rouge"]);
+    expect(
       within(screen.getByRole("region", { name: "Équipe rouge" })).getByText(
         "Alex Martin",
       ),

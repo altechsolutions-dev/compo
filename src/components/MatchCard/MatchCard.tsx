@@ -101,7 +101,7 @@ export function MatchCard({
       </p>
       {isLive ? (
         <p className="match-full-badge mt-3 flex min-h-8 items-center gap-2 border border-(--status-success) px-2.5 text-[9px] font-bold tracking-[0.7px] text-(--status-success)">
-          <Sparkles size={13} /> EN COURS · {liveScore[0]} - {liveScore[1]}
+          <Sparkles size={13} /> EN COURS · {liveScore[1]} - {liveScore[0]}
         </p>
       ) : isFull ? (
         <p className="match-full-badge mt-3 flex min-h-8 items-center gap-2 border border-(--team-b-blue) px-2.5 text-[9px] font-bold tracking-[0.7px] text-(--team-b-blue)">

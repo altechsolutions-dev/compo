@@ -520,25 +520,6 @@ export function LiveMatchPage({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <label
-            className="block text-xs text-(--team-a-red)"
-            htmlFor="swap-red-player"
-          >
-            Joueur de l’équipe rouge
-            <select
-              className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
-              id="swap-red-player"
-              onChange={(event) => setRedPlayerToSwap(event.target.value)}
-              value={redPlayerToSwap}
-            >
-              <option value="">Choisir un joueur rouge</option>
-              {teams[0].map((id) => (
-                <option key={id} value={id}>
-                  {context.playerNames[id] ?? "Joueur"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label
             className="block text-xs text-(--team-b-blue)"
             htmlFor="swap-blue-player"
           >
@@ -551,6 +532,25 @@ export function LiveMatchPage({
             >
               <option value="">Choisir un joueur bleu</option>
               {teams[1].map((id) => (
+                <option key={id} value={id}>
+                  {context.playerNames[id] ?? "Joueur"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label
+            className="block text-xs text-(--team-a-red)"
+            htmlFor="swap-red-player"
+          >
+            Joueur de l’équipe rouge
+            <select
+              className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
+              id="swap-red-player"
+              onChange={(event) => setRedPlayerToSwap(event.target.value)}
+              value={redPlayerToSwap}
+            >
+              <option value="">Choisir un joueur rouge</option>
+              {teams[0].map((id) => (
                 <option key={id} value={id}>
                   {context.playerNames[id] ?? "Joueur"}
                 </option>

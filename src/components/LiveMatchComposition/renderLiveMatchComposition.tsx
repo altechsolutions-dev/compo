@@ -31,7 +31,8 @@ export function renderLiveMatchComposition({
         </button>
       </div>
       <div className="grid gap-4">
-        {teams.map((teamPlayers, teamIndex) => {
+        {([1, 0] as const).map((teamIndex) => {
+          const teamPlayers = teams[teamIndex];
           const isRedTeam = teamIndex === 0;
           return (
             <section

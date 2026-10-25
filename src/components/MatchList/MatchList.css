@@ -20,11 +20,11 @@
 
   .match-list__winner-gradient[data-winner="blue"] {
     background-image: linear-gradient(
-      to left,
+      to right,
       color-mix(in srgb, var(--team-b-blue) 15%, transparent),
       transparent
     );
-    background-position: right;
+    background-position: left;
     background-repeat: no-repeat;
     background-size: 50% 100%;
   }

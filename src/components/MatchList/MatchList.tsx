@@ -187,9 +187,9 @@ function FinishedMatchCard({
             </h3>
           </div>
           <span className="shrink-0 font-mono text-xl font-bold tabular-nums">
-            <span className="text-(--team-a-red)">{redScore}</span>
-            <span className="px-1.5 text-(--text-secondary)">–</span>
             <span className="text-(--team-b-blue)">{blueScore}</span>
+            <span className="px-1.5 text-(--text-secondary)">–</span>
+            <span className="text-(--team-a-red)">{redScore}</span>
           </span>
         </div>
         <p className="mb-0 mt-2 font-mono text-xs tabular-nums text-(--text-secondary)">

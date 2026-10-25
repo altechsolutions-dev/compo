@@ -114,7 +114,7 @@ describe("MatchCard", () => {
     const { onOpen, onRegister } = renderCard(liveMatch);
     const liveButton = screen.getByRole("button", { name: "Voir le direct" });
 
-    expect(screen.getByText("EN COURS · 1 - 0")).toBeInTheDocument();
+    expect(screen.getByText("EN COURS · 0 - 1")).toBeInTheDocument();
     fireEvent.click(liveButton);
 
     expect(onOpen).toHaveBeenCalledOnce();

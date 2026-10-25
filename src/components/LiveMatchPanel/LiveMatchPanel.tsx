@@ -69,19 +69,19 @@ export function LiveMatchPanel({
       <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-center">
         <div>
           <p className="m-0 text-[10px] font-semibold text-(--text-secondary)">
-            ÉQUIPE A
+            ÉQUIPE BLEUE
           </p>
           <p className="m-0 text-4xl font-bold tabular-nums text-(--text-primary)">
-            {score[0]}
+            {score[1]}
           </p>
         </div>
         <span className="text-sm text-(--text-secondary)">–</span>
         <div>
           <p className="m-0 text-[10px] font-semibold text-(--text-secondary)">
-            ÉQUIPE B
+            ÉQUIPE ROUGE
           </p>
           <p className="m-0 text-4xl font-bold tabular-nums text-(--text-primary)">
-            {score[1]}
+            {score[0]}
           </p>
         </div>
       </div>

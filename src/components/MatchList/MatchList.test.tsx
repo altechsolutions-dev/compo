@@ -86,6 +86,12 @@ describe("MatchList", () => {
     expect(screen.getByText("1", { selector: "span" })).toBeInTheDocument();
     expect(screen.getByText("Chrono · 45:30")).toBeInTheDocument();
     expect(screen.queryByText("Buteurs · Alex")).not.toBeInTheDocument();
+    const score = screen
+      .getByRole("button", { name: "Voir le résumé" })
+      .closest("article")
+      ?.querySelector("span.font-mono");
+    expect(score?.children[0]).toHaveClass("text-(--team-b-blue)");
+    expect(score?.children[2]).toHaveClass("text-(--team-a-red)");
     fireEvent.click(screen.getByRole("button", { name: "Voir le résumé" }));
     expect(onOpenMatch).toHaveBeenCalledWith("finished");
     expect(
