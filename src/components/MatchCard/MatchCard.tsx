@@ -1,4 +1,4 @@
-import { ArrowRight, Clock3, MapPin, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Clock3, MapPin, Sparkles } from "lucide-react";
 import type { MouseEvent } from "react";
 import type { MatchSlot } from "../../types";
 import "./MatchCard.css";
@@ -174,7 +174,7 @@ export function MatchCard({
           </div>
         )}
         <button
-          className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) text-[11px] font-bold text-(--ink) transition-colors hover:border-(--team-b-blue) hover:text-(--team-b-blue) disabled:cursor-default disabled:opacity-55"
+          className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-md border text-[11px] font-bold transition-colors ${isSignedUp ? "cursor-default border-(--team-b-blue)/35 bg-(--team-b-blue)/15 text-(--team-b-blue) disabled:opacity-100" : "cursor-pointer border-(--line) bg-(--bg-elevated) text-(--ink) hover:border-(--team-b-blue) hover:text-(--team-b-blue) disabled:cursor-default disabled:opacity-55"}`}
           onClick={(event) => {
             event.stopPropagation();
             if (isLive) onOpen();
@@ -183,15 +183,19 @@ export function MatchCard({
           disabled={isLive ? false : isSignedUp || isFull || matchRegistering}
           type="button"
         >
-          {isLive
-            ? "Voir le direct"
-            : isSignedUp
-              ? "Vous êtes inscrit"
-              : isFull
-                ? "Match complet"
-                : matchRegistering
-                  ? "Inscription…"
-                  : "Rejoindre le match"}
+          {isLive ? (
+            "Voir le direct"
+          ) : isSignedUp ? (
+            <>
+              <Check aria-hidden="true" size={14} /> Vous êtes inscrit
+            </>
+          ) : isFull ? (
+            "Match complet"
+          ) : matchRegistering ? (
+            "Inscription…"
+          ) : (
+            "Rejoindre le match"
+          )}
           {!isSignedUp && !isFull && !matchRegistering && (
             <ArrowRight size={14} />
           )}
