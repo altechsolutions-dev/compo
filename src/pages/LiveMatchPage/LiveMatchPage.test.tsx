@@ -44,6 +44,7 @@ function renderLivePage(match: MatchSlot = liveMatch) {
     matchNotice: "",
     onRecordGoal: vi.fn(),
     onStartMatch: vi.fn(),
+    onSaveScheduledMatchTeams: vi.fn().mockResolvedValue(true),
     onSetMatchState: vi.fn(),
     onSwapPlayers: vi.fn(),
   } as unknown as WorkspaceRouteContext;
@@ -157,6 +158,52 @@ describe("LiveMatchPage", () => {
     expect(
       screen.queryByRole("dialog", { name: "Composition du match" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("permet de modifier la composition depuis le drawer Voir la compo", async () => {
+    const scheduledMatch: MatchSlot = {
+      ...liveMatch,
+      status: "scheduled",
+      startedAt: undefined,
+    };
+    const { context } = renderLivePage(scheduledMatch);
+
+    expect(screen.getByRole("button", { name: "But !" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Échanger deux joueurs" }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Voir la compo" }));
+    const composition = await screen.findByRole("dialog", {
+      name: "Composition du match",
+    });
+    fireEvent.click(
+      within(composition).getByRole("button", {
+        name: "Modifier la composition",
+      }),
+    );
+    fireEvent.click(
+      within(composition).getByRole("button", {
+        name: "Sélectionner Lucas Martin dans l'équipe rouge",
+      }),
+    );
+    fireEvent.click(
+      within(composition).getByRole("button", {
+        name: "Sélectionner Théo Bernard dans l'équipe bleue",
+      }),
+    );
+    fireEvent.click(
+      within(composition).getByRole("button", {
+        name: "Échanger les joueurs sélectionnés",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(context.onSaveScheduledMatchTeams).toHaveBeenCalledWith(
+        "match-live",
+        [["theo"], ["lucas"]],
+      ),
+    );
+    expect(context.onSwapPlayers).not.toHaveBeenCalled();
   });
 
   it("permet de valider un but et d’échanger deux joueurs d’équipes opposées", async () => {

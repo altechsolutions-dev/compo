@@ -31,6 +31,10 @@
     line-height: 1.25;
   }
 
+  .drawer-title.live-match-composition-title {
+    font-size: 1rem;
+  }
+
   .drawer-eyebrow {
     font-family: var(--font-sans);
     font-size: 0.625rem;

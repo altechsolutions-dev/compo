@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import { Drawer } from "../../components/Drawer/Drawer";
-import { renderLiveMatchComposition } from "../../components/LiveMatchComposition/renderLiveMatchComposition";
+import { LiveMatchComposition } from "../../components/LiveMatchComposition/renderLiveMatchComposition";
 import { OrganizationRequired } from "../../components/OrganizationRequired/OrganizationRequired";
 import { useDrawerTransition } from "../../hooks/useDrawerTransition/useDrawerTransition";
 import type { MatchGoal, MatchSlot } from "../../types";
@@ -281,8 +281,15 @@ export function LiveMatchPage({
   }
 
   function confirmTeamSwap() {
-    if (!canRecordActions || !redPlayerToSwap || !bluePlayerToSwap) return;
-    context?.onSwapPlayers(match.id, redPlayerToSwap, bluePlayerToSwap);
+    if (
+      !context ||
+      !canRecordActions ||
+      !redPlayerToSwap ||
+      !bluePlayerToSwap
+    ) {
+      return;
+    }
+    context.onSwapPlayers(match.id, redPlayerToSwap, bluePlayerToSwap);
     setRedPlayerToSwap("");
     setBluePlayerToSwap("");
     setSwapPickerOpen(false);
@@ -633,11 +640,15 @@ export function LiveMatchPage({
           backdropClassName="z-50 overflow-hidden"
           panelClassName="h-full w-full max-w-180 overflow-y-auto border-l border-(--line) bg-(--bg-main) p-8 text-(--text-primary) shadow-[-18px_0_48px_#0005] max-[600px]:max-w-full max-[600px]:border-l-0 max-[600px]:p-5"
         >
-          {renderLiveMatchComposition({
-            teams,
-            playerNames: context.playerNames,
-            onClose: closeComposition,
-          })}
+          <LiveMatchComposition
+            teams={teams}
+            playerNames={context.playerNames}
+            onClose={closeComposition}
+            isEditable
+            onSaveTeams={(nextTeams) =>
+              context.onSaveScheduledMatchTeams(match.id, nextTeams)
+            }
+          />
         </Drawer>
       )}
 

@@ -51,6 +51,9 @@ describe("MatchCard", () => {
     expect(
       screen.getByRole("button", { name: /Afficher les inscrits du match/ }),
     ).toHaveClass("flex-col");
+    expect(
+      screen.queryByRole("button", { name: "Voir les détails du match" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByTitle("Alex Martin")).toHaveTextContent("AM");
     expect(screen.getByTitle("Sarah Doe")).toHaveTextContent("SD");
     expect(
@@ -77,10 +80,16 @@ describe("MatchCard", () => {
     const { onOpen, onRegister } = renderCard(fullMatch);
 
     expect(screen.getByText("COMPLET · COMPO DISPONIBLE")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute(
-      "aria-valuenow",
-      "10",
+    expect(screen.getByText("COMPLET · COMPO DISPONIBLE")).toHaveClass(
+      "match-full-label",
     );
+    const viewButton = screen.getByRole("button", {
+      name: "Voir les détails du match",
+    });
+    expect(viewButton.querySelector("svg")).toHaveClass("lucide-eye");
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.queryByText("Places réservées")).not.toBeInTheDocument();
+    expect(screen.queryByText("10/10")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Match complet" }),
     ).toBeDisabled();
@@ -92,6 +101,9 @@ describe("MatchCard", () => {
       screen.getByRole("button", { name: /Afficher les détails du match/ }),
     );
     expect(onOpen).toHaveBeenCalledOnce();
+
+    fireEvent.click(viewButton);
+    expect(onOpen).toHaveBeenCalledTimes(2);
   });
 
   it("déclenche l’inscription sans ouvrir le drawer", () => {

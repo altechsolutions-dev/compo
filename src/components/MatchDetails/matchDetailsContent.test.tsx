@@ -64,6 +64,11 @@ describe("MatchDetailsContent", () => {
     expect(screen.getByText("Alex Martin")).toBeInTheDocument();
     expect(screen.getByText("Inès Laurent")).toBeInTheDocument();
     expect(
+      screen
+        .getAllByRole("heading", { level: 4 })
+        .map((heading) => heading.textContent),
+    ).toEqual(["Équipe Bleue", "Équipe Rouge"]);
+    expect(
       screen.getByText("COMPLET", { selector: "span" }),
     ).toBeInTheDocument();
   });
@@ -92,12 +97,12 @@ describe("MatchDetailsContent", () => {
     fireEvent.click(screen.getByRole("button", { name: "Modifier" }));
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Sélectionner Alex Martin dans l'équipe A",
+        name: "Sélectionner Alex Martin dans l'équipe Rouge",
       }),
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Sélectionner Malik Diallo dans l'équipe B",
+        name: "Sélectionner Malik Diallo dans l'équipe Bleue",
       }),
     );
     fireEvent.click(
