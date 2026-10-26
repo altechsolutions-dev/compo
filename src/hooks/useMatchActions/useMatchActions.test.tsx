@@ -4,6 +4,8 @@ import type { MatchSlot } from "../../types";
 import { currentPlayerId } from "../../data/currentPlayerId/currentPlayerId";
 import { useMatchActions } from "./useMatchActions";
 
+vi.mock("../../lib/supabase/supabase", () => ({ supabase: null }));
+
 function setup(
   matches: MatchSlot[],
   overrides: Partial<{ matchDate: string; matchTime: string }> = {},
@@ -208,6 +210,37 @@ describe("useMatchActions", () => {
       scorerId: "alex",
       team: 0,
     });
+  });
+
+  it("enregistre les équipes d’un match complet sans le démarrer", async () => {
+    const match: MatchSlot = {
+      id: "match-scheduled-teams",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 4,
+      attendees: ["alex", "ava", "sam", "sasha"],
+    };
+    const { result, getMatches, props } = setup([match]);
+
+    let saved = false;
+    await act(async () => {
+      saved = await result.current.saveScheduledMatchTeams(
+        "match-scheduled-teams",
+        [
+          ["sam", "ava"],
+          ["alex", "sasha"],
+        ],
+      );
+    });
+
+    expect(saved).toBe(true);
+    expect(getMatches()[0].status).toBeUndefined();
+    expect(getMatches()[0].teams).toEqual([
+      ["sam", "ava"],
+      ["alex", "sasha"],
+    ]);
+    expect(props.setMatchNotice).toHaveBeenCalledWith("");
   });
 
   it("échange un joueur de chaque équipe en conservant les effectifs", async () => {

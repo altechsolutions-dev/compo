@@ -25,6 +25,7 @@ export function MatchesPage() {
     onAddGuestToMatch,
     onEditMatch,
     onStartMatch,
+    onSaveScheduledMatchTeams,
     onRecordGoal,
     manOfTheMatchPoll,
     manOfTheMatchPollLoading,
@@ -103,6 +104,7 @@ export function MatchesPage() {
           onClose={onCloseDrawer}
           onRegister={onRegisterForMatch}
           onStartMatch={onStartMatch}
+          onSaveScheduledMatchTeams={onSaveScheduledMatchTeams}
           onRecordGoal={onRecordGoal}
           manOfTheMatchPoll={manOfTheMatchPoll}
           manOfTheMatchPollLoading={manOfTheMatchPollLoading}

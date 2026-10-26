@@ -27,6 +27,10 @@ export type WorkspaceRouteContext = {
   onAddGuestToMatch: (matchId: string, guestName: string) => void;
   onEditMatch: (match: MatchSlot) => void;
   onStartMatch: (matchId: string, teams: [string[], string[]]) => void;
+  onSaveScheduledMatchTeams: (
+    matchId: string,
+    teams: [string[], string[]],
+  ) => Promise<boolean>;
   onSetMatchState: (matchId: string, action: MatchStateAction) => void;
   onRecordGoal: (matchId: string, scorerId: string) => void;
   manOfTheMatchPoll: MatchManOfTheMatchPoll | null;

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderMatchDetailsContent } from "./matchDetailsContent";
 import type { MatchSlot } from "../../types";
@@ -60,6 +66,57 @@ describe("MatchDetailsContent", () => {
     expect(
       screen.getByText("COMPLET", { selector: "span" }),
     ).toBeInTheDocument();
+  });
+
+  it("enregistre les joueurs échangés avant de lancer le match", async () => {
+    const onStartMatch = vi.fn();
+    const onSaveTeams = vi.fn().mockResolvedValue(true);
+    render(
+      renderMatchDetailsContent({
+        match,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        teams: [
+          ["alex", "sarah"],
+          ["malik", "ines"],
+        ],
+        playerNames,
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+        onSaveTeams,
+        onStartMatch,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Modifier" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Sélectionner Alex Martin dans l'équipe A",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Sélectionner Malik Diallo dans l'équipe B",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Échanger les joueurs sélectionnés",
+      }),
+    );
+    await waitFor(() =>
+      expect(onSaveTeams).toHaveBeenCalledWith([
+        ["malik", "sarah"],
+        ["alex", "ines"],
+      ]),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Lancer le match/ }));
+
+    expect(onStartMatch).toHaveBeenCalledWith([
+      ["malik", "sarah"],
+      ["alex", "ines"],
+    ]);
   });
 
   it("demande la fermeture via son bouton", () => {
