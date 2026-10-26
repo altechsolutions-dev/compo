@@ -23,6 +23,7 @@ export function MatchesPage() {
     onOpenMatch,
     onRegisterForMatch,
     onAddGuestToMatch,
+    onEditMatch,
     onStartMatch,
     onRecordGoal,
     manOfTheMatchPoll,
@@ -89,6 +90,7 @@ export function MatchesPage() {
           onOpenMatch={onOpenMatch}
           onRegister={onRegisterForMatch}
           onAddGuest={onAddGuestToMatch}
+          onEditMatch={onEditMatch}
         />
         <MatchDrawerContainer
           match={drawerMatch}

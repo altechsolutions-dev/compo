@@ -3,6 +3,7 @@ import {
   Check,
   Clock3,
   MapPin,
+  Pencil,
   Sparkles,
   UserPlus,
 } from "lucide-react";
@@ -20,6 +21,7 @@ export type MatchCardProps = {
   onOpen: () => void;
   onRegister: () => void;
   onAddGuest?: (guestName: string) => void;
+  onEdit?: () => void;
 };
 
 export function MatchCard({
@@ -31,6 +33,7 @@ export function MatchCard({
   onOpen,
   onRegister,
   onAddGuest,
+  onEdit,
 }: MatchCardProps) {
   const [isGuestFormOpen, setIsGuestFormOpen] = useState(false);
   const isSignedUp = match.attendees.includes(currentAttendeeId);
@@ -106,30 +109,56 @@ export function MatchCard({
             <Clock3 size={12} /> {match.time}
           </span>
         </button>
-        {isRegistrationOpen && onAddGuest && (
-          <div className="group relative shrink-0">
-            <button
-              aria-controls={`guest-form-${match.id}`}
-              aria-expanded={isGuestFormOpen}
-              aria-label="Inscrire un ami"
-              className="grid size-8 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-elevated) text-(--text-secondary) transition-colors hover:border-(--team-b-blue) hover:text-(--team-b-blue) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-b-blue)"
-              onClick={(event) => {
-                event.stopPropagation();
-                setIsGuestFormOpen((open) => !open);
-              }}
-              title="Inscrire un ami"
-              type="button"
-            >
-              <UserPlus aria-hidden="true" size={15} />
-            </button>
-            <span
-              className="pointer-events-none invisible absolute right-0 top-full z-10 mt-2 whitespace-nowrap rounded bg-(--ink) px-2 py-1 text-[10px] font-semibold text-(--bg-main) opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
-              role="tooltip"
-            >
-              Inscrire un ami
-            </span>
-          </div>
-        )}
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          {match.createdBy === currentAttendeeId &&
+            (!match.status || match.status === "scheduled") &&
+            onEdit && (
+              <div className="group relative">
+                <button
+                  aria-label="Modifier le créneau"
+                  className="grid size-8 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-elevated) text-(--text-secondary) transition-colors hover:border-(--team-b-blue) hover:text-(--team-b-blue) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-b-blue)"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onEdit();
+                  }}
+                  title="Modifier le créneau"
+                  type="button"
+                >
+                  <Pencil aria-hidden="true" size={14} />
+                </button>
+                <span
+                  className="pointer-events-none invisible absolute right-0 top-full z-10 mt-2 whitespace-nowrap rounded bg-(--ink) px-2 py-1 text-[10px] font-semibold text-(--bg-main) opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                  role="tooltip"
+                >
+                  Modifier le créneau
+                </span>
+              </div>
+            )}
+          {isRegistrationOpen && onAddGuest && (
+            <div className="group relative shrink-0">
+              <button
+                aria-controls={`guest-form-${match.id}`}
+                aria-expanded={isGuestFormOpen}
+                aria-label="Inscrire un ami"
+                className="grid size-8 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-elevated) text-(--text-secondary) transition-colors hover:border-(--team-b-blue) hover:text-(--team-b-blue) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-b-blue)"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setIsGuestFormOpen((open) => !open);
+                }}
+                title="Inscrire un ami"
+                type="button"
+              >
+                <UserPlus aria-hidden="true" size={15} />
+              </button>
+              <span
+                className="pointer-events-none invisible absolute right-0 top-full z-10 mt-2 whitespace-nowrap rounded bg-(--ink) px-2 py-1 text-[10px] font-semibold text-(--bg-main) opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                role="tooltip"
+              >
+                Inscrire un ami
+              </span>
+            </div>
+          )}
+        </div>
       </div>
       <button
         className="mt-3 block w-full cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent p-0 text-left text-base font-semibold text-(--ink)"

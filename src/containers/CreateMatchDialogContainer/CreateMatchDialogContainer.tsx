@@ -1,5 +1,5 @@
 import type { FormEventHandler } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Save } from "lucide-react";
 import { DashboardDialog } from "../../components/DashboardDialog/DashboardDialog";
 import "./CreateMatchDialogContainer.css";
 
@@ -12,6 +12,7 @@ export type CreateMatchDialogContainerProps = {
   maxPlayers: number;
   joinOnCreate: boolean;
   saving: boolean;
+  editing?: boolean;
   mounted?: boolean;
   open?: boolean;
   onClose: () => void;
@@ -32,6 +33,7 @@ export function CreateMatchDialogContainer({
   maxPlayers,
   joinOnCreate,
   saving,
+  editing = false,
   mounted,
   open,
   onClose,
@@ -46,6 +48,7 @@ export function CreateMatchDialogContainer({
     <DashboardDialog
       eyebrow={organizationName || "CLUB"}
       kind="match"
+      title={editing ? "Modifier le créneau" : undefined}
       mounted={mounted}
       open={open}
       onClose={onClose}
@@ -86,22 +89,28 @@ export function CreateMatchDialogContainer({
           type="number"
           value={maxPlayers}
         />
-        <label className="checkbox-field" htmlFor="match-join-on-create">
-          <input
-            checked={joinOnCreate}
-            id="match-join-on-create"
-            onChange={(event) => onJoinOnCreateChange(event.target.checked)}
-            type="checkbox"
-          />
-          <span>M’inscrire à ce match</span>
-        </label>
+        {!editing && (
+          <label className="checkbox-field" htmlFor="match-join-on-create">
+            <input
+              checked={joinOnCreate}
+              id="match-join-on-create"
+              onChange={(event) => onJoinOnCreateChange(event.target.checked)}
+              type="checkbox"
+            />
+            <span>M’inscrire à ce match</span>
+          </label>
+        )}
         <button
           className="create-match-dialog-form__submit bg-(--team-b-blue) text-(--bg-main)"
           disabled={saving}
           type="submit"
         >
-          <Plus size={17} />
-          {saving ? "Enregistrement…" : "Créer le créneau"}
+          {editing ? <Save size={17} /> : <Plus size={17} />}
+          {saving
+            ? "Enregistrement…"
+            : editing
+              ? "Enregistrer les modifications"
+              : "Créer le créneau"}
         </button>
       </form>
     </DashboardDialog>

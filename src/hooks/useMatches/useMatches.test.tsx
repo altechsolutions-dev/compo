@@ -111,6 +111,7 @@ describe("useMatches", () => {
       data: [
         {
           id: "match-1",
+          created_by: "user-1",
           match_date: "2030-06-17",
           match_time: "19:30",
           venue: "Terrain A",
@@ -127,7 +128,7 @@ describe("useMatches", () => {
       error: null,
     });
     const session = { user: { id: "user-1" } } as Session;
-    const { rerender, unmount } = renderHook(
+    const { result, rerender, unmount } = renderHook(
       ({ isLiveView }) =>
         useMatches({
           session,
@@ -144,6 +145,7 @@ describe("useMatches", () => {
         await Promise.resolve();
       });
       expect(supabaseRpc).toHaveBeenCalledTimes(1);
+      expect(result.current.matches[0].createdBy).toBe("user-1");
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(59_999);

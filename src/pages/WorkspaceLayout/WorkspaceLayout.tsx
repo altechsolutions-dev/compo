@@ -14,6 +14,7 @@ import { dateAfter } from "../../data/dateAfter/dateAfter";
 import { players } from "../../data/players/players";
 import type {
   DialogKind,
+  MatchSlot,
   MatchManOfTheMatchPoll,
   OrganizationPlayerStats,
 } from "../../types";
@@ -301,6 +302,7 @@ export function WorkspaceLayout() {
     }
   }
   const [venue, setVenue] = useState("");
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [matchDate, setMatchDate] = useState(dateAfter(3));
   const [matchTime, setMatchTime] = useState("19:30");
   const [matchMaxPlayers, setMatchMaxPlayers] = useState(10);
@@ -314,6 +316,7 @@ export function WorkspaceLayout() {
     registerForMatch,
     addGuestToMatch,
     createMatch,
+    updateMatch,
     startMatch,
     setMatchState,
     recordGoal,
@@ -336,7 +339,10 @@ export function WorkspaceLayout() {
     setMatchNotice,
     setFeatureNotice: setOrganizationFeatureNotice,
     setSelectedMatchId,
-    closeMatchDialog: () => setModal(null),
+    closeMatchDialog: () => {
+      setEditingMatchId(null);
+      setModal(null);
+    },
     showMatchesView: () => navigate("/app/matches"),
   });
 
@@ -352,11 +358,14 @@ export function WorkspaceLayout() {
       matchDialog={{
         organizationName: organization,
         date: matchDate,
-        minDate: dateAfter(0),
+        minDate:
+          matchState.allMatches.find((match) => match.id === editingMatchId)
+            ?.date ?? dateAfter(0),
         time: matchTime,
         venue,
         maxPlayers: matchMaxPlayers,
         joinOnCreate: joinMatchOnCreate,
+        editing: Boolean(editingMatchId),
         saving: matchSaving,
         onClose: () => setModal(null),
         onDateChange: setMatchDate,
@@ -364,7 +373,10 @@ export function WorkspaceLayout() {
         onVenueChange: setVenue,
         onMaxPlayersChange: setMatchMaxPlayers,
         onJoinOnCreateChange: setJoinMatchOnCreate,
-        onSubmit: createMatch,
+        onSubmit: (event) => {
+          if (editingMatchId) void updateMatch(editingMatchId, event);
+          else void createMatch(event);
+        },
       }}
       organizationDialog={{
         organizations,
@@ -447,6 +459,11 @@ export function WorkspaceLayout() {
     matchCount: visibleMatches.length,
     canShareInvite: Boolean(organizationId && inviteCode),
     onCreateMatch: () => {
+      setEditingMatchId(null);
+      setVenue("");
+      setMatchDate(dateAfter(3));
+      setMatchTime("19:30");
+      setMatchMaxPlayers(10);
       setJoinMatchOnCreate(true);
       setModal("match");
     },
@@ -469,6 +486,21 @@ export function WorkspaceLayout() {
     onRegisterForMatch: (matchId: string) => void registerForMatch(matchId),
     onAddGuestToMatch: (matchId: string, guestName: string) =>
       void addGuestToMatch(matchId, guestName),
+    onEditMatch: (match: MatchSlot) => {
+      if (
+        match.createdBy !== currentAttendeeId ||
+        (match.status && match.status !== "scheduled")
+      ) {
+        return;
+      }
+      setEditingMatchId(match.id);
+      setMatchDate(match.date);
+      setMatchTime(match.time);
+      setVenue(match.venue);
+      setMatchMaxPlayers(match.maxPlayers);
+      setJoinMatchOnCreate(false);
+      setModal("match");
+    },
     onStartMatch: async (matchId, teams) => {
       if (await startMatch(matchId, teams)) {
         navigate(`/app/live?match=${encodeURIComponent(matchId)}`);

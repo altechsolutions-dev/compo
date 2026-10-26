@@ -7,6 +7,7 @@ import "./DashboardDialog.css";
 export type DashboardDialogProps = {
   kind: DialogKind;
   children: ReactNode;
+  title?: string;
   eyebrow?: string;
   mounted?: boolean;
   open?: boolean;
@@ -36,6 +37,7 @@ const dialogEyebrows: Record<DialogKind, string> = {
 export function DashboardDialog({
   kind,
   children,
+  title,
   eyebrow,
   mounted = true,
   open = true,
@@ -58,7 +60,7 @@ export function DashboardDialog({
               {eyebrow ?? dialogEyebrows[kind]}
             </p>
             <h2 className="drawer-title mb-0" id="modal-title">
-              {dialogTitles[kind]}
+              {title ?? dialogTitles[kind]}
             </h2>
           </div>
           <button

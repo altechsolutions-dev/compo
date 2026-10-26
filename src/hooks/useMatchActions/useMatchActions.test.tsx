@@ -122,6 +122,33 @@ describe("useMatchActions", () => {
     expect(props.showMatchesView).toHaveBeenCalledOnce();
   });
 
+  it("modifie un créneau local créé par le joueur courant", async () => {
+    const match: MatchSlot = {
+      id: "match-edit",
+      createdBy: currentPlayerId,
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Ancien terrain",
+      maxPlayers: 10,
+      attendees: [currentPlayerId, "player-2"],
+    };
+    const { result, props, getMatches } = setup([match]);
+    const preventDefault = vi.fn();
+
+    await act(() =>
+      result.current.updateMatch("match-edit", { preventDefault } as never),
+    );
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(getMatches()[0]).toMatchObject({
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 10,
+    });
+    expect(props.closeMatchDialog).toHaveBeenCalledOnce();
+  });
+
   it("lance un match complet et attribue un but à la bonne équipe", async () => {
     const match: MatchSlot = {
       id: "match-live",
