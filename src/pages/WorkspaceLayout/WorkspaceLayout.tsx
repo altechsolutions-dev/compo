@@ -24,6 +24,14 @@ type InstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 };
 
+function minimumMatchTime() {
+  const now = new Date();
+  if (now.getSeconds() > 0 || now.getMilliseconds() > 0) {
+    now.setMinutes(now.getMinutes() + 1);
+  }
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
 export function WorkspaceLayout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -358,9 +366,8 @@ export function WorkspaceLayout() {
       matchDialog={{
         organizationName: organization,
         date: matchDate,
-        minDate:
-          matchState.allMatches.find((match) => match.id === editingMatchId)
-            ?.date ?? dateAfter(0),
+        minDate: dateAfter(0),
+        minTime: matchDate === dateAfter(0) ? minimumMatchTime() : undefined,
         time: matchTime,
         venue,
         maxPlayers: matchMaxPlayers,

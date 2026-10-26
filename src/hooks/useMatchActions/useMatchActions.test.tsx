@@ -4,7 +4,10 @@ import type { MatchSlot } from "../../types";
 import { currentPlayerId } from "../../data/currentPlayerId/currentPlayerId";
 import { useMatchActions } from "./useMatchActions";
 
-function setup(matches: MatchSlot[]) {
+function setup(
+  matches: MatchSlot[],
+  overrides: Partial<{ matchDate: string; matchTime: string }> = {},
+) {
   let currentMatches = matches;
   const setMatches = vi.fn(
     (update: MatchSlot[] | ((current: MatchSlot[]) => MatchSlot[])) => {
@@ -32,6 +35,7 @@ function setup(matches: MatchSlot[]) {
     setSelectedMatchId: vi.fn(),
     closeMatchDialog: vi.fn(),
     showMatchesView: vi.fn(),
+    ...overrides,
   };
   const hook = renderHook(() =>
     useMatchActions({ ...props, matches: currentMatches }),
@@ -147,6 +151,34 @@ describe("useMatchActions", () => {
       maxPlayers: 10,
     });
     expect(props.closeMatchDialog).toHaveBeenCalledOnce();
+  });
+
+  it("refuse de modifier un créneau à une date et heure passées", async () => {
+    const match: MatchSlot = {
+      id: "match-past-edit",
+      createdBy: currentPlayerId,
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Terrain actuel",
+      maxPlayers: 10,
+      attendees: [],
+    };
+    const { result, props, getMatches } = setup([match], {
+      matchDate: "2000-01-01",
+      matchTime: "12:00",
+    });
+
+    await act(() =>
+      result.current.updateMatch("match-past-edit", {
+        preventDefault: vi.fn(),
+      } as never),
+    );
+
+    expect(getMatches()[0]).toEqual(match);
+    expect(props.setFeatureNotice).toHaveBeenCalledWith(
+      "La date et l’heure du créneau doivent être dans le futur.",
+    );
+    expect(props.closeMatchDialog).not.toHaveBeenCalled();
   });
 
   it("lance un match complet et attribue un but à la bonne équipe", async () => {
