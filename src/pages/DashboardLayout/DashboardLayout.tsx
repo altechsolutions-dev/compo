@@ -9,14 +9,10 @@ import "./DashboardLayout.css";
 export type DashboardLayoutProps = {
   organization: string;
   organizationMemberCount: number;
-  avatarLabel: string;
   isSignedIn: boolean;
-  canShareInvite: boolean;
   canInstall: boolean;
   onNavigate: (view: DashboardView) => void;
   onChooseOrganization: () => void;
-  onShareInvite: () => void;
-  onJoinWithCode: () => void;
   onSignOut: () => void;
   onRegisterPasskey: () => void;
   passkeySubmitting: boolean;
@@ -31,14 +27,10 @@ export type DashboardLayoutProps = {
 export function DashboardLayout({
   organization,
   organizationMemberCount,
-  avatarLabel,
   isSignedIn,
-  canShareInvite,
   canInstall,
   onNavigate,
   onChooseOrganization,
-  onShareInvite,
-  onJoinWithCode,
   onSignOut,
   onRegisterPasskey,
   passkeySubmitting,
@@ -63,14 +55,10 @@ export function DashboardLayout({
         organization={organization}
         organizationMemberCount={organizationMemberCount}
         activeView={activeView}
-        avatarLabel={avatarLabel}
         isSignedIn={isSignedIn}
-        canShareInvite={canShareInvite}
         canInstall={canInstall}
         onNavigate={onNavigate}
         onChooseOrganization={onChooseOrganization}
-        onShareInvite={onShareInvite}
-        onJoinWithCode={onJoinWithCode}
         onSignOut={onSignOut}
         onInstall={onInstall}
       />
@@ -85,11 +73,11 @@ export function DashboardLayout({
               className="mb-1 text-sm font-semibold text-(--ink)"
               id="passkey-prompt-title"
             >
-              Enregistre une passkey sur cet appareil
+              Active Face ID ou l’empreinte
             </h2>
             <p className="m-0 text-xs leading-relaxed text-(--muted)">
-              Connecte-toi ensuite avec Face ID, Touch ID ou le code de ton
-              appareil. Tu peux aussi le faire plus tard.
+              Valide la demande de ton téléphone pour te connecter plus vite la
+              prochaine fois.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2 max-[680px]:justify-end">
@@ -100,7 +88,7 @@ export function DashboardLayout({
               type="button"
             >
               <Fingerprint size={16} />
-              {passkeySubmitting ? "Enregistrement…" : "Enregistrer"}
+              {passkeySubmitting ? "Activation…" : "Activer"}
             </button>
             <button
               className="min-h-9 cursor-pointer rounded-[3px] border border-(--line) bg-transparent px-3 text-xs font-medium text-(--ink)"

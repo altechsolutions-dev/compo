@@ -2,9 +2,8 @@ import {
   CalendarDays,
   ChevronDown,
   Download,
-  Share2,
+  LogOut,
   Users,
-  UserRoundPlus,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo.png";
@@ -15,14 +14,10 @@ export type DashboardHeaderProps = {
   organization: string;
   organizationMemberCount: number;
   activeView: DashboardView;
-  avatarLabel: string;
   isSignedIn: boolean;
-  canShareInvite: boolean;
   canInstall: boolean;
   onNavigate: (view: DashboardView) => void;
   onChooseOrganization: () => void;
-  onShareInvite: () => void;
-  onJoinWithCode: () => void;
   onSignOut: () => void;
   onInstall: () => void;
 };
@@ -31,14 +26,10 @@ export function DashboardHeader({
   organization,
   organizationMemberCount,
   activeView,
-  avatarLabel,
   isSignedIn,
-  canShareInvite,
   canInstall,
   onNavigate,
   onChooseOrganization,
-  onShareInvite,
-  onJoinWithCode,
   onSignOut,
   onInstall,
 }: DashboardHeaderProps) {
@@ -107,35 +98,17 @@ export function DashboardHeader({
           <span>{organization}</span>
           <ChevronDown size={15} />
         </button>
-        <button
-          className="grid size-9 cursor-pointer place-items-center rounded-[3px] border border-(--line) bg-transparent disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={!canShareInvite}
-          onClick={onShareInvite}
-          title="Partager le lien d’invitation"
-          type="button"
-          aria-label="Partager le lien d’invitation"
-        >
-          <Share2 size={16} />
-        </button>
-        <button
-          className="grid size-9 cursor-pointer place-items-center rounded-[3px] border border-(--line) bg-transparent disabled:cursor-not-allowed disabled:opacity-40"
-          onClick={onJoinWithCode}
-          title="Rejoindre avec un code"
-          type="button"
-          aria-label="Rejoindre un club avec un code"
-        >
-          <UserRoundPlus size={16} />
-        </button>
         <span className="h-6 w-px bg-(--line) max-[680px]:h-5" />
         <button
-          className="grid size-8 cursor-pointer place-items-center rounded-full border border-(--border-neutral) bg-(--bg-elevated) text-[10px] font-bold text-(--text-primary) disabled:cursor-not-allowed"
+          className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-[3px] border border-(--line) bg-transparent px-2 text-xs font-semibold text-(--ink) disabled:cursor-not-allowed disabled:opacity-40 max-[380px]:gap-1 max-[380px]:px-1.5 max-[380px]:text-[10px]"
           disabled={!isSignedIn}
           onClick={onSignOut}
           type="button"
-          title={isSignedIn ? "Se déconnecter" : "Profil de démonstration"}
-          aria-label={isSignedIn ? "Se déconnecter" : "Profil de démonstration"}
+          title="Se déconnecter"
+          aria-label="Se déconnecter"
         >
-          {avatarLabel}
+          <LogOut size={15} aria-hidden="true" />
+          <span>Déconnexion</span>
         </button>
         {canInstall && (
           <button

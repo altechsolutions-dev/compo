@@ -19,7 +19,7 @@ describe("authErrorMessage", () => {
       authErrorMessage(
         "The operation either timed out or was not allowed. See: https://www.w3.org/TR/webauthn-2/",
       ),
-    ).toContain("Aucune passkey disponible sur cet appareil");
+    ).toContain("Face ID ou l’empreinte n’a pas pu être utilisé");
   });
 
   it("préserve le détail d’une erreur inconnue et couvre les messages vides", () => {

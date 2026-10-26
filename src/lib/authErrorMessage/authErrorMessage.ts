@@ -7,7 +7,7 @@ export function authErrorMessage(message: string) {
     normalized.includes("operation either timed out or was not allowed") ||
     normalized.includes("notallowederror")
   ) {
-    return "Aucune passkey disponible sur cet appareil, ou demande Face ID annulée/expirée. Connectez-vous avec votre e-mail et mot de passe, puis enregistrez une passkey sur cet appareil.";
+    return "Face ID ou l’empreinte n’a pas pu être utilisé sur cet appareil. Connectez-vous avec votre e-mail et votre mot de passe, puis activez la connexion biométrique.";
   }
   if (normalized.includes("invalid login credentials")) {
     return "Adresse e-mail ou mot de passe incorrect.";

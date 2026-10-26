@@ -58,7 +58,7 @@ describe("AuthView", () => {
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: "Se connecter avec Face ID ou une passkey",
+        name: "Se connecter avec Face ID ou l’empreinte",
       }),
     );
     fireEvent.click(
@@ -80,7 +80,7 @@ describe("AuthView", () => {
     ).toBeDisabled();
     expect(
       screen.getByRole("button", {
-        name: "Se connecter avec Face ID ou une passkey",
+        name: "Se connecter avec Face ID ou l’empreinte",
       }),
     ).toBeDisabled();
   });

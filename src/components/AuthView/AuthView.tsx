@@ -290,7 +290,7 @@ export function AuthView({
                     <Fingerprint size={18} aria-hidden="true" />
                     {passkeyAuthSubmitting
                       ? "Vérification en cours…"
-                      : "Se connecter avec Face ID ou une passkey"}
+                      : "Se connecter avec Face ID ou l’empreinte"}
                   </button>
                 )}
               </div>

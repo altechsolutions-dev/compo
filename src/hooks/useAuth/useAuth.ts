@@ -303,9 +303,7 @@ export function useAuth() {
         "1",
       );
       setPasskeyPromptOpen(false);
-      setPasskeyNotice(
-        "Passkey ajoutée à votre compte et conservée par le gestionnaire de passkeys de votre appareil.",
-      );
+      setPasskeyNotice("Face ID ou l’empreinte est activé pour cet appareil.");
     } catch (error) {
       setPasskeyNotice(
         authErrorMessage(error instanceof Error ? error.message : ""),
