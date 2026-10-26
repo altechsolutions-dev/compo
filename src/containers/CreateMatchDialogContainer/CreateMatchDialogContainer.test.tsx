@@ -101,6 +101,7 @@ describe("CreateMatchDialogContainer", () => {
         organizationName="Les Panthères"
         date="2026-10-23"
         minDate="2026-10-20"
+        minTime="18:45"
         time="19:30"
         venue="Urban Soccer"
         maxPlayers={10}
@@ -117,6 +118,11 @@ describe("CreateMatchDialogContainer", () => {
     expect(
       screen.getByRole("button", { name: "Enregistrer les modifications" }),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Date du match")).toHaveAttribute(
+      "min",
+      "2026-10-20",
+    );
+    expect(screen.getByLabelText("Heure")).toHaveAttribute("min", "18:45");
     expect(screen.queryByLabelText("M’inscrire à ce match")).toBeNull();
   });
 });

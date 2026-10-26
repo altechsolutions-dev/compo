@@ -58,6 +58,13 @@ function getCurrentElapsedSeconds(match: MatchSlot) {
   );
 }
 
+function isMatchDateTimeInPast(date: string, time: string) {
+  const scheduledAt = new Date(`${date}T${time}`);
+  return (
+    Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now()
+  );
+}
+
 type UseMatchActionsOptions = {
   matches: MatchSlot[];
   setMatches: Dispatch<SetStateAction<MatchSlot[]>>;
@@ -218,6 +225,12 @@ export function useMatchActions({
   async function createMatch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!venue.trim()) return;
+    if (isMatchDateTimeInPast(matchDate, matchTime)) {
+      setFeatureNotice(
+        "La date et l’heure du créneau doivent être dans le futur.",
+      );
+      return;
+    }
 
     if (supabase && session) {
       if (!organizationId) {
@@ -300,6 +313,12 @@ export function useMatchActions({
     if (!match || match.createdBy !== currentAttendeeId) return;
     if (match.status && match.status !== "scheduled") return;
     if (!venue.trim()) return;
+    if (isMatchDateTimeInPast(matchDate, matchTime)) {
+      setFeatureNotice(
+        "La date et l’heure du créneau doivent être dans le futur.",
+      );
+      return;
+    }
     if (matchMaxPlayers < match.attendees.length) {
       setFeatureNotice(
         `Le nombre de places ne peut pas être inférieur aux ${match.attendees.length} joueurs déjà inscrits.`,

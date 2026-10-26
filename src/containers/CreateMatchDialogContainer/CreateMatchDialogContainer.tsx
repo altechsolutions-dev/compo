@@ -7,6 +7,7 @@ export type CreateMatchDialogContainerProps = {
   organizationName: string;
   date: string;
   minDate: string;
+  minTime?: string;
   time: string;
   venue: string;
   maxPlayers: number;
@@ -28,6 +29,7 @@ export function CreateMatchDialogContainer({
   organizationName,
   date,
   minDate,
+  minTime,
   time,
   venue,
   maxPlayers,
@@ -66,6 +68,7 @@ export function CreateMatchDialogContainer({
         <label htmlFor="match-time">Heure</label>
         <input
           id="match-time"
+          min={minTime}
           onChange={(event) => onTimeChange(event.target.value)}
           required
           type="time"
