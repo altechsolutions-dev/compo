@@ -19,6 +19,7 @@ export type MatchListProps = {
   onOpenMatch: (matchId: string) => void;
   onRegister: (matchId: string) => void;
   onAddGuest?: (matchId: string, guestName: string) => void;
+  onEditMatch?: (match: MatchSlot) => void;
 };
 
 export function MatchList({
@@ -35,6 +36,7 @@ export function MatchList({
   onOpenMatch,
   onRegister,
   onAddGuest,
+  onEditMatch,
 }: MatchListProps) {
   return (
     <section className="match-list min-w-0" aria-labelledby="match-list-title">
@@ -136,6 +138,7 @@ export function MatchList({
                     ? (guestName) => onAddGuest(match.id, guestName)
                     : undefined
                 }
+                onEdit={onEditMatch ? () => onEditMatch(match) : undefined}
               />
             ),
           )}

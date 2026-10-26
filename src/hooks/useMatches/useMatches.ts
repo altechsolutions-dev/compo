@@ -9,6 +9,7 @@ import type { MatchGoal, MatchSlot, OrganizationMember } from "../../types";
 
 type MatchSlotRow = {
   id: string;
+  created_by?: string;
   match_date: string;
   match_time: string;
   venue: string;
@@ -75,6 +76,7 @@ export function useMatches({
         const loadedMatches = ((data ?? []) as MatchSlotRow[]).map(
           (row): MatchSlot => ({
             id: row.id,
+            createdBy: row.created_by,
             date: row.match_date,
             time: row.match_time,
             venue: row.venue,
@@ -121,6 +123,7 @@ export function useMatches({
           const loadedMatches = ((data ?? []) as MatchSlotRow[]).map(
             (row): MatchSlot => ({
               id: row.id,
+              createdBy: row.created_by,
               date: row.match_date,
               time: row.match_time,
               venue: row.venue,

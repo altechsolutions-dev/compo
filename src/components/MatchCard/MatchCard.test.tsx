@@ -19,6 +19,7 @@ function renderCard(
   const onOpen = vi.fn();
   const onRegister = vi.fn();
   const onAddGuest = vi.fn();
+  const onEdit = vi.fn();
   render(
     <MatchCard
       match={match}
@@ -29,9 +30,10 @@ function renderCard(
       onOpen={onOpen}
       onRegister={onRegister}
       onAddGuest={onAddGuest}
+      onEdit={onEdit}
     />,
   );
-  return { onOpen, onRegister, onAddGuest };
+  return { onOpen, onRegister, onAddGuest, onEdit };
 }
 
 describe("MatchCard", () => {
@@ -99,6 +101,25 @@ describe("MatchCard", () => {
 
     expect(onRegister).toHaveBeenCalledOnce();
     expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("permet au créateur de modifier un créneau planifié", () => {
+    const { onEdit } = renderCard({
+      ...baseMatch,
+      createdBy: "current-player",
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Modifier le créneau" }),
+    );
+    expect(onEdit).toHaveBeenCalledOnce();
+  });
+
+  it("masque la modification pour un autre créateur", () => {
+    renderCard({ ...baseMatch, createdBy: "another-player" });
+    expect(
+      screen.queryByRole("button", { name: "Modifier le créneau" }),
+    ).not.toBeInTheDocument();
   });
 
   it("permet d’ajouter un invité depuis la carte tant que les places sont ouvertes", () => {

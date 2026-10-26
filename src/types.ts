@@ -1,5 +1,6 @@
 export type MatchSlot = {
   id: string;
+  createdBy?: string;
   date: string;
   time: string;
   venue: string;

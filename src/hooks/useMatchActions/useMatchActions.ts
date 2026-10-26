@@ -244,6 +244,7 @@ export function useMatchActions({
 
         const match: MatchSlot = {
           id: row.id,
+          createdBy: session.user.id,
           date: row.match_date,
           time: row.match_time,
           venue: row.venue,
@@ -272,6 +273,7 @@ export function useMatchActions({
 
     const match: MatchSlot = {
       id: crypto.randomUUID(),
+      createdBy: currentAttendeeId,
       date: matchDate,
       time: matchTime,
       venue: venue.trim(),
@@ -287,6 +289,68 @@ export function useMatchActions({
     setVenue("");
     closeMatchDialog();
     showMatchesView();
+  }
+
+  async function updateMatch(
+    matchId: string,
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+    const match = matches.find((item) => item.id === matchId);
+    if (!match || match.createdBy !== currentAttendeeId) return;
+    if (match.status && match.status !== "scheduled") return;
+    if (!venue.trim()) return;
+    if (matchMaxPlayers < match.attendees.length) {
+      setFeatureNotice(
+        `Le nombre de places ne peut pas être inférieur aux ${match.attendees.length} joueurs déjà inscrits.`,
+      );
+      return;
+    }
+
+    setMatchSaving(true);
+    setFeatureNotice("");
+    try {
+      if (supabase && session) {
+        const { error } = await supabase.rpc("update_match_slot", {
+          p_match_id: matchId,
+          p_match_date: matchDate,
+          p_match_time: matchTime,
+          p_venue: venue.trim(),
+          p_max_players: matchMaxPlayers,
+        });
+        if (error) throw error;
+      }
+
+      setMatches((current) =>
+        current
+          .map((item) =>
+            item.id === matchId
+              ? {
+                  ...item,
+                  date: matchDate,
+                  time: matchTime,
+                  venue: venue.trim(),
+                  maxPlayers: matchMaxPlayers,
+                }
+              : item,
+          )
+          .sort((first, second) =>
+            `${first.date}${first.time}`.localeCompare(
+              `${second.date}${second.time}`,
+            ),
+          ),
+      );
+      setSelectedMatchId(matchId);
+      setMatchNotice("");
+      closeMatchDialog();
+      showMatchesView();
+    } catch (error) {
+      setFeatureNotice(
+        `Impossible de modifier le créneau : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+    } finally {
+      setMatchSaving(false);
+    }
   }
 
   async function startMatch(
@@ -504,6 +568,7 @@ export function useMatchActions({
     registerForMatch,
     addGuestToMatch,
     createMatch,
+    updateMatch,
     startMatch,
     setMatchState,
     recordGoal,

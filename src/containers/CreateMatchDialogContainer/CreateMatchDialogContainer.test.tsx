@@ -85,4 +85,38 @@ describe("CreateMatchDialogContainer", () => {
       screen.getByRole("button", { name: "Enregistrement…" }),
     ).toBeDisabled();
   });
+
+  it("affiche le formulaire de modification sans l’option d’inscription", () => {
+    const callbacks = {
+      onClose: vi.fn(),
+      onDateChange: vi.fn(),
+      onTimeChange: vi.fn(),
+      onVenueChange: vi.fn(),
+      onMaxPlayersChange: vi.fn(),
+      onJoinOnCreateChange: vi.fn(),
+      onSubmit: vi.fn((event) => event.preventDefault()),
+    };
+    render(
+      <CreateMatchDialogContainer
+        organizationName="Les Panthères"
+        date="2026-10-23"
+        minDate="2026-10-20"
+        time="19:30"
+        venue="Urban Soccer"
+        maxPlayers={10}
+        joinOnCreate={false}
+        saving={false}
+        editing
+        {...callbacks}
+      />,
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Modifier le créneau" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Enregistrer les modifications" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("M’inscrire à ce match")).toBeNull();
+  });
 });
