@@ -2,6 +2,7 @@ import {
   ArrowRight,
   Check,
   Clock3,
+  Eye,
   MapPin,
   Pencil,
   Sparkles,
@@ -110,6 +111,28 @@ export function MatchCard({
           </span>
         </button>
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          {!isRegistrationOpen && (
+            <div className="group relative">
+              <button
+                aria-label="Voir les détails du match"
+                className="grid size-8 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-elevated) text-(--text-secondary) transition-colors hover:border-(--team-b-blue) hover:text-(--team-b-blue) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-b-blue)"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpen();
+                }}
+                title="Voir les détails du match"
+                type="button"
+              >
+                <Eye aria-hidden="true" size={15} />
+              </button>
+              <span
+                className="pointer-events-none invisible absolute right-0 top-full z-10 mt-2 whitespace-nowrap rounded bg-(--ink) px-2 py-1 text-[10px] font-semibold text-(--bg-main) opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                role="tooltip"
+              >
+                Voir les détails du match
+              </span>
+            </div>
+          )}
           {match.createdBy === currentAttendeeId &&
             (!match.status || match.status === "scheduled") &&
             onEdit && (
@@ -169,6 +192,11 @@ export function MatchCard({
       >
         Match de foot à 5
       </button>
+      {isFull && !isLive && (
+        <p className="match-full-label mt-2 flex items-center gap-1.5 text-[9px] font-bold tracking-[0.7px] text-(--team-b-blue)">
+          <Sparkles size={12} /> COMPLET · COMPO DISPONIBLE
+        </p>
+      )}
       <p className="mt-2 flex min-w-0 items-center gap-1.5 text-[11px] text-(--text-secondary)">
         <MapPin className="shrink-0" size={13} />
         <span className="overflow-hidden text-ellipsis whitespace-nowrap">
@@ -179,33 +207,33 @@ export function MatchCard({
         <p className="match-full-badge mt-3 flex min-h-8 items-center gap-2 border border-(--status-success) px-2.5 text-[9px] font-bold tracking-[0.7px] text-(--status-success)">
           <Sparkles size={13} /> EN COURS · {liveScore[1]} - {liveScore[0]}
         </p>
-      ) : isFull ? (
-        <p className="match-full-badge mt-3 flex min-h-8 items-center gap-2 border border-(--team-b-blue) px-2.5 text-[9px] font-bold tracking-[0.7px] text-(--team-b-blue)">
-          <Sparkles size={13} /> COMPLET · COMPO DISPONIBLE
-        </p>
       ) : null}
       <div className="mt-4 border-t border-(--line) pt-3.5">
-        <div className="mb-2.5 flex items-center justify-between text-[10px] text-(--text-secondary)">
-          <span>Places réservées</span>
-          <strong className="text-(--ink)">
-            {match.attendees.length}/{match.maxPlayers}
-          </strong>
-        </div>
-        <div
-          className="mb-3.5 h-1.5 overflow-hidden rounded-full bg-(--bg-elevated)"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={match.maxPlayers}
-          aria-valuenow={match.attendees.length}
-          aria-label={`${match.attendees.length} joueurs inscrits sur ${match.maxPlayers}`}
-        >
-          <span
-            className="block h-full rounded-full bg-(--team-b-blue)"
-            style={{
-              width: `${Math.min((match.attendees.length / match.maxPlayers) * 100, 100)}%`,
-            }}
-          />
-        </div>
+        {!isFull && (
+          <>
+            <div className="mb-2.5 flex items-center justify-between text-[10px] text-(--text-secondary)">
+              <span>Places réservées</span>
+              <strong className="text-(--ink)">
+                {match.attendees.length}/{match.maxPlayers}
+              </strong>
+            </div>
+            <div
+              className="mb-3.5 h-1.5 overflow-hidden rounded-full bg-(--bg-elevated)"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={match.maxPlayers}
+              aria-valuenow={match.attendees.length}
+              aria-label={`${match.attendees.length} joueurs inscrits sur ${match.maxPlayers}`}
+            >
+              <span
+                className="block h-full rounded-full bg-(--team-b-blue)"
+                style={{
+                  width: `${Math.min((match.attendees.length / match.maxPlayers) * 100, 100)}%`,
+                }}
+              />
+            </div>
+          </>
+        )}
         {isRegistrationOpen && (
           <div
             className={`match-card__attendees ${showAttendees ? "is-expanded" : ""}`}

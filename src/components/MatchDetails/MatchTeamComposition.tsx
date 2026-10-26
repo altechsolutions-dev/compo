@@ -60,11 +60,6 @@ export function MatchTeamComposition({
           Composition du match
         </h3>
         <div className="flex items-center gap-3">
-          {isFull && (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-(--status-success)">
-              <Check size={14} /> COMPLET
-            </span>
-          )}
           {isEditable && (
             <button
               aria-pressed={isEditing}
@@ -76,70 +71,73 @@ export function MatchTeamComposition({
               type="button"
             >
               {isEditing ? <Check size={13} /> : <Pencil size={13} />}
-              {isEditing ? "Terminer" : "Modifier"}
+              {isEditing ? "Terminer" : "Modifier la composition"}
             </button>
           )}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3.5">
-        {teams.map((team, teamIndex) => (
-          <div className="min-w-0" key={teamIndex}>
-            <h4
-              className={`mb-2.5 flex items-center gap-1.5 text-xs font-semibold ${teamIndex === 0 ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
-            >
-              <Shirt
-                size={14}
-                color={
-                  teamIndex === 0 ? "var(--team-a-red)" : "var(--team-b-blue)"
-                }
-                aria-hidden="true"
-              />
-              Équipe {teamIndex === 0 ? "A" : "B"}
-            </h4>
-            {team.map((id, playerIndex) => {
-              const selected = selectedPlayers[teamIndex] === id;
-              const teamColorClass =
-                teamIndex === 0
-                  ? selected
-                    ? "border-(--team-a-red) bg-(--team-a-red)/20 text-(--team-a-red)"
-                    : "border-(--team-a-red)/25 bg-(--team-a-red)/5 text-(--team-a-red)"
-                  : selected
-                    ? "border-(--team-b-blue) bg-(--team-b-blue)/20 text-(--team-b-blue)"
-                    : "border-(--team-b-blue)/25 bg-(--team-b-blue)/5 text-(--team-b-blue)";
+        {([1, 0] as const).map((teamIndex) => {
+          const team = teams[teamIndex];
+          return (
+            <div className="min-w-0" key={teamIndex}>
+              <h4
+                className={`mb-2.5 flex items-center gap-1.5 text-xs font-semibold ${teamIndex === 0 ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
+              >
+                <Shirt
+                  size={14}
+                  color={
+                    teamIndex === 0 ? "var(--team-a-red)" : "var(--team-b-blue)"
+                  }
+                  aria-hidden="true"
+                />
+                Équipe {teamIndex === 0 ? "Rouge" : "Bleue"}
+              </h4>
+              {team.map((id, playerIndex) => {
+                const selected = selectedPlayers[teamIndex] === id;
+                const teamColorClass =
+                  teamIndex === 0
+                    ? selected
+                      ? "border-(--team-a-red) bg-(--team-a-red)/20 text-(--team-a-red)"
+                      : "border-(--team-a-red)/25 bg-(--team-a-red)/5 text-(--team-a-red)"
+                    : selected
+                      ? "border-(--team-b-blue) bg-(--team-b-blue)/20 text-(--team-b-blue)"
+                      : "border-(--team-b-blue)/25 bg-(--team-b-blue)/5 text-(--team-b-blue)";
 
-              return (
-                <div
-                  className={`mb-1.5 flex min-h-9 w-full items-center overflow-hidden rounded-sm border px-2 py-1.5 text-xs font-semibold ${teamColorClass} ${isEditing && !selected ? "hover:brightness-110" : ""}`}
-                  key={id}
-                >
-                  {isEditing ? (
-                    <button
-                      aria-pressed={selected}
-                      aria-label={`Sélectionner ${playerNames[id] ?? `Joueur ${playerIndex + 1}`} dans l'équipe ${teamIndex === 0 ? "A" : "B"}`}
-                      className="flex min-w-0 flex-1 items-center justify-between gap-1.5 overflow-hidden text-left"
-                      onClick={() => selectPlayer(teamIndex, id)}
-                      type="button"
-                    >
+                return (
+                  <div
+                    className={`mb-1.5 flex min-h-9 w-full items-center overflow-hidden rounded-sm border px-2 py-1.5 text-xs font-semibold ${teamColorClass} ${isEditing && !selected ? "hover:brightness-110" : ""}`}
+                    key={id}
+                  >
+                    {isEditing ? (
+                      <button
+                        aria-pressed={selected}
+                        aria-label={`Sélectionner ${playerNames[id] ?? `Joueur ${playerIndex + 1}`} dans l'équipe ${teamIndex === 0 ? "Rouge" : "Bleue"}`}
+                        className="flex min-w-0 flex-1 items-center justify-between gap-1.5 overflow-hidden text-left"
+                        onClick={() => selectPlayer(teamIndex, id)}
+                        type="button"
+                      >
+                        <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                          {playerNames[id] ?? `Joueur ${playerIndex + 1}`}
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className={`grid size-4 shrink-0 place-items-center rounded-[3px] border ${selected ? "border-current bg-current/15" : "border-current/60"}`}
+                        >
+                          {selected && <Check size={12} />}
+                        </span>
+                      </button>
+                    ) : (
                       <span className="overflow-hidden text-ellipsis whitespace-nowrap">
                         {playerNames[id] ?? `Joueur ${playerIndex + 1}`}
                       </span>
-                      <span
-                        aria-hidden="true"
-                        className={`grid size-4 shrink-0 place-items-center rounded-[3px] border ${selected ? "border-current bg-current/15" : "border-current/60"}`}
-                      >
-                        {selected && <Check size={12} />}
-                      </span>
-                    </button>
-                  ) : (
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">
-                      {playerNames[id] ?? `Joueur ${playerIndex + 1}`}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
       <div
         aria-hidden={!isEditing}

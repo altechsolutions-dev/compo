@@ -17,11 +17,15 @@
   }
 
   .match-full-card {
+    border-left-width: 3px;
     animation: match-complete-glow 2.4s ease-in-out infinite;
   }
 
-  .match-full-badge {
-    background: color-mix(in srgb, var(--team-b-blue) 7%, transparent);
+  .match-full-label {
+    width: fit-content;
+    border-block: 1px solid
+      color-mix(in srgb, var(--team-b-blue) 35%, transparent);
+    padding-block: 0.25rem;
   }
 
   .match-card__attendees {
