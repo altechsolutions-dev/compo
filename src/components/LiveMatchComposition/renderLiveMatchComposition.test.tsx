@@ -28,6 +28,10 @@ describe("renderLiveMatchComposition", () => {
       screen.getByRole("button", { name: "Modifier la composition" }),
     );
 
+    expect(screen.getByText("Cochez un joueur dans chaque équipe")).toHaveClass(
+      "text-xs",
+      "text-(--text-primary)",
+    );
     expect(playerRow).toHaveClass("m-0");
     const editingButton = within(redTeam).getByRole("button", {
       name: "Sélectionner Alex Martin dans l'équipe rouge",
@@ -58,7 +62,7 @@ describe("renderLiveMatchComposition", () => {
     );
     expect(
       screen.getByRole("region", { name: "Équipe bleue" }).parentElement,
-    ).toHaveClass("gap-3.5", "sm:grid-cols-2");
+    ).toHaveClass("grid-cols-2", "gap-3.5");
     expect(
       within(screen.getByRole("region", { name: "Équipe rouge" })).getByText(
         "Alex Martin",

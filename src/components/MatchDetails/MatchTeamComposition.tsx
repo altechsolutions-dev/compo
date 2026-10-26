@@ -60,11 +60,6 @@ export function MatchTeamComposition({
           Composition du match
         </h3>
         <div className="flex items-center gap-3">
-          {isFull && (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-(--status-success)">
-              <Check size={14} /> COMPLET
-            </span>
-          )}
           {isEditable && (
             <button
               aria-pressed={isEditing}
@@ -76,7 +71,7 @@ export function MatchTeamComposition({
               type="button"
             >
               {isEditing ? <Check size={13} /> : <Pencil size={13} />}
-              {isEditing ? "Terminer" : "Modifier"}
+              {isEditing ? "Terminer" : "Modifier la composition"}
             </button>
           )}
         </div>

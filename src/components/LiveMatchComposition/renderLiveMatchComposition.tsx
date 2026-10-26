@@ -109,7 +109,7 @@ function LiveMatchCompositionView({
           </button>
         </div>
       )}
-      <div className="grid gap-3.5 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3.5">
         {([1, 0] as const).map((teamIndex) => {
           const teamPlayers = teams[teamIndex];
           const isRedTeam = teamIndex === 0;
@@ -166,8 +166,8 @@ function LiveMatchCompositionView({
         })}
         {isEditing && (
           <div className="col-span-full mt-4 w-full border-t border-(--line) pt-4">
-            <p className="mb-3 text-center text-[11px] text-(--text-secondary)">
-              Cochez un joueur dans chaque équipe pour les échanger
+            <p className="mb-3 text-center text-xs text-(--text-primary)">
+              Cochez un joueur dans chaque équipe
             </p>
             <button
               aria-label="Échanger les joueurs sélectionnés"

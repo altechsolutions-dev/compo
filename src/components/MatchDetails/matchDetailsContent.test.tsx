@@ -68,9 +68,7 @@ describe("MatchDetailsContent", () => {
         .getAllByRole("heading", { level: 4 })
         .map((heading) => heading.textContent),
     ).toEqual(["Équipe Bleue", "Équipe Rouge"]);
-    expect(
-      screen.getByText("COMPLET", { selector: "span" }),
-    ).toBeInTheDocument();
+    expect(screen.queryByText("COMPLET", { selector: "span" })).toBeNull();
   });
 
   it("enregistre les joueurs échangés avant de lancer le match", async () => {
@@ -94,7 +92,9 @@ describe("MatchDetailsContent", () => {
       }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Modifier" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Modifier la composition" }),
+    );
     fireEvent.click(
       screen.getByRole("button", {
         name: "Sélectionner Alex Martin dans l'équipe Rouge",
