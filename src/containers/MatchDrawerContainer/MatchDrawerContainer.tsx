@@ -14,6 +14,10 @@ export type MatchDrawerContainerProps = {
   onClose: () => void;
   onRegister: (matchId: string) => void;
   onStartMatch: (matchId: string, teams: [string[], string[]]) => void;
+  onSaveScheduledMatchTeams?: (
+    matchId: string,
+    teams: [string[], string[]],
+  ) => Promise<boolean>;
   onRecordGoal: (matchId: string, scorerId: string) => void;
   manOfTheMatchPoll: MatchManOfTheMatchPoll | null;
   manOfTheMatchPollLoading: boolean;
@@ -33,6 +37,7 @@ export function MatchDrawerContainer({
   onClose,
   onRegister,
   onStartMatch,
+  onSaveScheduledMatchTeams,
   onRecordGoal,
   manOfTheMatchPoll,
   manOfTheMatchPollLoading,
@@ -64,6 +69,9 @@ export function MatchDrawerContainer({
           playerNames,
           onClose,
           onRegister: () => onRegister(match.id),
+          onSaveTeams: onSaveScheduledMatchTeams
+            ? (nextTeams) => onSaveScheduledMatchTeams(match.id, nextTeams)
+            : undefined,
           onStartMatch: (nextTeams) => onStartMatch(match.id, nextTeams),
           onRecordGoal: (scorerId) => onRecordGoal(match.id, scorerId),
           manOfTheMatchPoll,

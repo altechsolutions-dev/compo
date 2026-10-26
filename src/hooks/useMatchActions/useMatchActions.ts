@@ -422,6 +422,74 @@ export function useMatchActions({
     }
   }
 
+  async function saveScheduledMatchTeams(
+    matchId: string,
+    teams: [string[], string[]],
+  ): Promise<boolean> {
+    const match = matches.find((item) => item.id === matchId);
+    if (
+      !match ||
+      (match.status && match.status !== "scheduled") ||
+      match.attendees.length < match.maxPlayers
+    ) {
+      setMatchNotice(
+        "Seule la composition d’un match complet programmé peut être modifiée.",
+      );
+      return false;
+    }
+
+    const teamIds = [...teams[0], ...teams[1]];
+    if (
+      teamIds.length !== match.attendees.length ||
+      new Set(teamIds).size !== teamIds.length ||
+      match.attendees.some((attendeeId) => !teamIds.includes(attendeeId))
+    ) {
+      setMatchNotice(
+        "La composition doit contenir chaque joueur inscrit une seule fois.",
+      );
+      return false;
+    }
+
+    if (supabase && !session) {
+      setMatchNotice(
+        "Votre session a expiré. Reconnectez-vous pour enregistrer la composition.",
+      );
+      return false;
+    }
+
+    try {
+      let savedTeams = teams;
+      if (supabase) {
+        const { data, error } = await supabase.rpc(
+          "save_scheduled_match_teams",
+          {
+            p_match_id: matchId,
+            p_team_a: teams[0],
+            p_team_b: teams[1],
+          },
+        );
+        if (error) throw error;
+        const row = ((data ?? []) as MatchTeamsRow[])[0];
+        if (!row)
+          throw new Error("Supabase n’a renvoyé aucune équipe enregistrée.");
+        savedTeams = [row.team_a, row.team_b];
+      }
+
+      setMatches((current) =>
+        current.map((item) =>
+          item.id === matchId ? { ...item, teams: savedTeams } : item,
+        ),
+      );
+      setMatchNotice("");
+      return true;
+    } catch (error) {
+      setMatchNotice(
+        `Impossible d’enregistrer la composition : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+      return false;
+    }
+  }
+
   async function setMatchState(
     matchId: string,
     action: MatchStateAction,
@@ -589,6 +657,7 @@ export function useMatchActions({
     createMatch,
     updateMatch,
     startMatch,
+    saveScheduledMatchTeams,
     setMatchState,
     recordGoal,
     swapPlayers,

@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
-import { ArrowRight, Check, CircleDot, MapPin, Shirt, X } from "lucide-react";
+import { ArrowRight, Check, MapPin, X } from "lucide-react";
 import type { MatchManOfTheMatchPoll, MatchSlot } from "../../types";
 import { formatMatchDate } from "../../helpers/formatMatchDate/formatMatchDate";
 import { LiveMatchPanel } from "../LiveMatchPanel/LiveMatchPanel";
+import { MatchTeamComposition } from "./MatchTeamComposition";
 import "./MatchDetails.css";
 
 export type MatchDetailsContentOptions = {
@@ -14,6 +15,7 @@ export type MatchDetailsContentOptions = {
   playerNames: Record<string, string>;
   onClose: () => void;
   onRegister: () => void;
+  onSaveTeams?: (teams: [string[], string[]]) => Promise<boolean>;
   onStartMatch?: (teams: [string[], string[]]) => void;
   onRecordGoal?: (scorerId: string) => void;
   manOfTheMatchPoll?: MatchManOfTheMatchPoll | null;
@@ -32,6 +34,7 @@ export function renderMatchDetailsContent({
   playerNames,
   onClose,
   onRegister,
+  onSaveTeams,
   onStartMatch,
   onRecordGoal,
   manOfTheMatchPoll,
@@ -421,54 +424,15 @@ export function renderMatchDetailsContent({
           onRecordGoal={onRecordGoal ?? (() => undefined)}
         />
       ) : teams ? (
-        <section className="match-drawer-line mt-4.75 border-t border-white/15 pt-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="m-0 text-sm font-bold text-(--ink)">
-              Composition du match
-            </h3>
-            {isFull && (
-              <span className="inline-flex items-center gap-1.5 text-[9px] font-bold text-(--status-success)">
-                <Check size={13} /> COMPLET
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-3.5">
-            {teams.map((team, index) => (
-              <div className="min-w-0" key={index}>
-                <h4 className="mb-2.25 flex items-center gap-1.5 text-[10px] font-semibold text-[#f5f7f3]">
-                  <Shirt
-                    size={14}
-                    color={
-                      index === 0 ? "var(--team-a-red)" : "var(--team-b-blue)"
-                    }
-                    aria-hidden="true"
-                  />
-                  Équipe {index === 0 ? "A" : "B"}
-                </h4>
-                {team.map((id, playerIndex) => (
-                  <p
-                    className="mb-1.5 overflow-hidden text-ellipsis whitespace-nowrap text-[9px] text-(--text-secondary)"
-                    key={id}
-                  >
-                    {playerNames[id] ?? `Joueur ${playerIndex + 1}`}
-                  </p>
-                ))}
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 flex items-center justify-center gap-1.5 text-[9px] text-(--status-success)">
-            <Check size={14} /> Équipes équilibrées selon les stats
-          </p>
-          {isFull && match.status !== "in_progress" && onStartMatch && (
-            <button
-              className="mt-4 flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-md border-0 bg-(--team-b-blue) text-xs font-bold text-(--bg-main) hover:brightness-110"
-              onClick={() => onStartMatch(teams)}
-              type="button"
-            >
-              <CircleDot size={15} /> Lancer le match
-            </button>
-          )}
-        </section>
+        <MatchTeamComposition
+          key={`${match.id}-${match.attendees.join(":")}`}
+          isFull={isFull}
+          match={match}
+          onSaveTeams={onSaveTeams}
+          onStartMatch={onStartMatch}
+          playerNames={playerNames}
+          teams={teams}
+        />
       ) : isFull ? (
         <p className="mt-4.75 text-center text-[10px] text-(--text-secondary)">
           Ce match est complet.

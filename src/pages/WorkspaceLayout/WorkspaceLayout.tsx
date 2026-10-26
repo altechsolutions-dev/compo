@@ -326,6 +326,7 @@ export function WorkspaceLayout() {
     createMatch,
     updateMatch,
     startMatch,
+    saveScheduledMatchTeams,
     setMatchState,
     recordGoal,
     swapPlayers,
@@ -513,6 +514,7 @@ export function WorkspaceLayout() {
         navigate(`/app/live?match=${encodeURIComponent(matchId)}`);
       }
     },
+    onSaveScheduledMatchTeams: saveScheduledMatchTeams,
     onSetMatchState: (matchId, action) => {
       void (async () => {
         const updated = await setMatchState(matchId, action);
