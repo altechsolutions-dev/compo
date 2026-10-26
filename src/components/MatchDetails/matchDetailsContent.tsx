@@ -139,34 +139,40 @@ export function renderMatchDetailsContent({
                   {manOfTheMatchPoll.eligibleVoterCount} votes
                 </p>
                 <div className="grid gap-1.5">
-                  {match.attendees.map((candidateId) => {
-                    const candidateVotes =
-                      manOfTheMatchPoll.voteTotals.find(
-                        (vote) => vote.candidateId === candidateId,
-                      )?.voteCount ?? 0;
-                    const isSelected = manOfTheMatchPoll.myVote === candidateId;
+                  {match.attendees
+                    .filter(
+                      (candidateId) =>
+                        !(candidateId in (match.attendeeNames ?? {})),
+                    )
+                    .map((candidateId) => {
+                      const candidateVotes =
+                        manOfTheMatchPoll.voteTotals.find(
+                          (vote) => vote.candidateId === candidateId,
+                        )?.voteCount ?? 0;
+                      const isSelected =
+                        manOfTheMatchPoll.myVote === candidateId;
 
-                    return (
-                      <button
-                        aria-pressed={isSelected}
-                        className={`flex min-h-10 items-center justify-between gap-3 rounded-md border px-3 text-left text-xs font-semibold ${isSelected ? "border-(--team-b-blue) bg-(--team-b-blue)/10 text-(--team-b-blue)" : "border-(--line) bg-(--bg-surface) text-(--text-primary)"}`}
-                        disabled={
-                          manOfTheMatchVoteSaving || !onVoteForManOfTheMatch
-                        }
-                        key={candidateId}
-                        onClick={() => onVoteForManOfTheMatch?.(candidateId)}
-                        type="button"
-                      >
-                        <span className="truncate">
-                          {playerNames[candidateId] ?? "Joueur"}
-                          {isSelected ? " · Votre vote" : ""}
-                        </span>
-                        <span className="shrink-0 font-mono tabular-nums">
-                          {candidateVotes}
-                        </span>
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          aria-pressed={isSelected}
+                          className={`flex min-h-10 items-center justify-between gap-3 rounded-md border px-3 text-left text-xs font-semibold ${isSelected ? "border-(--team-b-blue) bg-(--team-b-blue)/10 text-(--team-b-blue)" : "border-(--line) bg-(--bg-surface) text-(--text-primary)"}`}
+                          disabled={
+                            manOfTheMatchVoteSaving || !onVoteForManOfTheMatch
+                          }
+                          key={candidateId}
+                          onClick={() => onVoteForManOfTheMatch?.(candidateId)}
+                          type="button"
+                        >
+                          <span className="truncate">
+                            {playerNames[candidateId] ?? "Joueur"}
+                            {isSelected ? " · Votre vote" : ""}
+                          </span>
+                          <span className="shrink-0 font-mono tabular-nums">
+                            {candidateVotes}
+                          </span>
+                        </button>
+                      );
+                    })}
                 </div>
                 {manOfTheMatchVoteError && (
                   <p
@@ -468,23 +474,25 @@ export function renderMatchDetailsContent({
           Ce match est complet.
         </p>
       ) : (
-        <button
-          className="mt-5.5 flex min-h-10.5 w-full cursor-pointer items-center justify-center gap-2.25 rounded-[3px] border-0 bg-(--team-b-blue) text-xs font-bold text-(--bg-main) transition-colors hover:brightness-110 disabled:cursor-default disabled:bg-(--bg-elevated) disabled:text-(--text-secondary)"
-          onClick={onRegister}
-          disabled={isRegistered || isRegistering}
-          type="button"
-        >
-          {isRegistered ? (
-            <>
-              <Check size={16} /> Vous êtes inscrit
-            </>
-          ) : (
-            <>
-              {isRegistering ? "Inscription…" : "Je m'inscris"}
-              {!isRegistering && <ArrowRight size={16} />}
-            </>
-          )}
-        </button>
+        <>
+          <button
+            className="mt-5.5 flex min-h-10.5 w-full cursor-pointer items-center justify-center gap-2.25 rounded-[3px] border-0 bg-(--team-b-blue) text-xs font-bold text-(--bg-main) transition-colors hover:brightness-110 disabled:cursor-default disabled:bg-(--bg-elevated) disabled:text-(--text-secondary)"
+            onClick={onRegister}
+            disabled={isRegistered || isRegistering}
+            type="button"
+          >
+            {isRegistered ? (
+              <>
+                <Check size={16} /> Vous êtes inscrit
+              </>
+            ) : (
+              <>
+                {isRegistering ? "Inscription…" : "Je m'inscris"}
+                {!isRegistering && <ArrowRight size={16} />}
+              </>
+            )}
+          </button>
+        </>
       )}
       <p className="mt-2.5 text-center text-[10px] text-(--text-secondary)">
         {isFull

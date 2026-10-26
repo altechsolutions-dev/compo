@@ -18,6 +18,7 @@ export type MatchListProps = {
   onFilterChange: (filter: MatchFilter) => void;
   onOpenMatch: (matchId: string) => void;
   onRegister: (matchId: string) => void;
+  onAddGuest?: (matchId: string, guestName: string) => void;
 };
 
 export function MatchList({
@@ -33,6 +34,7 @@ export function MatchList({
   onFilterChange,
   onOpenMatch,
   onRegister,
+  onAddGuest,
 }: MatchListProps) {
   return (
     <section className="match-list min-w-0" aria-labelledby="match-list-title">
@@ -129,6 +131,11 @@ export function MatchList({
                 playerNames={playerNames}
                 onOpen={() => onOpenMatch(match.id)}
                 onRegister={() => onRegister(match.id)}
+                onAddGuest={
+                  onAddGuest
+                    ? (guestName) => onAddGuest(match.id, guestName)
+                    : undefined
+                }
               />
             ),
           )}
@@ -156,13 +163,8 @@ function FinishedMatchCard({
     2,
     "0",
   );
-  const winnerTeam = featured
-    ? redScore > blueScore
-      ? "red"
-      : blueScore > redScore
-        ? "blue"
-        : undefined
-    : undefined;
+  const winnerTeam =
+    redScore > blueScore ? "red" : blueScore > redScore ? "blue" : undefined;
 
   return (
     <article

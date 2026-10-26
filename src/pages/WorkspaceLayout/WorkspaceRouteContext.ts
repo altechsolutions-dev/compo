@@ -24,6 +24,7 @@ export type WorkspaceRouteContext = {
   onFilterChange: (filter: "all" | "available" | "finished") => void;
   onOpenMatch: (matchId: string) => void;
   onRegisterForMatch: (matchId: string) => void;
+  onAddGuestToMatch: (matchId: string, guestName: string) => void;
   onStartMatch: (matchId: string, teams: [string[], string[]]) => void;
   onSetMatchState: (matchId: string, action: MatchStateAction) => void;
   onRecordGoal: (matchId: string, scorerId: string) => void;

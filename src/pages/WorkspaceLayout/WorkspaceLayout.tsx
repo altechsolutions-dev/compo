@@ -312,6 +312,7 @@ export function WorkspaceLayout() {
   );
   const {
     registerForMatch,
+    addGuestToMatch,
     createMatch,
     startMatch,
     setMatchState,
@@ -466,6 +467,8 @@ export function WorkspaceLayout() {
       openMatchDrawer(matchId);
     },
     onRegisterForMatch: (matchId: string) => void registerForMatch(matchId),
+    onAddGuestToMatch: (matchId: string, guestName: string) =>
+      void addGuestToMatch(matchId, guestName),
     onStartMatch: async (matchId, teams) => {
       if (await startMatch(matchId, teams)) {
         navigate(`/app/live?match=${encodeURIComponent(matchId)}`);

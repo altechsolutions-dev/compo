@@ -1,5 +1,13 @@
-import { ArrowRight, Check, Clock3, MapPin, Sparkles } from "lucide-react";
-import type { MouseEvent } from "react";
+import {
+  ArrowRight,
+  Check,
+  Clock3,
+  MapPin,
+  Sparkles,
+  UserPlus,
+} from "lucide-react";
+import { useState } from "react";
+import type { FormEvent, MouseEvent } from "react";
 import type { MatchSlot } from "../../types";
 import "./MatchCard.css";
 
@@ -11,6 +19,7 @@ export type MatchCardProps = {
   playerNames?: Record<string, string>;
   onOpen: () => void;
   onRegister: () => void;
+  onAddGuest?: (guestName: string) => void;
 };
 
 export function MatchCard({
@@ -21,7 +30,9 @@ export function MatchCard({
   playerNames = {},
   onOpen,
   onRegister,
+  onAddGuest,
 }: MatchCardProps) {
+  const [isGuestFormOpen, setIsGuestFormOpen] = useState(false);
   const isSignedUp = match.attendees.includes(currentAttendeeId);
   const isFull = match.attendees.length >= match.maxPlayers;
   const isLive = match.status === "in_progress";
@@ -56,34 +67,70 @@ export function MatchCard({
     handleMatchAction();
   }
 
+  function handleAddGuest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const name = new FormData(event.currentTarget).get("guestName");
+    if (typeof name !== "string" || !name.trim()) return;
+    onAddGuest?.(name.trim());
+    event.currentTarget.reset();
+    setIsGuestFormOpen(false);
+  }
+
   return (
     <article
       className={`match-card min-w-0 rounded-xl border border-solid p-4 transition-colors ${isFull ? "match-full-card border-(--team-b-blue) bg-(--bg-surface)" : isSelected || showAttendees ? "border-(--team-b-blue) bg-(--bg-surface)" : "border-(--line) bg-(--bg-surface) hover:border-(--text-secondary)"}`}
       data-testid="match-card"
       onClick={handleCardClick}
     >
-      <button
-        className="flex w-full cursor-pointer items-start justify-between gap-3 border-0 bg-transparent p-0 text-left text-(--ink)"
-        onClick={stopAndOpen}
-        type="button"
-        aria-controls={`match-attendees-${match.id}`}
-        aria-expanded={showAttendees}
-        aria-pressed={isRegistrationOpen ? showAttendees : isSelected}
-        aria-label={`${isRegistrationOpen ? "Afficher les inscrits" : "Afficher les détails"} du match du ${date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${match.time}`}
-      >
-        <span className="pt-0.5 text-[9px] font-bold uppercase tracking-[0.7px] text-(--team-b-blue)">
-          {new Intl.DateTimeFormat("fr-FR", {
-            weekday: "short",
-            day: "numeric",
-            month: "long",
-          })
-            .format(date)
-            .replace(".", "")}
-        </span>
-        <span className="flex shrink-0 items-center gap-1.5 text-[10px] text-(--text-secondary)">
-          <Clock3 size={12} /> {match.time}
-        </span>
-      </button>
+      <div className="flex items-start gap-2">
+        <button
+          className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-1 border-0 bg-transparent p-0 text-left text-(--ink)"
+          onClick={stopAndOpen}
+          type="button"
+          aria-controls={`match-attendees-${match.id}`}
+          aria-expanded={showAttendees}
+          aria-pressed={isRegistrationOpen ? showAttendees : isSelected}
+          aria-label={`${isRegistrationOpen ? "Afficher les inscrits" : "Afficher les détails"} du match du ${date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${match.time}`}
+        >
+          <span className="pt-0.5 text-[9px] font-bold uppercase tracking-[0.7px] text-(--team-b-blue)">
+            {new Intl.DateTimeFormat("fr-FR", {
+              weekday: "short",
+              day: "numeric",
+              month: "long",
+            })
+              .format(date)
+              .replace(".", "")}
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5 text-[10px] text-(--text-secondary)">
+            <Clock3 size={12} /> {match.time}
+          </span>
+        </button>
+        {isRegistrationOpen && onAddGuest && (
+          <div className="group relative shrink-0">
+            <button
+              aria-controls={`guest-form-${match.id}`}
+              aria-expanded={isGuestFormOpen}
+              aria-label="Inscrire un ami"
+              className="grid size-8 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-elevated) text-(--text-secondary) transition-colors hover:border-(--team-b-blue) hover:text-(--team-b-blue) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-b-blue)"
+              onClick={(event) => {
+                event.stopPropagation();
+                setIsGuestFormOpen((open) => !open);
+              }}
+              title="Inscrire un ami"
+              type="button"
+            >
+              <UserPlus aria-hidden="true" size={15} />
+            </button>
+            <span
+              className="pointer-events-none invisible absolute right-0 top-full z-10 mt-2 whitespace-nowrap rounded bg-(--ink) px-2 py-1 text-[10px] font-semibold text-(--bg-main) opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+              role="tooltip"
+            >
+              Inscrire un ami
+            </span>
+          </div>
+        )}
+      </div>
       <button
         className="mt-3 block w-full cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap border-0 bg-transparent p-0 text-left text-base font-semibold text-(--ink)"
         onClick={stopAndOpen}
@@ -200,6 +247,38 @@ export function MatchCard({
             <ArrowRight size={14} />
           )}
         </button>
+        {isRegistrationOpen && onAddGuest && isGuestFormOpen && (
+          <form
+            className="mt-3 grid gap-1.5 border-t border-(--line) pt-3"
+            id={`guest-form-${match.id}`}
+            onSubmit={handleAddGuest}
+          >
+            <label
+              className="text-[10px] font-semibold text-(--text-secondary)"
+              htmlFor={`guest-name-${match.id}`}
+            >
+              Inscrire un ami
+            </label>
+            <div className="flex min-w-0 gap-2">
+              <input
+                autoComplete="off"
+                className="min-h-9 min-w-0 flex-1 rounded-md border border-(--line) bg-(--bg-surface) px-2.5 text-xs text-(--ink)"
+                id={`guest-name-${match.id}`}
+                maxLength={40}
+                name="guestName"
+                placeholder="Pseudo du joueur"
+                required
+              />
+              <button
+                className="min-h-9 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-2.5 text-[10px] font-bold text-(--ink) disabled:cursor-default disabled:opacity-55"
+                disabled={matchRegistering}
+                type="submit"
+              >
+                Ajouter
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </article>
   );

@@ -14,6 +14,7 @@ type MatchSlotRow = {
   venue: string;
   max_players: number;
   attendees: string[];
+  attendee_names?: Record<string, string>;
   status?: MatchSlot["status"];
   started_at?: string | null;
   elapsed_seconds?: number;
@@ -79,6 +80,7 @@ export function useMatches({
             venue: row.venue,
             maxPlayers: row.max_players,
             attendees: row.attendees ?? [],
+            attendeeNames: row.attendee_names ?? {},
             status: row.status ?? "scheduled",
             startedAt: row.started_at ?? undefined,
             elapsedSeconds: row.elapsed_seconds ?? 0,
@@ -124,6 +126,7 @@ export function useMatches({
               venue: row.venue,
               maxPlayers: row.max_players,
               attendees: row.attendees ?? [],
+              attendeeNames: row.attendee_names ?? {},
               status: row.status ?? "scheduled",
               startedAt: row.started_at ?? undefined,
               elapsedSeconds: row.elapsed_seconds ?? 0,
@@ -178,6 +181,7 @@ export function useMatches({
       member.user_id,
       member.display_name,
     ]),
+    ...matches.flatMap((match) => Object.entries(match.attendeeNames ?? {})),
   ]);
 
   return {
