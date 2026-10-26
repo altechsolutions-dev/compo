@@ -162,6 +162,47 @@ describe("MatchDetailsContent", () => {
     ).toBeInTheDocument();
   });
 
+  it("affiche le pseudo d’un invité comme buteur dans le résumé", () => {
+    const guestFinishedMatch: MatchSlot = {
+      ...match,
+      status: "finished",
+      attendees: [...match.attendees, "guest-id"],
+      attendeeNames: { "guest-id": "Pote de Sam" },
+      teams: [
+        ["alex", "guest-id"],
+        ["sarah", "malik", "ines"],
+      ],
+      goals: [
+        {
+          id: "guest-goal",
+          scorerId: "guest-id",
+          team: 0,
+          elapsedSeconds: 360,
+          createdAt: "2026-10-22T19:36:00.000Z",
+        },
+      ],
+    };
+
+    render(
+      renderMatchDetailsContent({
+        match: guestFinishedMatch,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        teams: guestFinishedMatch.teams,
+        playerNames: { ...playerNames, "guest-id": "Pote de Sam" },
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+      }),
+    );
+
+    expect(
+      within(
+        screen.getByRole("region", { name: "Buteurs de l'équipe rouge" }),
+      ).getByText("Pote de Sam"),
+    ).toBeInTheDocument();
+  });
+
   it("affiche les meilleurs buteurs ex æquo et permet de voter pour l'homme du match", () => {
     const finishedMatch: MatchSlot = {
       ...match,

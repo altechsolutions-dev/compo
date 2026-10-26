@@ -5,6 +5,7 @@ export type MatchSlot = {
   venue: string;
   maxPlayers: number;
   attendees: string[];
+  attendeeNames?: Record<string, string>;
   teams?: [string[], string[]];
   status?: "scheduled" | "in_progress" | "paused" | "finished";
   startedAt?: string;

@@ -11,6 +11,13 @@ type MatchSlotRow = {
   venue: string;
   max_players: number;
   attendees: string[];
+  attendee_names?: Record<string, string>;
+};
+
+type GuestAttendeeRow = {
+  guest_id: string;
+  attendees: string[];
+  attendee_names: Record<string, string>;
 };
 
 type LiveMatchRow = {
@@ -145,6 +152,67 @@ export function useMatchActions({
           : match,
       ),
     );
+  }
+
+  async function addGuestToMatch(matchId: string, guestName: string) {
+    const match = matches.find((item) => item.id === matchId);
+    const cleanName = guestName.trim();
+    if (!match || matchRegistering || !cleanName) return;
+    if (match.attendees.length >= match.maxPlayers) {
+      setMatchNotice("Ce match est complet.");
+      return;
+    }
+
+    setMatchRegistering(true);
+    setMatchNotice("");
+    try {
+      let attendeeId: string;
+      let attendeeNames = { ...(match.attendeeNames ?? {}) };
+      if (supabase && session) {
+        const { data, error } = await supabase.rpc("add_guest_to_match", {
+          p_match_id: matchId,
+          p_guest_name: cleanName,
+        });
+        if (error) throw error;
+        const row = ((data ?? []) as GuestAttendeeRow[])[0];
+        if (!row) throw new Error("Supabase n’a renvoyé aucun invité ajouté.");
+        attendeeId = row.guest_id;
+        attendeeNames = row.attendee_names;
+        setMatches((current) =>
+          current.map((item) =>
+            item.id === matchId
+              ? {
+                  ...item,
+                  attendees: row.attendees,
+                  attendeeNames,
+                  teams: undefined,
+                }
+              : item,
+          ),
+        );
+      } else {
+        attendeeId = crypto.randomUUID();
+        attendeeNames[attendeeId] = cleanName;
+        setMatches((current) =>
+          current.map((item) =>
+            item.id === matchId
+              ? {
+                  ...item,
+                  attendees: [...item.attendees, attendeeId],
+                  attendeeNames,
+                  teams: undefined,
+                }
+              : item,
+          ),
+        );
+      }
+    } catch (error) {
+      setMatchNotice(
+        `Impossible d’inscrire cet ami : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+    } finally {
+      setMatchRegistering(false);
+    }
   }
 
   async function createMatch(event: FormEvent<HTMLFormElement>) {
@@ -434,6 +502,7 @@ export function useMatchActions({
 
   return {
     registerForMatch,
+    addGuestToMatch,
     createMatch,
     startMatch,
     setMatchState,

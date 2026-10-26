@@ -92,6 +92,10 @@ describe("MatchList", () => {
       ?.querySelector("span.font-mono");
     expect(score?.children[0]).toHaveClass("text-(--team-b-blue)");
     expect(score?.children[2]).toHaveClass("text-(--team-a-red)");
+    expect(score?.closest("article")).toHaveClass(
+      "match-list__winner-gradient",
+    );
+    expect(score?.closest("article")).toHaveAttribute("data-winner", "red");
     fireEvent.click(screen.getByRole("button", { name: "Voir le résumé" }));
     expect(onOpenMatch).toHaveBeenCalledWith("finished");
     expect(

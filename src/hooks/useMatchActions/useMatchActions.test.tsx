@@ -61,6 +61,51 @@ describe("useMatchActions", () => {
     expect(getMatches()[0].attendees).toEqual(["player-1", currentPlayerId]);
   });
 
+  it("enregistre un but d’invité pour le résumé sans fiche de joueur", async () => {
+    const match: MatchSlot = {
+      id: "match-guest",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 2,
+      attendees: ["player-1"],
+      status: "in_progress",
+      startedAt: new Date().toISOString(),
+      teams: [["player-1"], ["guest-id"]],
+      attendeeNames: { "guest-id": "Pote de Sam" },
+      goals: [],
+    };
+    const { result, getMatches } = setup([match]);
+
+    await act(() => result.current.recordGoal("match-guest", "guest-id"));
+
+    expect(getMatches()[0].goals).toHaveLength(1);
+    expect(getMatches()[0].goals?.[0]).toMatchObject({
+      scorerId: "guest-id",
+      team: 1,
+    });
+    expect(getMatches()[0].attendeeNames?.["guest-id"]).toBe("Pote de Sam");
+  });
+
+  it("ajoute l’ami au match avec son pseudo et sans profil joueur", async () => {
+    const match: MatchSlot = {
+      id: "match-guest",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 4,
+      attendees: ["player-1"],
+    };
+    const { result, getMatches } = setup([match]);
+
+    await act(() => result.current.addGuestToMatch("match-guest", "  Alex  "));
+
+    const updatedMatch = getMatches()[0];
+    const guestId = updatedMatch.attendees[1];
+    expect(updatedMatch.attendeeNames).toEqual({ [guestId]: "Alex" });
+    expect(updatedMatch.attendees).toHaveLength(2);
+  });
+
   it("crée un match local et ferme le dialogue", async () => {
     const { result, props, getMatches } = setup([]);
     const preventDefault = vi.fn();

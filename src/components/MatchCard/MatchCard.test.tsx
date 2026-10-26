@@ -18,6 +18,7 @@ function renderCard(
 ) {
   const onOpen = vi.fn();
   const onRegister = vi.fn();
+  const onAddGuest = vi.fn();
   render(
     <MatchCard
       match={match}
@@ -27,9 +28,10 @@ function renderCard(
       playerNames={playerNames}
       onOpen={onOpen}
       onRegister={onRegister}
+      onAddGuest={onAddGuest}
     />,
   );
-  return { onOpen, onRegister };
+  return { onOpen, onRegister, onAddGuest };
 }
 
 describe("MatchCard", () => {
@@ -44,6 +46,9 @@ describe("MatchCard", () => {
       "2",
     );
     expect(screen.getByText("Urban Soccer")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Afficher les inscrits du match/ }),
+    ).toHaveClass("flex-col");
     expect(screen.getByTitle("Alex Martin")).toHaveTextContent("AM");
     expect(screen.getByTitle("Sarah Doe")).toHaveTextContent("SD");
     expect(
@@ -93,6 +98,25 @@ describe("MatchCard", () => {
     fireEvent.click(screen.getByRole("button", { name: /Rejoindre le match/ }));
 
     expect(onRegister).toHaveBeenCalledOnce();
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("permet d’ajouter un invité depuis la carte tant que les places sont ouvertes", () => {
+    const { onAddGuest, onOpen } = renderCard();
+    expect(
+      screen.queryByPlaceholderText("Pseudo du joueur"),
+    ).not.toBeInTheDocument();
+    const addGuestButton = screen.getByRole("button", {
+      name: "Inscrire un ami",
+    });
+    expect(addGuestButton).toHaveAttribute("title", "Inscrire un ami");
+    fireEvent.click(addGuestButton);
+    fireEvent.change(screen.getByPlaceholderText("Pseudo du joueur"), {
+      target: { value: "Pote de Sam" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter" }));
+
+    expect(onAddGuest).toHaveBeenCalledWith("Pote de Sam");
     expect(onOpen).not.toHaveBeenCalled();
   });
 
