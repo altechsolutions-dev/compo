@@ -93,6 +93,71 @@ describe("useMatchActions", () => {
     expect(getMatches()[0].attendeeNames?.["guest-id"]).toBe("Pote de Sam");
   });
 
+  it("annule un but d’un match en cours", async () => {
+    const match: MatchSlot = {
+      id: "match-live",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 2,
+      attendees: ["player-1", "player-2"],
+      status: "in_progress",
+      startedAt: new Date().toISOString(),
+      teams: [["player-1"], ["player-2"]],
+      goals: [
+        {
+          id: "goal-1",
+          scorerId: "player-1",
+          team: 0,
+          elapsedSeconds: 30,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    };
+    const { result, getMatches } = setup([match]);
+
+    await act(() => result.current.removeGoal("match-live", "goal-1"));
+
+    expect(getMatches()[0].goals).toEqual([]);
+  });
+
+  it("réinitialise un match actif sans perdre les équipes ni les inscriptions", async () => {
+    const match: MatchSlot = {
+      id: "match-live",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 2,
+      attendees: ["player-1", "player-2"],
+      status: "in_progress",
+      startedAt: new Date().toISOString(),
+      elapsedSeconds: 30,
+      teams: [["player-1"], ["player-2"]],
+      goals: [
+        {
+          id: "goal-1",
+          scorerId: "player-1",
+          team: 0,
+          elapsedSeconds: 20,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    };
+    const { result, getMatches } = setup([match]);
+
+    const reset = await act(() => result.current.resetMatch("match-live"));
+
+    expect(reset).toBe(true);
+    expect(getMatches()[0]).toMatchObject({
+      status: "scheduled",
+      elapsedSeconds: 0,
+      attendees: ["player-1", "player-2"],
+      teams: [["player-1"], ["player-2"]],
+      goals: [],
+    });
+    expect(getMatches()[0].startedAt).toBeUndefined();
+  });
+
   it("ajoute l’ami au match avec son pseudo et sans profil joueur", async () => {
     const match: MatchSlot = {
       id: "match-guest",

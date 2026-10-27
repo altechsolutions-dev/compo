@@ -1,4 +1,15 @@
 @layer components {
+  .goal-undo-slider {
+    width: 100%;
+    animation: goal-undo-drain 10s linear forwards;
+  }
+
+  @keyframes goal-undo-drain {
+    to {
+      width: 0%;
+    }
+  }
+
   .live-match-action-drawer {
     width: min(100%, 27rem);
     height: 100dvh;
@@ -8,6 +19,12 @@
     padding: 1.25rem;
     color: var(--text-primary);
     box-shadow: -18px 0 50px #0006;
+  }
+
+  .live-match-action-drawer--confirm {
+    padding: 1.5rem;
+    background: var(--bg-elevated);
+    box-shadow: -18px 0 50px #17271f30;
   }
 
   .live-match-action-drawer--wide {

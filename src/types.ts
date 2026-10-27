@@ -22,6 +22,7 @@ export type MatchGoal = {
   team: 0 | 1;
   elapsedSeconds: number;
   createdAt: string;
+  undoable?: boolean;
 };
 
 export type MatchManOfTheMatchPoll = {

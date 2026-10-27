@@ -544,6 +544,47 @@ export function useMatchActions({
     }
   }
 
+  async function resetMatch(matchId: string): Promise<boolean> {
+    const match = matches.find((item) => item.id === matchId);
+    if (
+      !match ||
+      (match.status !== "in_progress" && match.status !== "paused")
+    ) {
+      return false;
+    }
+
+    try {
+      if (supabase) {
+        if (!session) throw new Error("Votre session a expiré.");
+        const { error } = await supabase.rpc("reset_live_match", {
+          p_match_id: matchId,
+        });
+        if (error) throw error;
+      }
+
+      setMatches((current) =>
+        current.map((item) =>
+          item.id === matchId
+            ? {
+                ...item,
+                status: "scheduled",
+                startedAt: undefined,
+                elapsedSeconds: 0,
+                goals: [],
+              }
+            : item,
+        ),
+      );
+      setMatchNotice("");
+      return true;
+    } catch (error) {
+      setMatchNotice(
+        `Impossible de réinitialiser le match : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+      return false;
+    }
+  }
+
   async function recordGoal(matchId: string, scorerId: string) {
     const match = matches.find((item) => item.id === matchId);
     const teamIndex = match?.teams?.findIndex((team) =>
@@ -574,6 +615,7 @@ export function useMatchActions({
           team: row.team === 0 ? 0 : 1,
           elapsedSeconds: row.elapsed_seconds,
           createdAt: row.created_at,
+          undoable: true,
         };
       } else {
         const createdAt = new Date();
@@ -583,12 +625,22 @@ export function useMatchActions({
           team: teamIndex,
           elapsedSeconds: getCurrentElapsedSeconds(match),
           createdAt: createdAt.toISOString(),
+          undoable: true,
         };
       }
       setMatches((current) =>
         current.map((item) =>
           item.id === matchId
-            ? { ...item, goals: [...(item.goals ?? []), goal] }
+            ? {
+                ...item,
+                goals: [
+                  ...(item.goals ?? []).map((existingGoal) => ({
+                    ...existingGoal,
+                    undoable: false,
+                  })),
+                  goal,
+                ],
+              }
             : item,
         ),
       );
@@ -596,6 +648,43 @@ export function useMatchActions({
     } catch (error) {
       setMatchNotice(
         `Impossible d’ajouter le but : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+    }
+  }
+
+  async function removeGoal(matchId: string, goalId: string) {
+    const match = matches.find((item) => item.id === matchId);
+    if (
+      !match ||
+      (match.status !== "in_progress" && match.status !== "paused") ||
+      !(match.goals ?? []).some((goal) => goal.id === goalId)
+    ) {
+      return;
+    }
+
+    try {
+      if (supabase) {
+        if (!session) throw new Error("Votre session a expiré.");
+        const { error } = await supabase.rpc("remove_match_goal", {
+          p_match_id: matchId,
+          p_goal_id: goalId,
+        });
+        if (error) throw error;
+      }
+      setMatches((current) =>
+        current.map((item) =>
+          item.id === matchId
+            ? {
+                ...item,
+                goals: (item.goals ?? []).filter((goal) => goal.id !== goalId),
+              }
+            : item,
+        ),
+      );
+      setMatchNotice("");
+    } catch (error) {
+      setMatchNotice(
+        `Impossible d’annuler le but : ${error instanceof Error ? error.message : "erreur inconnue"}`,
       );
     }
   }
@@ -659,7 +748,9 @@ export function useMatchActions({
     startMatch,
     saveScheduledMatchTeams,
     setMatchState,
+    resetMatch,
     recordGoal,
+    removeGoal,
     swapPlayers,
   };
 }

@@ -328,7 +328,9 @@ export function WorkspaceLayout() {
     startMatch,
     saveScheduledMatchTeams,
     setMatchState,
+    resetMatch,
     recordGoal,
+    removeGoal,
     swapPlayers,
   } = useMatchActions({
     matches,
@@ -537,7 +539,9 @@ export function WorkspaceLayout() {
         setPlayerStatsNotice("");
       })();
     },
+    onResetMatch: (matchId) => resetMatch(matchId),
     onRecordGoal: (matchId, scorerId) => void recordGoal(matchId, scorerId),
+    onRemoveGoal: (matchId, goalId) => void removeGoal(matchId, goalId),
     manOfTheMatchPoll,
     manOfTheMatchPollLoading,
     manOfTheMatchVoteSaving,

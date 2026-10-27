@@ -32,9 +32,12 @@ const liveMatch: MatchSlot = {
   ],
 };
 
-function renderLivePage(match: MatchSlot = liveMatch) {
+function renderLivePage(
+  match: MatchSlot = liveMatch,
+  matches: MatchSlot[] = [match],
+) {
   const context = {
-    allMatches: [match],
+    allMatches: matches,
     isLoadingOrganizations: false,
     organization: "Les Panthères",
     organizationId: "org-1",
@@ -42,13 +45,15 @@ function renderLivePage(match: MatchSlot = liveMatch) {
     composeTeams: vi.fn(() => [["lucas"], ["theo"]]),
     playerNames: { lucas: "Lucas Martin", theo: "Théo Bernard" },
     matchNotice: "",
+    onResetMatch: vi.fn().mockResolvedValue(true),
     onRecordGoal: vi.fn(),
+    onRemoveGoal: vi.fn(),
     onStartMatch: vi.fn(),
     onSaveScheduledMatchTeams: vi.fn().mockResolvedValue(true),
     onSetMatchState: vi.fn(),
     onSwapPlayers: vi.fn(),
   } as unknown as WorkspaceRouteContext;
-  render(
+  const view = render(
     <MemoryRouter initialEntries={["/app/live?match=match-live"]}>
       <Routes>
         <Route path="/app" element={<Outlet context={context} />}>
@@ -57,19 +62,31 @@ function renderLivePage(match: MatchSlot = liveMatch) {
       </Routes>
     </MemoryRouter>,
   );
-  return { context };
+  return { context, ...view };
 }
 
 describe("LiveMatchPage", () => {
-  it("affiche le chrono, le score et l’historique du match sélectionné", () => {
-    renderLivePage();
+  it("allège l’en-tête du match actif et affiche score et historique", () => {
+    const { context } = renderLivePage();
 
     expect(
-      screen.getByRole("heading", { name: "Five du samedi" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("heading", { name: "Five du samedi" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("MATCH EN COURS")).not.toBeInTheDocument();
+    expect(screen.queryByText("Match affiché")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Five du dimanche · Terrain 3"),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("timer", { name: "Temps de jeu" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Mettre en pause" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Actions du match" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
     const scoreRegion = screen.getByRole("region", { name: "Score du match" });
     const scorePanels = scoreRegion.querySelectorAll(":scope > div");
     expect(scorePanels[0]).toHaveTextContent("ÉQUIPE BLEUE");
@@ -82,10 +99,204 @@ describe("LiveMatchPage", () => {
         screen.getByRole("list", { name: "Événements du match" }),
       ).getByText("Lucas Martin"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "But !" })).toBeEnabled();
     expect(
-      screen.queryByRole("group", { name: "Choisir le buteur" }),
+      screen.getByRole("button", { name: "Supprimer le but de Lucas Martin" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "But !" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Ajouter un but pour Lucas Martin" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Annuler le dernier but de Lucas Martin",
+      }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Annuler le dernier but de Lucas Martin",
+      }),
+    ).toHaveAttribute("title", expect.stringContaining("s"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Supprimer le but de Lucas Martin" }),
+    );
+    expect(context.onRemoveGoal).toHaveBeenCalledWith("match-live", "goal-1");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ajouter un but pour Théo Bernard" }),
+    );
+    expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Annuler le dernier but de Lucas Martin",
+      }),
+    );
+    expect(context.onRemoveGoal).toHaveBeenCalledWith("match-live", "goal-1");
+  });
+
+  it("permet de supprimer un but depuis la liste même après le délai du slider", () => {
+    const { context } = renderLivePage({
+      ...liveMatch,
+      goals: [
+        {
+          ...liveMatch.goals![0],
+          createdAt: new Date(Date.now() - 11000).toISOString(),
+        },
+      ],
+    });
+
+    const removeGoalButton = screen.getByRole("button", {
+      name: "Supprimer le but de Lucas Martin",
+    });
+    expect(
+      screen.queryByRole("button", {
+        name: "Annuler le dernier but de Lucas Martin",
+      }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(removeGoalButton);
+    expect(context.onRemoveGoal).toHaveBeenCalledWith("match-live", "goal-1");
+  });
+
+  it("réinitialise le slider d’annulation au but suivant du même joueur", () => {
+    const previousGoal = {
+      ...liveMatch.goals![0],
+      createdAt: new Date(Date.now() - 7000).toISOString(),
+    };
+    const { context, rerender } = renderLivePage({
+      ...liveMatch,
+      goals: [previousGoal],
+    });
+    const undoButton = screen.getByRole("button", {
+      name: "Annuler le dernier but de Lucas Martin",
+    });
+    const slider = undoButton.querySelector("span[aria-hidden='true']");
+    expect(
+      Number.parseInt((slider as HTMLElement).style.animationDelay, 10),
+    ).toBeLessThan(-6000);
+
+    const nextGoal = {
+      ...previousGoal,
+      id: "goal-2",
+      createdAt: new Date(Date.now() + 60_000).toISOString(),
+    };
+    context.allMatches = [{ ...liveMatch, goals: [previousGoal, nextGoal] }];
+    rerender(
+      <MemoryRouter initialEntries={["/app/live?match=match-live"]}>
+        <Routes>
+          <Route path="/app" element={<Outlet context={context} />}>
+            <Route path="live" element={<LiveMatchPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen
+        .getByRole("button", {
+          name: "Annuler le dernier but de Lucas Martin",
+        })
+        .querySelector("span[aria-hidden='true']"),
+    ).toHaveStyle({ animationDelay: "-0ms" });
+  });
+
+  it("confirme le but précédent lorsqu’un autre joueur marque", () => {
+    const previousGoal = {
+      ...liveMatch.goals![0],
+      createdAt: new Date(Date.now() - 3000).toISOString(),
+    };
+    const { context, rerender } = renderLivePage({
+      ...liveMatch,
+      goals: [previousGoal],
+    });
+
+    expect(
+      screen.getByRole("button", {
+        name: "Annuler le dernier but de Lucas Martin",
+      }),
+    ).toBeInTheDocument();
+
+    const nextGoal = {
+      ...previousGoal,
+      id: "goal-2",
+      scorerId: "theo",
+      team: 1 as const,
+      createdAt: new Date().toISOString(),
+    };
+    context.allMatches = [{ ...liveMatch, goals: [previousGoal, nextGoal] }];
+    rerender(
+      <MemoryRouter initialEntries={["/app/live?match=match-live"]}>
+        <Routes>
+          <Route path="/app" element={<Outlet context={context} />}>
+            <Route path="live" element={<LiveMatchPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.queryByRole("button", {
+        name: "Annuler le dernier but de Lucas Martin",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Annuler le dernier but de Théo Bernard",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Supprimer le but de Lucas Martin" }),
+    ).toBeInTheDocument();
+  });
+
+  it("ne réactive pas l’annulation du but précédent après avoir annulé le suivant", () => {
+    const firstGoal = {
+      ...liveMatch.goals![0],
+      id: "goal-first",
+      scorerId: "theo",
+      team: 1 as const,
+      undoable: false,
+      createdAt: new Date(Date.now() - 3000).toISOString(),
+    };
+    const secondGoal = {
+      ...firstGoal,
+      id: "goal-second",
+      undoable: true,
+      createdAt: new Date().toISOString(),
+    };
+    const { context, rerender } = renderLivePage({
+      ...liveMatch,
+      goals: [firstGoal, secondGoal],
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Annuler le dernier but de Théo Bernard",
+      }),
+    );
+    expect(context.onRemoveGoal).toHaveBeenCalledWith(
+      "match-live",
+      "goal-second",
+    );
+
+    context.allMatches = [{ ...liveMatch, goals: [firstGoal] }];
+    rerender(
+      <MemoryRouter initialEntries={["/app/live?match=match-live"]}>
+        <Routes>
+          <Route path="/app" element={<Outlet context={context} />}>
+            <Route path="live" element={<LiveMatchPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.queryByRole("button", {
+        name: "Annuler le dernier but de Théo Bernard",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Supprimer le but de Théo Bernard" }),
+    ).toBeInTheDocument();
   });
 
   it("ne montre pas un match terminé dans l’onglet En direct, même demandé par son identifiant", () => {
@@ -97,7 +308,10 @@ describe("LiveMatchPage", () => {
     });
 
     expect(
-      screen.getByRole("heading", { name: "Pas de match à l’écran" }),
+      screen.getByRole("heading", { name: "Matchs à lancer" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Aucun match complet à lancer pour le moment."),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Résumé du match" }),
@@ -149,7 +363,20 @@ describe("LiveMatchPage", () => {
     expect(document.getElementById("match-composition-drawer")).not.toHaveClass(
       "is-open",
     );
-    await waitFor(() => expect(document.body.style.overflow).toBe(""));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", {
+          name: "Composition du match",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(document.querySelectorAll(".match-drawer-backdrop")).toHaveLength(
+        0,
+      ),
+    );
+    expect(document.body.style.overflow).toBe("");
     expect(document.getElementById("match-composition-drawer")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Voir la compo" }));
@@ -157,6 +384,103 @@ describe("LiveMatchPage", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(
       screen.queryByRole("dialog", { name: "Composition du match" }),
+    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", {
+          name: "Composition du match",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(document.querySelectorAll(".match-drawer-backdrop")).toHaveLength(
+        0,
+      ),
+    );
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("masque score, actions et événements avant le coup d’envoi", () => {
+    renderLivePage({
+      ...liveMatch,
+      status: "scheduled",
+      startedAt: undefined,
+      goals: [],
+    });
+
+    expect(
+      screen.queryByRole("heading", { name: "Actions rapides" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Buts & événements" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: "Score du match" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("timer")).not.toBeInTheDocument();
+    expect(screen.queryByText("0 buts")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Lancer le match de Five du dimanche · Terrain 3",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("2 joueurs confirmés")).not.toBeInTheDocument();
+  });
+
+  it("liste les matchs complets et lance celui choisi avec sa composition", () => {
+    const firstScheduledMatch: MatchSlot = {
+      ...liveMatch,
+      id: "match-first",
+      venue: "Terrain du parc",
+      status: "scheduled",
+      startedAt: undefined,
+      goals: [],
+    };
+    const secondScheduledMatch: MatchSlot = {
+      ...firstScheduledMatch,
+      id: "match-second",
+      venue: "Terrain couvert",
+    };
+    const { context } = renderLivePage(firstScheduledMatch, [
+      firstScheduledMatch,
+      secondScheduledMatch,
+    ]);
+
+    expect(
+      screen.getByRole("heading", { name: "Terrain du parc" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Terrain couvert" }),
+    ).toBeInTheDocument();
+    const launchButton = screen.getByRole("button", {
+      name: "Lancer le match de Terrain couvert",
+    });
+    expect(launchButton).toHaveClass("bg-(--team-b-blue)");
+    fireEvent.click(launchButton);
+    expect(context.onStartMatch).toHaveBeenCalledWith("match-second", [
+      ["lucas"],
+      ["theo"],
+    ]);
+  });
+
+  it("n’affiche que le match actif même si d’autres matchs sont prêts", () => {
+    const scheduledMatch: MatchSlot = {
+      ...liveMatch,
+      id: "match-scheduled",
+      venue: "Terrain en attente",
+      status: "scheduled",
+      startedAt: undefined,
+      goals: [],
+    };
+    renderLivePage(liveMatch, [scheduledMatch, liveMatch]);
+
+    expect(
+      screen.getByRole("timer", { name: "Temps de jeu" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Terrain en attente")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Matchs à lancer" }),
     ).not.toBeInTheDocument();
   });
 
@@ -168,10 +492,14 @@ describe("LiveMatchPage", () => {
     };
     const { context } = renderLivePage(scheduledMatch);
 
-    expect(screen.getByRole("button", { name: "But !" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "Échanger deux joueurs" }),
-    ).toBeDisabled();
+      screen.queryByRole("button", {
+        name: "Ajouter un but pour Lucas Martin",
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Échanger deux joueurs" }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Voir la compo" }));
     const composition = await screen.findByRole("dialog", {
       name: "Composition du match",
@@ -204,57 +532,29 @@ describe("LiveMatchPage", () => {
       ),
     );
     expect(context.onSwapPlayers).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(composition).getByRole("button", {
+        name: "Fermer la composition",
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", {
+          name: "Composition du match",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(document.querySelectorAll(".match-drawer-backdrop")).toHaveLength(
+        0,
+      ),
+    );
+    expect(document.body.style.overflow).toBe("");
   });
 
-  it("permet de valider un but et d’échanger deux joueurs d’équipes opposées", async () => {
+  it("permet d’échanger deux joueurs d’équipes opposées", async () => {
     const { context } = renderLivePage();
-
-    const openGoalPicker = screen.getByRole("button", { name: "But !" });
-    fireEvent.click(openGoalPicker);
-    const goalDialog = await screen.findByRole("dialog", {
-      name: "Qui a marqué ?",
-    });
-    expect(goalDialog).toBeInTheDocument();
-    expect(
-      within(goalDialog)
-        .getAllByRole("region")
-        .map((teamRegion) => teamRegion.getAttribute("aria-label")),
-    ).toEqual(["Équipe bleue", "Équipe rouge"]);
-    const cancelGoal = screen.getByRole("button", {
-      name: "Annuler la saisie du but",
-    });
-    await waitFor(() => expect(cancelGoal).toHaveFocus());
-    expect(document.body.style.overflow).toBe("hidden");
-    screen.getByRole("button", { name: "Lucas Martin" }).focus();
-    fireEvent.keyDown(screen.getByRole("button", { name: "Lucas Martin" }), {
-      key: "Tab",
-    });
-    expect(cancelGoal).toHaveFocus();
-    fireEvent.keyDown(window, { key: "Escape" });
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("dialog", {
-          name: "Qui a marqué ?",
-          hidden: true,
-        }),
-      ).not.toBeInTheDocument(),
-    );
-    expect(openGoalPicker).toHaveFocus();
-    await waitFor(() => expect(document.body.style.overflow).toBe(""));
-    expect(document.body.style.overflow).toBe("");
-    fireEvent.click(screen.getByRole("button", { name: "But !" }));
-    await screen.findByRole("dialog", { name: "Qui a marqué ?" });
-    fireEvent.click(screen.getByRole("button", { name: "Théo Bernard" }));
-    expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("dialog", {
-          name: "Qui a marqué ?",
-          hidden: true,
-        }),
-      ).not.toBeInTheDocument(),
-    );
-    await waitFor(() => expect(document.body.style.overflow).toBe(""));
 
     const openSwapPicker = screen.getByRole("button", {
       name: "Échanger deux joueurs",
@@ -272,13 +572,19 @@ describe("LiveMatchPage", () => {
       name: "Échanger les joueurs",
     });
     expect(confirmSwap).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Joueur de l’équipe rouge"), {
-      target: { value: "lucas" },
-    });
-    fireEvent.change(screen.getByLabelText("Joueur de l’équipe bleue"), {
-      target: { value: "theo" },
-    });
-    expect(confirmSwap).toBeEnabled();
+    fireEvent.change(
+      within(swapDialog).getByLabelText("Joueur de l’équipe rouge"),
+      {
+        target: { value: "lucas" },
+      },
+    );
+    fireEvent.change(
+      within(swapDialog).getByLabelText("Joueur de l’équipe bleue"),
+      {
+        target: { value: "theo" },
+      },
+    );
+    await waitFor(() => expect(confirmSwap).toBeEnabled());
     fireEvent.click(confirmSwap);
     expect(context.onSwapPlayers).toHaveBeenCalledWith(
       "match-live",
@@ -327,9 +633,7 @@ describe("LiveMatchPage", () => {
       name: "Siffler la fin du match ?",
     });
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Continuer le match" }),
-      ).toHaveFocus(),
+      expect(screen.getByRole("button", { name: "Fermer" })).toHaveFocus(),
     );
     expect(document.body.style.overflow).toBe("hidden");
     fireEvent.keyDown(window, { key: "Escape" });
@@ -356,6 +660,36 @@ describe("LiveMatchPage", () => {
       "match-live",
       "finish",
     );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("alertdialog", {
+          name: "Siffler la fin du match ?",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("demande confirmation avant de réinitialiser le match sélectionné", async () => {
+    const { context } = renderLivePage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Réinitialiser" }));
+    const resetDialog = await screen.findByRole("alertdialog", {
+      name: "Réinitialiser ce match ?",
+    });
+    expect(resetDialog).toHaveTextContent("tous les buts seront effacés");
+    expect(resetDialog).toHaveTextContent("statistiques joueurs");
+
+    fireEvent.click(
+      within(resetDialog).getByRole("button", {
+        name: "Confirmer le reset",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(context.onResetMatch).toHaveBeenCalledWith("match-live"),
+    );
   });
 
   it("garde les actions de saisie disponibles pendant la pause", async () => {
@@ -367,26 +701,52 @@ describe("LiveMatchPage", () => {
     };
     const { context } = renderLivePage(pausedMatch);
 
-    fireEvent.click(screen.getByRole("button", { name: "But !" }));
-    await screen.findByRole("dialog", { name: "Qui a marqué ?" });
-    fireEvent.click(screen.getByRole("button", { name: "Théo Bernard" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ajouter un but pour Théo Bernard" }),
+    );
     expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
 
     fireEvent.click(
       screen.getByRole("button", { name: "Échanger deux joueurs" }),
     );
-    await screen.findByRole("dialog", { name: "Quels joueurs échanger ?" });
+    const swapDialog = await screen.findByRole("dialog", {
+      name: "Quels joueurs échanger ?",
+    });
     expect(
       screen.getByRole("dialog", { name: "Quels joueurs échanger ?" }),
     ).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Joueur de l’équipe rouge"), {
-      target: { value: "lucas" },
-    });
-    fireEvent.change(screen.getByLabelText("Joueur de l’équipe bleue"), {
-      target: { value: "theo" },
-    });
-    expect(
+    fireEvent.change(
+      within(swapDialog).getByLabelText("Joueur de l’équipe rouge"),
+      { target: { value: "lucas" } },
+    );
+    fireEvent.change(
+      within(swapDialog).getByLabelText("Joueur de l’équipe bleue"),
+      { target: { value: "theo" } },
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Échanger les joueurs" }),
+      ).toBeEnabled(),
+    );
+    fireEvent.click(
       screen.getByRole("button", { name: "Échanger les joueurs" }),
-    ).toBeEnabled();
+    );
+    expect(context.onSwapPlayers).toHaveBeenCalledWith(
+      "match-live",
+      "lucas",
+      "theo",
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", {
+          name: "Quels joueurs échanger ?",
+          hidden: true,
+        }),
+      ).not.toBeInTheDocument(),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ajouter un but pour Théo Bernard" }),
+    );
+    expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
   });
 });

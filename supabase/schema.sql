@@ -815,6 +815,96 @@ begin
 end;
 $$;
 
+create or replace function public.remove_match_goal(
+  p_match_id uuid,
+  p_goal_id uuid
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  match_status text;
+  removed_count integer;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select slot.status
+  into match_status
+  from public.match_slots as slot
+  join public.organization_members as membership
+    on membership.organization_id = slot.organization_id
+   and membership.user_id = auth.uid()
+  join public.match_slot_attendees as caller
+    on caller.match_slot_id = slot.id
+   and caller.user_id = auth.uid()
+  where slot.id = p_match_id
+    and slot.status in ('in_progress', 'paused')
+  for update of slot;
+
+  if match_status is null then
+    raise exception 'Active match attendee required';
+  end if;
+
+  delete from public.match_slot_goals as goal
+  where goal.id = p_goal_id
+    and goal.match_slot_id = p_match_id;
+
+  get diagnostics removed_count = row_count;
+  if removed_count = 0 then
+    raise exception 'Match goal not found';
+  end if;
+
+  return true;
+end;
+$$;
+
+create or replace function public.reset_live_match(p_match_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  match_status text;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select slot.status
+  into match_status
+  from public.match_slots as slot
+  join public.organization_members as membership
+    on membership.organization_id = slot.organization_id
+   and membership.user_id = auth.uid()
+  join public.match_slot_attendees as caller
+    on caller.match_slot_id = slot.id
+   and caller.user_id = auth.uid()
+  where slot.id = p_match_id
+    and slot.status in ('in_progress', 'paused')
+  for update of slot;
+
+  if match_status is null then
+    raise exception 'Active match attendee required';
+  end if;
+
+  delete from public.match_slot_goals as goal
+  where goal.match_slot_id = p_match_id;
+
+  update public.match_slots as slot
+  set status = 'scheduled',
+      started_at = null,
+      elapsed_seconds = 0
+  where slot.id = p_match_id;
+
+  return true;
+end;
+$$;
+
 create or replace function public.set_match_state(
   p_match_id uuid,
   p_action text
@@ -983,9 +1073,13 @@ $$;
 
 revoke all on function public.get_match_slots(uuid) from public;
 revoke all on function public.record_match_goal(uuid, uuid) from public;
+revoke all on function public.remove_match_goal(uuid, uuid) from public;
+revoke all on function public.reset_live_match(uuid) from public;
 revoke all on function public.set_match_state(uuid, text) from public;
 grant execute on function public.get_match_slots(uuid) to authenticated;
 grant execute on function public.record_match_goal(uuid, uuid) to authenticated;
+grant execute on function public.remove_match_goal(uuid, uuid) to authenticated;
+grant execute on function public.reset_live_match(uuid) to authenticated;
 grant execute on function public.set_match_state(uuid, text) to authenticated;
 
 alter table public.match_slots
@@ -1383,6 +1477,7 @@ create table if not exists public.match_slot_goals (
   team smallint not null check (team in (0, 1)),
   elapsed_seconds integer not null check (elapsed_seconds >= 0),
   created_at timestamptz not null default now(),
+  undoable boolean not null default false,
   foreign key (match_slot_id, scorer_id)
     references public.match_slot_attendees (match_slot_id, user_id)
     on delete cascade
@@ -1753,7 +1848,9 @@ returns table (
   elapsed_seconds integer,
   team_a uuid[],
   team_b uuid[],
-  goals jsonb
+  goals jsonb,
+  attendee_names jsonb,
+  created_by uuid
 )
 language plpgsql
 stable
@@ -1792,11 +1889,18 @@ begin
         'scorer_id', goal.scorer_id,
         'team', goal.team,
         'elapsed_seconds', goal.elapsed_seconds,
-        'created_at', goal.created_at
-      ) order by goal.created_at)
+        'created_at', goal.created_at,
+        'undoable', goal.undoable
+      ) order by goal.created_at, goal.id)
       from public.match_slot_goals as goal
       where goal.match_slot_id = slot.id
-    ), '[]'::jsonb)
+    ), '[]'::jsonb),
+    coalesce((
+      select jsonb_object_agg(attendee.user_id::text, attendee.guest_name)
+      from public.match_slot_attendees as attendee
+      where attendee.match_slot_id = slot.id and attendee.guest_name is not null
+    ), '{}'::jsonb),
+    slot.created_by
   from public.match_slots as slot
   where slot.organization_id = p_organization_id
   order by slot.match_date, slot.match_time;
@@ -1855,9 +1959,14 @@ begin
     raise exception 'Scorer is not part of the match';
   end if;
 
+  update public.match_slot_goals as previous_goal
+  set undoable = false
+  where previous_goal.match_slot_id = p_match_id
+    and previous_goal.undoable;
+
   return query
   insert into public.match_slot_goals as goal (
-    match_slot_id, scorer_id, team, elapsed_seconds, created_at
+    match_slot_id, scorer_id, team, elapsed_seconds, created_at, undoable
   ) values (
     p_match_id,
     p_scorer_id,
@@ -1869,7 +1978,8 @@ begin
       )
       else 0
     end,
-    goal_time
+    goal_time,
+    true
   )
   returning goal.id, goal.scorer_id, goal.team, goal.elapsed_seconds, goal.created_at;
 end;
