@@ -32,7 +32,9 @@ export type WorkspaceRouteContext = {
     teams: [string[], string[]],
   ) => Promise<boolean>;
   onSetMatchState: (matchId: string, action: MatchStateAction) => void;
+  onResetMatch: (matchId: string) => Promise<boolean>;
   onRecordGoal: (matchId: string, scorerId: string) => void;
+  onRemoveGoal: (matchId: string, goalId: string) => void;
   manOfTheMatchPoll: MatchManOfTheMatchPoll | null;
   manOfTheMatchPollLoading: boolean;
   manOfTheMatchVoteSaving: boolean;

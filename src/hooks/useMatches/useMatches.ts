@@ -27,6 +27,7 @@ type MatchSlotRow = {
     team: number;
     elapsed_seconds: number;
     created_at: string;
+    undoable?: boolean;
   }[];
 };
 
@@ -95,6 +96,7 @@ export function useMatches({
                 team: goal.team === 0 ? 0 : 1,
                 elapsedSeconds: goal.elapsed_seconds,
                 createdAt: goal.created_at,
+                undoable: goal.undoable ?? false,
               }),
             ),
           }),
@@ -141,6 +143,7 @@ export function useMatches({
                 team: goal.team === 0 ? (0 as const) : (1 as const),
                 elapsedSeconds: goal.elapsed_seconds,
                 createdAt: goal.created_at,
+                undoable: goal.undoable ?? false,
               })),
             }),
           );

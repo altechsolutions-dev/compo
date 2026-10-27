@@ -38,7 +38,7 @@ export function MatchTeamComposition({
   async function swapSelectedPlayers() {
     const [redPlayerId, bluePlayerId] = selectedPlayers;
     if (!redPlayerId || !bluePlayerId || isSaving) return;
-    const nextTeams = [...teams] as [string[], string[]];
+    const nextTeams: [string[], string[]] = [[...teams[0]], [...teams[1]]];
     const redIndex = nextTeams[0].indexOf(redPlayerId);
     const blueIndex = nextTeams[1].indexOf(bluePlayerId);
     nextTeams[0][redIndex] = bluePlayerId;
