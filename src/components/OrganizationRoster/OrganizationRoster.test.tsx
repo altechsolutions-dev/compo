@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { OrganizationRoster } from "./OrganizationRoster";
 import type { OrganizationMember, OrganizationPlayerStats } from "../../types";
@@ -23,7 +23,7 @@ const playerStats: OrganizationPlayerStats[] = [
 ];
 
 describe("OrganizationRoster", () => {
-  it("affiche les membres, leurs stats et identifie l’utilisateur courant", () => {
+  it("affiche les joueurs sans stats et révèle leur fiche dans le drawer", async () => {
     render(
       <OrganizationRoster
         organization="Les Panthères"
@@ -45,25 +45,24 @@ describe("OrganizationRoster", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("table", { name: "Effectif du club" }),
-    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Effectif du club")).toBeInTheDocument();
     expect(screen.getByText("Alex Martin")).toBeInTheDocument();
     expect(screen.getByText("Vous")).toBeInTheDocument();
+    expect(screen.queryByText("82")).not.toBeInTheDocument();
+    expect(screen.queryByText("Matchs joués")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Alex Martin/ }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "Alex Martin" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("82")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("8")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
-    const alexRow = screen.getByRole("row", { name: /Alex Martin/ });
-    expect(within(alexRow).getAllByRole("cell")[7]).toHaveTextContent("2");
+    expect(screen.getByText("Meilleur buteur")).toBeInTheDocument();
+    expect(screen.getByText("Buts")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
-    expect(
-      screen.getByRole("columnheader", { name: "BUTS" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("columnheader", { name: "MEILLEUR BUTEUR" }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("—")).toHaveLength(8);
   });
 
   it("signale un effectif vide et permet de déclencher une invitation", () => {
@@ -97,7 +96,7 @@ describe("OrganizationRoster", () => {
     expect(onInvite).toHaveBeenCalledOnce();
   });
 
-  it("affiche le départ comme une action admin et demande une confirmation", () => {
+  it("affiche le départ dans la fiche et demande une confirmation", async () => {
     const onLeave = vi.fn().mockResolvedValue(true);
     render(
       <OrganizationRoster
@@ -120,21 +119,19 @@ describe("OrganizationRoster", () => {
       />,
     );
 
-    const ownRow = screen.getByRole("row", { name: /Alex Martin/ });
-    const leaveButton = within(ownRow).getByRole("button", {
-      name: "Quitter le club",
-    });
-    expect(leaveButton).toHaveClass("border-(--border-neutral)");
-    expect(leaveButton.querySelector("svg")).toBeInTheDocument();
-    fireEvent.click(leaveButton);
+    fireEvent.click(screen.getByRole("button", { name: /Alex Martin/ }));
+    await screen.findByRole("dialog", { name: "Alex Martin" });
+    fireEvent.click(screen.getByRole("button", { name: "Quitter le club" }));
     expect(
       screen.getByText(/ton rôle sera transmis à un autre membre/),
     ).toBeInTheDocument();
-    fireEvent.click(within(ownRow).getByRole("button", { name: "Confirmer" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirmer le départ" }),
+    );
     expect(onLeave).toHaveBeenCalledOnce();
   });
 
-  it("permet à l’admin de confirmer le retrait d’un membre ordinaire", () => {
+  it("permet à l’admin de confirmer le retrait depuis la fiche du membre", async () => {
     const onRemoveMember = vi.fn().mockResolvedValue(true);
     render(
       <OrganizationRoster
@@ -157,8 +154,12 @@ describe("OrganizationRoster", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Retirer Sam Lee" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirmer" }));
+    fireEvent.click(screen.getByRole("button", { name: /Sam Lee/ }));
+    await screen.findByRole("dialog", { name: "Sam Lee" });
+    fireEvent.click(screen.getByRole("button", { name: "Retirer ce membre" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirmer le retrait" }),
+    );
     expect(onRemoveMember).toHaveBeenCalledWith("player-2");
   });
 });

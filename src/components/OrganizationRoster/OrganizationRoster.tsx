@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { LogOut, Share2, UserMinus } from "lucide-react";
+import { LogOut, Share2, UserMinus, X } from "lucide-react";
+import { Drawer } from "../Drawer/Drawer";
+import { useDrawerTransition } from "../../hooks/useDrawerTransition/useDrawerTransition";
 import type { OrganizationMember, OrganizationPlayerStats } from "../../types";
 import "./OrganizationRoster.css";
 
@@ -44,6 +46,20 @@ export function OrganizationRoster({
   const [confirmingRemovalId, setConfirmingRemovalId] = useState<string | null>(
     null,
   );
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const selectedMember = members.find(
+    (member) => member.user_id === selectedMemberId,
+  );
+  const selectedStats = playerStats.find(
+    (stats) => stats.user_id === selectedMemberId,
+  );
+  const playerDrawer = useDrawerTransition(Boolean(selectedMember));
+
+  const closePlayerDrawer = () => {
+    setSelectedMemberId(null);
+    setConfirmingLeave(false);
+    setConfirmingRemovalId(null);
+  };
 
   return (
     <section
@@ -89,153 +105,48 @@ export function OrganizationRoster({
           {removeMemberNotice}
         </p>
       )}
-      <div
-        className="organization-roster__table border-t border-(--line)"
-        role="table"
-        aria-label="Effectif du club"
-      >
-        <div
-          className="organization-roster__columns min-h-9.5 items-center text-[9px] font-bold text-(--text-secondary) max-[680px]:text-[7px] max-[680px]:leading-1.2"
-          role="row"
-        >
-          {[
-            "JOUEUR",
-            "NOTE",
-            "MATCHS",
-            "VICTOIRES",
-            "NULS",
-            "DÉFAITES",
-            "HOMME DU MATCH",
-            "MEILLEUR BUTEUR",
-            "BUTS",
-          ].map((label) => (
-            <span key={label} role="columnheader">
-              {label}
-            </span>
-          ))}
-        </div>
+      <div className="organization-roster__list" aria-label="Effectif du club">
         {members.map((member) => {
-          const stats = playerStats.find(
-            (candidate) => candidate.user_id === member.user_id,
-          );
           return (
-            <div
-              className="organization-roster__columns organization-roster__row min-h-14.5 items-center border-t border-(--line) text-[11px] text-(--text-secondary) max-[680px]:text-[9px]"
+            <button
+              aria-current={
+                selectedMemberId === member.user_id ? "true" : undefined
+              }
+              className="organization-roster__player"
               key={member.user_id}
-              role="row"
+              onClick={() => {
+                setSelectedMemberId(member.user_id);
+                setConfirmingLeave(false);
+                setConfirmingRemovalId(null);
+              }}
+              type="button"
             >
-              <span
-                className="flex min-w-0 items-center gap-2.5 text-(--text-primary) max-[680px]:gap-1.25"
-                role="cell"
-              >
-                <span className="grid size-6.25 shrink-0 place-items-center rounded-full bg-(--bg-elevated) text-[9px] font-bold text-(--text-secondary)">
-                  {member.display_name
-                    .split(" ")
-                    .map((part) => part[0])
-                    .join("")}
-                </span>
-                <strong className="overflow-hidden text-ellipsis whitespace-nowrap text-[9px] font-semibold">
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-(--bg-elevated) text-xs font-bold text-(--text-secondary)">
+                {member.display_name
+                  .split(" ")
+                  .map((part) => part[0])
+                  .join("")}
+              </span>
+              <span className="min-w-0 text-left">
+                <strong className="block overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-(--text-primary)">
                   {member.display_name}
                   {member.user_id === currentUserId && (
-                    <small className="ml-1.75 text-[9px] font-normal text-(--text-secondary) max-[680px]:mt-px max-[680px]:ml-0 max-[680px]:block max-[680px]:text-[8px]">
+                    <small className="ml-2 text-[10px] font-normal text-(--text-secondary)">
                       Vous
                     </small>
                   )}
                 </strong>
+                <span className="mt-1 block text-[10px] text-(--text-secondary)">
+                  {member.role === "owner" ? "Propriétaire" : "Membre"}
+                </span>
               </span>
-              <span role="cell">{stats?.overall_rating ?? "—"}</span>
-              <span role="cell">{stats?.matches_played ?? "—"}</span>
-              <span role="cell">{stats?.wins ?? "—"}</span>
-              <span role="cell">{stats?.draws ?? "—"}</span>
-              <span role="cell">{stats?.losses ?? "—"}</span>
-              <span role="cell">{stats?.man_of_the_match_count ?? "—"}</span>
-              <span role="cell">{stats?.best_scorer_count ?? "—"}</span>
               <span
-                className="flex items-center justify-between gap-1 text-(--text-primary) max-[680px]:text-[9px]"
-                role="cell"
+                className="ml-auto text-xs text-(--text-secondary)"
+                aria-hidden="true"
               >
-                <strong>{stats?.goals ?? "—"}</strong>
-                {canManageMembers &&
-                  member.role === "member" &&
-                  member.user_id !== currentUserId &&
-                  (confirmingRemovalId === member.user_id ? (
-                    <span className="inline-flex shrink-0 items-center gap-1">
-                      <button
-                        className="cursor-pointer border-0 bg-transparent p-1 text-[10px] text-(--muted) hover:text-(--ink)"
-                        disabled={removingMemberId === member.user_id}
-                        onClick={() => setConfirmingRemovalId(null)}
-                        type="button"
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        className="cursor-pointer border-0 bg-transparent p-1 text-[10px] font-semibold text-(--team-a-red) hover:underline disabled:cursor-wait disabled:opacity-50"
-                        disabled={removingMemberId === member.user_id}
-                        onClick={() => {
-                          void onRemoveMember(member.user_id).then(
-                            (removed) => {
-                              if (removed) setConfirmingRemovalId(null);
-                            },
-                          );
-                        }}
-                        type="button"
-                      >
-                        {removingMemberId === member.user_id
-                          ? "Retrait…"
-                          : "Confirmer"}
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      aria-label={`Retirer ${member.display_name}`}
-                      className="inline-flex min-h-7 shrink-0 cursor-pointer items-center gap-1 rounded-sm border border-(--border-neutral) bg-transparent px-1.5 text-[9px] font-semibold text-(--text-secondary) hover:border-(--team-a-red) hover:text-(--team-a-red)"
-                      onClick={() => setConfirmingRemovalId(member.user_id)}
-                      title="Retirer ce membre"
-                      type="button"
-                    >
-                      <UserMinus size={12} aria-hidden="true" />
-                      <span className="max-[680px]:sr-only">Retirer</span>
-                    </button>
-                  ))}
-                {canLeave &&
-                  member.user_id === currentUserId &&
-                  (confirmingLeave ? (
-                    <span className="inline-flex shrink-0 items-center gap-1">
-                      <button
-                        className="cursor-pointer border-0 bg-transparent p-1 text-[10px] text-(--muted) hover:text-(--ink)"
-                        disabled={isLeaving}
-                        onClick={() => setConfirmingLeave(false)}
-                        type="button"
-                      >
-                        Annuler
-                      </button>
-                      <button
-                        className="cursor-pointer border-0 bg-transparent p-1 text-[10px] font-semibold text-(--team-a-red) hover:underline disabled:cursor-wait disabled:opacity-50"
-                        disabled={isLeaving}
-                        onClick={() => {
-                          void onLeave().then((didLeave) => {
-                            if (didLeave) setConfirmingLeave(false);
-                          });
-                        }}
-                        type="button"
-                      >
-                        {isLeaving ? "Départ…" : "Confirmer"}
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      aria-label="Quitter le club"
-                      className="inline-flex min-h-7 shrink-0 cursor-pointer items-center gap-1 rounded-sm border border-(--border-neutral) bg-transparent px-1.5 text-[9px] font-semibold text-(--text-secondary) hover:border-(--team-a-red) hover:text-(--team-a-red)"
-                      onClick={() => setConfirmingLeave(true)}
-                      title="Quitter le club"
-                      type="button"
-                    >
-                      <LogOut size={12} aria-hidden="true" />
-                      <span className="max-[680px]:sr-only">Quitter</span>
-                    </button>
-                  ))}
+                Détails&nbsp;→
               </span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -244,27 +155,191 @@ export function OrganizationRoster({
           Aucun joueur dans ce club pour le moment.
         </p>
       )}
-      {canLeave && (
-        <div className="mt-3">
-          {confirmingLeave && (
-            <p className="mb-2 text-xs leading-relaxed text-(--text-secondary)">
-              Confirmer le départ de {organization} ?
-              {isCurrentUserOwner && (
-                <>
-                  {" "}
-                  En tant que propriétaire, ton rôle sera transmis à un autre
-                  membre. Le dernier propriétaire ne peut pas quitter seul.
-                </>
-              )}
-            </p>
-          )}
-          {leaveNotice && (
-            <p className="mb-2 text-xs text-(--team-a-red)" role="alert">
-              {leaveNotice}
-            </p>
-          )}
-        </div>
-      )}
+      <Drawer
+        mounted={playerDrawer.mounted}
+        open={playerDrawer.open}
+        onClose={closePlayerDrawer}
+        labelledBy="organization-player-drawer-title"
+        panelClassName="h-full w-full max-w-180 overflow-y-auto border-l border-(--line) bg-(--bg-main) p-8 text-(--text-primary) shadow-[-18px_0_48px_#0005] max-[600px]:max-w-full max-[600px]:border-l-0 max-[600px]:p-5"
+      >
+        {selectedMember && (
+          <>
+            <div className="mb-8 flex items-start justify-between gap-5">
+              <div className="flex min-w-0 items-center gap-4">
+                <span className="grid size-14 shrink-0 place-items-center rounded-full bg-(--bg-elevated) text-sm font-bold text-(--text-secondary)">
+                  {selectedMember.display_name
+                    .split(" ")
+                    .map((part) => part[0])
+                    .join("")}
+                </span>
+                <div className="min-w-0">
+                  <p className="drawer-eyebrow mb-1.5">FICHE JOUEUR</p>
+                  <h2
+                    className="drawer-title mb-0 overflow-hidden text-ellipsis"
+                    id="organization-player-drawer-title"
+                  >
+                    {selectedMember.display_name}
+                  </h2>
+                  <p className="mt-1 text-xs text-(--text-secondary)">
+                    {selectedMember.role === "owner"
+                      ? "Propriétaire"
+                      : "Membre"}
+                  </p>
+                </div>
+              </div>
+              <button
+                aria-label="Fermer"
+                className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-[3px] border border-(--border-neutral) bg-transparent"
+                onClick={closePlayerDrawer}
+                type="button"
+              >
+                <X size={19} />
+              </button>
+            </div>
+            <section aria-label="Statistiques du joueur">
+              <div className="mb-6 border-b border-(--line) pb-5">
+                <p className="drawer-eyebrow mb-2">NOTE GLOBALE</p>
+                <p className="m-0 text-5xl font-semibold text-(--text-primary)">
+                  {selectedStats?.overall_rating ?? "—"}
+                </p>
+              </div>
+              <h3 className="mb-3 text-sm font-semibold">Statistiques</h3>
+              <dl className="grid grid-cols-2 gap-px border border-(--line) bg-(--line)">
+                {[
+                  ["Matchs joués", selectedStats?.matches_played],
+                  ["Victoires", selectedStats?.wins],
+                  ["Nuls", selectedStats?.draws],
+                  ["Défaites", selectedStats?.losses],
+                  ["Homme du match", selectedStats?.man_of_the_match_count],
+                  ["Meilleur buteur", selectedStats?.best_scorer_count],
+                  ["Buts", selectedStats?.goals],
+                ].map(([label, value]) => (
+                  <div className="bg-(--bg-main) p-3.5" key={label}>
+                    <dt className="text-[10px] text-(--text-secondary)">
+                      {label}
+                    </dt>
+                    <dd className="mb-0 mt-1 text-lg font-semibold">
+                      {value ?? "—"}
+                    </dd>
+                  </div>
+                ))}
+                <div aria-hidden="true" className="bg-(--bg-main) p-3.5" />
+              </dl>
+            </section>
+            {(canManageMembers ||
+              (canLeave && selectedMember.user_id === currentUserId)) && (
+              <section className="mt-8 border-t border-(--line) pt-5">
+                <h3 className="mb-3 text-sm font-semibold">Actions du club</h3>
+                {canManageMembers &&
+                  selectedMember.role === "member" &&
+                  selectedMember.user_id !== currentUserId &&
+                  (confirmingRemovalId === selectedMember.user_id ? (
+                    <div>
+                      <p className="mb-3 text-xs text-(--text-secondary)">
+                        Retirer {selectedMember.display_name} du club ?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          className="min-h-9 cursor-pointer border border-(--border-neutral) bg-transparent px-3 text-xs"
+                          disabled={removingMemberId === selectedMember.user_id}
+                          onClick={() => setConfirmingRemovalId(null)}
+                          type="button"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          className="min-h-9 cursor-pointer border-0 bg-(--team-a-red) px-3 text-xs font-semibold text-white disabled:cursor-wait disabled:opacity-50"
+                          disabled={removingMemberId === selectedMember.user_id}
+                          onClick={() => {
+                            void onRemoveMember(selectedMember.user_id).then(
+                              (removed) => {
+                                if (removed) closePlayerDrawer();
+                              },
+                            );
+                          }}
+                          type="button"
+                        >
+                          {removingMemberId === selectedMember.user_id
+                            ? "Retrait…"
+                            : "Confirmer le retrait"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      className="inline-flex min-h-9 cursor-pointer items-center gap-2 border border-(--border-neutral) bg-transparent px-3 text-xs font-semibold text-(--text-secondary) hover:border-(--team-a-red) hover:text-(--team-a-red)"
+                      onClick={() =>
+                        setConfirmingRemovalId(selectedMember.user_id)
+                      }
+                      type="button"
+                    >
+                      <UserMinus size={14} aria-hidden="true" />
+                      Retirer ce membre
+                    </button>
+                  ))}
+                {canLeave && selectedMember.user_id === currentUserId && (
+                  <div>
+                    {confirmingLeave && (
+                      <p className="mb-3 text-xs leading-relaxed text-(--text-secondary)">
+                        Confirmer le départ de {organization} ?
+                        {isCurrentUserOwner && (
+                          <>
+                            {" "}
+                            En tant que propriétaire, ton rôle sera transmis à
+                            un autre membre. Le dernier propriétaire ne peut pas
+                            quitter seul.
+                          </>
+                        )}
+                      </p>
+                    )}
+                    {leaveNotice && (
+                      <p
+                        className="mb-3 text-xs text-(--team-a-red)"
+                        role="alert"
+                      >
+                        {leaveNotice}
+                      </p>
+                    )}
+                    {confirmingLeave ? (
+                      <div className="flex gap-2">
+                        <button
+                          className="min-h-9 cursor-pointer border border-(--border-neutral) bg-transparent px-3 text-xs"
+                          disabled={isLeaving}
+                          onClick={() => setConfirmingLeave(false)}
+                          type="button"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          className="min-h-9 cursor-pointer border-0 bg-(--team-a-red) px-3 text-xs font-semibold text-white disabled:cursor-wait disabled:opacity-50"
+                          disabled={isLeaving}
+                          onClick={() => {
+                            void onLeave().then((didLeave) => {
+                              if (didLeave) closePlayerDrawer();
+                            });
+                          }}
+                          type="button"
+                        >
+                          {isLeaving ? "Départ…" : "Confirmer le départ"}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="inline-flex min-h-9 cursor-pointer items-center gap-2 border border-(--border-neutral) bg-transparent px-3 text-xs font-semibold text-(--text-secondary) hover:border-(--team-a-red) hover:text-(--team-a-red)"
+                        onClick={() => setConfirmingLeave(true)}
+                        type="button"
+                      >
+                        <LogOut size={14} aria-hidden="true" />
+                        Quitter le club
+                      </button>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+          </>
+        )}
+      </Drawer>
     </section>
   );
 }

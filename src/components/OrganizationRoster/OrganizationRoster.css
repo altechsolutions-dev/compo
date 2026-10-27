@@ -1,26 +1,33 @@
 @layer components {
-  .organization-roster__columns {
+  .organization-roster__list {
     display: grid;
-    min-width: 700px;
-    grid-template-columns: minmax(160px, 1.7fr) repeat(8, minmax(55px, 0.65fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: 10px;
   }
 
-  .organization-roster__table {
-    width: 100%;
+  .organization-roster__player {
+    display: flex;
     min-width: 0;
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
+    min-height: 76px;
+    align-items: center;
+    gap: 13px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease;
   }
 
-  .organization-roster__row > :first-child {
-    overflow: hidden;
-  }
-
-  @media (max-width: 680px) {
-    .organization-roster__columns {
-      gap: 9px;
-    }
+  .organization-roster__player:hover,
+  .organization-roster__player:focus-visible,
+  .organization-roster__player[aria-current="true"] {
+    border-color: var(--team-b-blue);
+    background: var(--bg-elevated);
+    outline: none;
   }
 }
