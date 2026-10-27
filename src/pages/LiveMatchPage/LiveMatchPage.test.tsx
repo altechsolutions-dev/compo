@@ -95,6 +95,9 @@ describe("LiveMatchPage", () => {
       "sm:shadow-none",
     );
     const actionButtons = within(actionNavigation).getAllByRole("button");
+    expect(actionButtons[0]).toHaveClass("max-sm:h-14");
+    expect(actionButtons[1]).toHaveClass("max-sm:h-14");
+    expect(actionButtons[2]).toHaveClass("max-sm:h-14");
     expect(actionButtons[0]).not.toHaveClass("max-sm:border-l");
     expect(actionButtons[1]).toHaveClass(
       "max-sm:border-l",

@@ -562,26 +562,26 @@ export function LiveMatchPage({
         >
           <button
             aria-label="Réinitialiser"
-            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-secondary) transition hover:border-(--team-a-red) hover:text-(--team-a-red) max-sm:h-12 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
+            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-secondary) transition hover:border-(--team-a-red) hover:text-(--team-a-red) max-sm:h-14 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
             onClick={() => setConfirmReset(true)}
             ref={resetTriggerRef}
             type="button"
           >
-            <RotateCcw aria-hidden="true" size={18} />
+            <RotateCcw aria-hidden="true" size={20} />
             <span className="hidden sm:inline">Réinitialiser</span>
           </button>
           <button
             aria-label={isLive ? "Mettre en pause" : "Reprendre"}
-            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-primary) transition hover:brightness-110 max-sm:h-12 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-l max-sm:border-l-(--line) max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
+            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-primary) transition hover:brightness-110 max-sm:h-14 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-l max-sm:border-l-(--line) max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
             onClick={() =>
               context.onSetMatchState(match.id, isLive ? "pause" : "resume")
             }
             type="button"
           >
             {isLive ? (
-              <Pause aria-hidden="true" fill="currentColor" size={18} />
+              <Pause aria-hidden="true" fill="currentColor" size={20} />
             ) : (
-              <Play aria-hidden="true" fill="currentColor" size={18} />
+              <Play aria-hidden="true" fill="currentColor" size={20} />
             )}
             <span className="hidden sm:inline">
               {isLive ? "Mettre en pause" : "Reprendre"}
@@ -589,12 +589,12 @@ export function LiveMatchPage({
           </button>
           <button
             aria-label="Siffler la fin"
-            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--team-a-red)/40 bg-(--team-a-red)/10 px-0 text-xs font-bold text-(--team-a-red) transition hover:brightness-110 max-sm:h-12 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-l max-sm:border-l-(--line) max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
+            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--team-a-red)/40 bg-(--team-a-red)/10 px-0 text-xs font-bold text-(--team-a-red) transition hover:brightness-110 max-sm:h-14 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-l max-sm:border-l-(--line) max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
             onClick={() => setConfirmFinish(true)}
             ref={finishTriggerRef}
             type="button"
           >
-            <Flag aria-hidden="true" size={18} />
+            <Flag aria-hidden="true" size={20} />
             <span className="hidden sm:inline">Siffler la fin</span>
           </button>
         </nav>
