@@ -35,6 +35,7 @@ const liveMatch: MatchSlot = {
 function renderLivePage(
   match: MatchSlot = liveMatch,
   matches: MatchSlot[] = [match],
+  matchNotice = "",
 ) {
   const context = {
     allMatches: matches,
@@ -44,7 +45,7 @@ function renderLivePage(
     onJoinWithCode: vi.fn(),
     composeTeams: vi.fn(() => [["lucas"], ["theo"]]),
     playerNames: { lucas: "Lucas Martin", theo: "Théo Bernard" },
-    matchNotice: "",
+    matchNotice,
     onResetMatch: vi.fn().mockResolvedValue(true),
     onRecordGoal: vi.fn(),
     onRemoveGoal: vi.fn(),
@@ -86,9 +87,28 @@ describe("LiveMatchPage", () => {
     expect(
       screen.getByRole("navigation", { name: "Actions du match" }),
     ).toBeInTheDocument();
+    const actionNavigation = screen.getByRole("navigation", {
+      name: "Actions du match",
+    });
+    expect(actionNavigation).toHaveClass(
+      "shadow-[0_-12px_32px_#0008]",
+      "sm:shadow-none",
+    );
+    const actionButtons = within(actionNavigation).getAllByRole("button");
+    expect(actionButtons[0]).not.toHaveClass("max-sm:border-l");
+    expect(actionButtons[1]).toHaveClass(
+      "max-sm:border-l",
+      "max-sm:border-l-(--line)",
+    );
+    expect(actionButtons[2]).toHaveClass(
+      "max-sm:border-l",
+      "max-sm:border-l-(--line)",
+    );
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
     const scoreRegion = screen.getByRole("region", { name: "Score du match" });
     const scorePanels = scoreRegion.querySelectorAll(":scope > div");
+    expect(scorePanels[0]).toHaveClass("px-5", "max-[380px]:px-3");
+    expect(scorePanels[2]).toHaveClass("px-5", "max-[380px]:px-3");
     expect(scorePanels[0]).toHaveTextContent("ÉQUIPE BLEUE");
     expect(scorePanels[2]).toHaveTextContent("ÉQUIPE ROUGE");
     expect(
@@ -464,6 +484,61 @@ describe("LiveMatchPage", () => {
     ]);
   });
 
+  it("affiche les erreurs d’action dans la liste des matchs à lancer", () => {
+    const scheduledMatch: MatchSlot = {
+      ...liveMatch,
+      status: "scheduled",
+      startedAt: undefined,
+    };
+    renderLivePage(
+      scheduledMatch,
+      [scheduledMatch],
+      "Impossible de lancer le match.",
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Impossible de lancer le match.",
+    );
+  });
+
+  it("affiche les erreurs d’enregistrement dans le drawer de composition", async () => {
+    const scheduledMatch: MatchSlot = {
+      ...liveMatch,
+      status: "scheduled",
+      startedAt: undefined,
+    };
+    renderLivePage(
+      scheduledMatch,
+      [scheduledMatch],
+      "Impossible d’enregistrer la composition.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Voir la compo" }));
+    const composition = await screen.findByRole("dialog", {
+      name: "Composition du match",
+    });
+
+    expect(within(composition).getByRole("alert")).toHaveTextContent(
+      "Impossible d’enregistrer la composition.",
+    );
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+  });
+
+  it("propose les créneaux complets historiques sans statut", () => {
+    const legacyMatch: MatchSlot = {
+      ...liveMatch,
+      status: undefined,
+      startedAt: undefined,
+    };
+    renderLivePage(legacyMatch);
+
+    expect(
+      screen.getByRole("button", {
+        name: "Lancer le match de Five du dimanche · Terrain 3",
+      }),
+    ).toBeInTheDocument();
+  });
+
   it("n’affiche que le match actif même si d’autres matchs sont prêts", () => {
     const scheduledMatch: MatchSlot = {
       ...liveMatch,
@@ -554,7 +629,14 @@ describe("LiveMatchPage", () => {
   });
 
   it("permet d’échanger deux joueurs d’équipes opposées", async () => {
-    const { context } = renderLivePage();
+    const match: MatchSlot = {
+      ...liveMatch,
+      teams: [["lucas"], ["theo"]],
+    };
+    const { context } = renderLivePage(match);
+    vi.mocked(context.onSwapPlayers).mockImplementation(() => {
+      match.teams = [["theo"], ["lucas"]];
+    });
 
     const openSwapPicker = screen.getByRole("button", {
       name: "Échanger deux joueurs",
@@ -568,46 +650,54 @@ describe("LiveMatchPage", () => {
     });
     await waitFor(() => expect(cancelSwap).toHaveFocus());
     expect(document.body.style.overflow).toBe("hidden");
-    const confirmSwap = within(swapDialog).getByRole("button", {
-      name: "Échanger les joueurs",
+    expect(
+      within(swapDialog).queryByRole("button", {
+        name: "Échanger les joueurs",
+      }),
+    ).not.toBeInTheDocument();
+    const redPlayer = within(swapDialog).getByRole("button", {
+      name: "Sélectionner Lucas Martin dans l'équipe rouge",
     });
-    expect(confirmSwap).toBeDisabled();
-    fireEvent.change(
-      within(swapDialog).getByLabelText("Joueur de l’équipe rouge"),
-      {
-        target: { value: "lucas" },
-      },
+    expect(redPlayer.querySelector("span[aria-hidden='true']")).toHaveClass(
+      "size-4.5",
+      "border-current/60",
     );
-    fireEvent.change(
-      within(swapDialog).getByLabelText("Joueur de l’équipe bleue"),
-      {
-        target: { value: "theo" },
-      },
+    fireEvent.click(redPlayer);
+    expect(redPlayer).toHaveAttribute("aria-pressed", "true");
+    expect(redPlayer.querySelector("span[aria-hidden='true']")).toHaveClass(
+      "bg-current/15",
     );
-    await waitFor(() => expect(confirmSwap).toBeEnabled());
-    fireEvent.click(confirmSwap);
+    expect(
+      redPlayer.querySelector("span[aria-hidden='true'] svg"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(swapDialog).getByRole("button", {
+        name: "Sélectionner Théo Bernard dans l'équipe bleue",
+      }),
+    );
     expect(context.onSwapPlayers).toHaveBeenCalledWith(
       "match-live",
       "lucas",
       "theo",
     );
-    await waitFor(() =>
+    await waitFor(() => {
+      expect(swapDialog).toHaveFocus();
       expect(
-        screen.queryByRole("dialog", {
-          name: "Quels joueurs échanger ?",
-          hidden: true,
+        within(
+          within(swapDialog).getByRole("region", { name: "Équipe rouge" }),
+        ).getByRole("button", {
+          name: "Sélectionner Théo Bernard dans l'équipe rouge",
         }),
-      ).not.toBeInTheDocument(),
-    );
-    expect(openSwapPicker).toHaveFocus();
-    await waitFor(() => expect(document.body.style.overflow).toBe(""));
-    expect(document.body.style.overflow).toBe("");
-
-    fireEvent.click(openSwapPicker);
-    await screen.findByRole("dialog", { name: "Quels joueurs échanger ?" });
-    expect(
-      screen.getByRole("dialog", { name: "Quels joueurs échanger ?" }),
-    ).toBeInTheDocument();
+      ).toBeInTheDocument();
+      expect(
+        within(
+          within(swapDialog).getByRole("region", { name: "Équipe bleue" }),
+        ).getByRole("button", {
+          name: "Sélectionner Lucas Martin dans l'équipe bleue",
+        }),
+      ).toBeInTheDocument();
+    });
+    expect(document.body.style.overflow).toBe("hidden");
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() =>
       expect(
@@ -715,26 +805,26 @@ describe("LiveMatchPage", () => {
     expect(
       screen.getByRole("dialog", { name: "Quels joueurs échanger ?" }),
     ).toBeInTheDocument();
-    fireEvent.change(
-      within(swapDialog).getByLabelText("Joueur de l’équipe rouge"),
-      { target: { value: "lucas" } },
-    );
-    fireEvent.change(
-      within(swapDialog).getByLabelText("Joueur de l’équipe bleue"),
-      { target: { value: "theo" } },
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Échanger les joueurs" }),
-      ).toBeEnabled(),
+    fireEvent.click(
+      within(swapDialog).getByRole("button", {
+        name: "Sélectionner Lucas Martin dans l'équipe rouge",
+      }),
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Échanger les joueurs" }),
+      within(swapDialog).getByRole("button", {
+        name: "Sélectionner Théo Bernard dans l'équipe bleue",
+      }),
     );
     expect(context.onSwapPlayers).toHaveBeenCalledWith(
       "match-live",
       "lucas",
       "theo",
+    );
+    expect(swapDialog).toBeInTheDocument();
+    fireEvent.click(
+      within(swapDialog).getByRole("button", {
+        name: "Annuler l’échange des joueurs",
+      }),
     );
     await waitFor(() =>
       expect(

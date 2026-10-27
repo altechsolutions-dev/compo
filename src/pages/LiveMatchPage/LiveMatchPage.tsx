@@ -8,6 +8,7 @@ import {
 import {
   ArrowRightLeft,
   CalendarDays,
+  Check,
   CircleDot,
   Eye,
   Flag,
@@ -219,6 +220,11 @@ function MatchLaunchList({
           Matchs à lancer
         </h1>
       </header>
+      {context.matchNotice && !compositionDrawer.mounted && (
+        <p className="my-3 text-sm text-(--team-a-red)" role="alert">
+          {context.matchNotice}
+        </p>
+      )}
       {matches.length === 0 ? (
         <div className="grid min-h-48 place-content-center justify-items-center gap-3 border-b border-(--line) text-center text-(--text-secondary)">
           <CircleDot aria-hidden="true" size={26} />
@@ -294,6 +300,11 @@ function MatchLaunchList({
           backdropClassName="z-50 overflow-hidden"
           panelClassName="h-full w-full max-w-180 overflow-y-auto border-l border-(--line) bg-(--bg-main) p-8 text-(--text-primary) shadow-[-18px_0_48px_#0005] max-[600px]:max-w-full max-[600px]:border-l-0 max-[600px]:p-5"
         >
+          {context.matchNotice && (
+            <p className="mb-4 text-sm text-(--team-a-red)" role="alert">
+              {context.matchNotice}
+            </p>
+          )}
           <LiveMatchComposition
             teams={compositionTeams}
             playerNames={context.playerNames}
@@ -320,7 +331,7 @@ export function LiveMatchPage({
   const requestedMatchId = searchParams.get("match");
   const liveCandidates = (context?.allMatches ?? []).filter(
     (match) =>
-      match.status === "scheduled" &&
+      (match.status === undefined || match.status === "scheduled") &&
       match.attendees.length >= match.maxPlayers,
   );
   const activeMatches = (context?.allMatches ?? []).filter(
@@ -464,25 +475,26 @@ export function LiveMatchPage({
     if (reset) setConfirmReset(false);
   }
 
-  function confirmTeamSwap() {
-    if (
-      !context ||
-      !canRecordActions ||
-      !redPlayerToSwap ||
-      !bluePlayerToSwap
-    ) {
-      return;
-    }
-    context.onSwapPlayers(match.id, redPlayerToSwap, bluePlayerToSwap);
+  function closeSwapPicker() {
     setRedPlayerToSwap("");
     setBluePlayerToSwap("");
     setSwapPickerOpen(false);
   }
 
-  function cancelTeamSwap() {
-    setRedPlayerToSwap("");
-    setBluePlayerToSwap("");
-    setSwapPickerOpen(false);
+  function selectPlayerToSwap(team: 0 | 1, playerId: string) {
+    if (!context || !canRecordActions) return;
+
+    const redPlayerId = team === 0 ? playerId : redPlayerToSwap;
+    const bluePlayerId = team === 1 ? playerId : bluePlayerToSwap;
+    if (team === 0) setRedPlayerToSwap(playerId);
+    else setBluePlayerToSwap(playerId);
+
+    if (redPlayerId && bluePlayerId) {
+      context.onSwapPlayers(match.id, redPlayerId, bluePlayerId);
+      setRedPlayerToSwap("");
+      setBluePlayerToSwap("");
+      swapDialogRef.current?.focus({ preventScroll: true });
+    }
   }
 
   return (
@@ -546,11 +558,11 @@ export function LiveMatchPage({
       {(isLive || isPaused) && (
         <nav
           aria-label="Actions du match"
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-(--line) bg-(--bg-surface) px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-[0_-8px_24px_#0003] sm:static sm:flex sm:shrink-0 sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none"
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-(--line) bg-(--bg-surface) px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-[0_-12px_32px_#0008] sm:static sm:flex sm:shrink-0 sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none"
         >
           <button
             aria-label="Réinitialiser"
-            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-secondary) transition hover:border-(--team-a-red) hover:text-(--team-a-red) max-sm:h-12 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-l max-sm:border-l-(--line) max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
+            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-secondary) transition hover:border-(--team-a-red) hover:text-(--team-a-red) max-sm:h-12 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
             onClick={() => setConfirmReset(true)}
             ref={resetTriggerRef}
             type="button"
@@ -560,7 +572,7 @@ export function LiveMatchPage({
           </button>
           <button
             aria-label={isLive ? "Mettre en pause" : "Reprendre"}
-            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-primary) transition hover:brightness-110 max-sm:h-12 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
+            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-primary) transition hover:brightness-110 max-sm:h-12 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-l max-sm:border-l-(--line) max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
             onClick={() =>
               context.onSetMatchState(match.id, isLive ? "pause" : "resume")
             }
@@ -700,7 +712,7 @@ export function LiveMatchPage({
       <Drawer
         mounted={swapDrawer.mounted}
         open={swapDrawer.open}
-        onClose={cancelTeamSwap}
+        onClose={closeSwapPicker}
         labelledBy="swap-players-title"
         panelClassName="live-match-action-drawer live-match-action-drawer--wide"
         backdropClassName="z-50"
@@ -716,61 +728,65 @@ export function LiveMatchPage({
           <button
             aria-label="Annuler l’échange des joueurs"
             className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-main) text-(--text-secondary)"
-            onClick={cancelTeamSwap}
+            onClick={closeSwapPicker}
             type="button"
           >
             <X aria-hidden="true" size={16} />
           </button>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label
-            className="block text-xs text-(--team-b-blue)"
-            htmlFor="swap-blue-player"
-          >
-            Joueur de l’équipe bleue
-            <select
-              className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
-              id="swap-blue-player"
-              onChange={(event) => setBluePlayerToSwap(event.target.value)}
-              value={bluePlayerToSwap}
-            >
-              <option value="">Choisir un joueur bleu</option>
-              {teams[1].map((id) => (
-                <option key={id} value={id}>
-                  {context.playerNames[id] ?? "Joueur"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label
-            className="block text-xs text-(--team-a-red)"
-            htmlFor="swap-red-player"
-          >
-            Joueur de l’équipe rouge
-            <select
-              className="mt-1 min-h-12 w-full rounded-md border border-(--line) bg-(--bg-main) px-3 text-base text-(--text-primary)"
-              id="swap-red-player"
-              onChange={(event) => setRedPlayerToSwap(event.target.value)}
-              value={redPlayerToSwap}
-            >
-              <option value="">Choisir un joueur rouge</option>
-              {teams[0].map((id) => (
-                <option key={id} value={id}>
-                  {context.playerNames[id] ?? "Joueur"}
-                </option>
-              ))}
-            </select>
-          </label>
+        <p className="mb-3 text-center text-xs text-(--text-secondary)">
+          Choisissez un joueur dans chaque équipe
+        </p>
+        <div className="grid grid-cols-2 gap-3.5">
+          {([1, 0] as const).map((team) => {
+            const isRedTeam = team === 0;
+            const selectedPlayer = isRedTeam
+              ? redPlayerToSwap
+              : bluePlayerToSwap;
+
+            return (
+              <section
+                aria-label={`Équipe ${isRedTeam ? "rouge" : "bleue"}`}
+                className="min-w-0"
+                key={team}
+              >
+                <h3
+                  className={`mb-2.5 mt-0 text-xs font-semibold ${isRedTeam ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
+                >
+                  Équipe {isRedTeam ? "rouge" : "bleue"}
+                </h3>
+                <ul className="m-0 list-none p-0">
+                  {teams[team].map((id) => {
+                    const selected = selectedPlayer === id;
+                    const playerName = context.playerNames[id] ?? "Joueur";
+
+                    return (
+                      <li className="m-0" key={id}>
+                        <button
+                          aria-label={`Sélectionner ${playerName} dans l'équipe ${isRedTeam ? "rouge" : "bleue"}`}
+                          aria-pressed={selected}
+                          className={`mb-1.5 flex min-h-9 w-full items-center justify-between gap-1.5 overflow-hidden rounded-sm border px-2 py-1.5 text-left text-xs font-semibold transition-colors ${isRedTeam ? (selected ? "border-(--team-a-red) bg-(--team-a-red)/20 text-(--team-a-red)" : "border-(--team-a-red)/25 bg-(--team-a-red)/5 text-(--team-a-red) hover:brightness-110") : selected ? "border-(--team-b-blue) bg-(--team-b-blue)/20 text-(--team-b-blue)" : "border-(--team-b-blue)/25 bg-(--team-b-blue)/5 text-(--team-b-blue) hover:brightness-110"}`}
+                          onClick={() => selectPlayerToSwap(team, id)}
+                          type="button"
+                        >
+                          <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                            {playerName}
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className={`grid size-4.5 shrink-0 place-items-center rounded-[3px] border ${selected ? "border-current bg-current/15" : "border-current/60"}`}
+                          >
+                            {selected && <Check size={12} />}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
         </div>
-        <button
-          className="mt-4 inline-flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) text-sm font-bold text-(--text-primary) disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={!redPlayerToSwap || !bluePlayerToSwap}
-          onClick={confirmTeamSwap}
-          type="button"
-        >
-          <ArrowRightLeft aria-hidden="true" size={16} />
-          Échanger les joueurs
-        </button>
       </Drawer>
 
       {context.matchNotice && (
@@ -784,7 +800,7 @@ export function LiveMatchPage({
           aria-label="Score du match"
           className="mt-6 grid min-h-44 grid-cols-[minmax(0,1fr)_7.5rem_minmax(0,1fr)] overflow-hidden rounded-xl border border-(--line) bg-(--bg-surface) sm:min-h-47 sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]"
         >
-          <div className="flex min-w-0 flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-3 py-5 sm:px-8">
+          <div className="flex min-w-0 flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-5 py-5 max-[380px]:px-3">
             <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
               <span className="size-1.5 rounded-full bg-(--team-b-blue)" />{" "}
               ÉQUIPE BLEUE
@@ -816,7 +832,7 @@ export function LiveMatchPage({
                     : "PRÊT À JOUER"}
             </p>
           </div>
-          <div className="flex min-w-0 flex-col items-end justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-3 py-5 text-right sm:px-8">
+          <div className="flex min-w-0 flex-col items-end justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-5 py-5 text-right max-[380px]:px-3">
             <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
               ÉQUIPE ROUGE{" "}
               <span className="size-1.5 rounded-full bg-(--team-a-red)" />
