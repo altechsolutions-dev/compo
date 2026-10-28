@@ -4,7 +4,8 @@ export type MatchPushEvent =
   | "new_match"
   | "match_updated"
   | "spot_available"
-  | "match_cancelled";
+  | "match_cancelled"
+  | "match_finished";
 
 export async function notifyMatchEvent(
   event: MatchPushEvent,
@@ -14,7 +15,7 @@ export async function notifyMatchEvent(
   if (!supabase) return;
 
   try {
-    const { error } = await supabase.functions.invoke("send-match-push", {
+    const { data, error } = await supabase.functions.invoke("send-match-push", {
       body: {
         event,
         match_id: matchId,
@@ -23,7 +24,13 @@ export async function notifyMatchEvent(
           : { previous_capacity: previousCapacity }),
       },
     });
-    if (error) console.warn("Notification push non envoyée :", error.message);
+    if (error) {
+      console.warn("Notification push non envoyée :", error.message);
+      return;
+    }
+    if (typeof data?.failed === "number" && data.failed > 0) {
+      console.warn("Notifications push partiellement envoyées :", data);
+    }
   } catch (error) {
     console.warn("Notification push non envoyée :", error);
   }

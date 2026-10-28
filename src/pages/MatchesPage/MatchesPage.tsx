@@ -1,4 +1,5 @@
-import { useOutletContext } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { useOutletContext, useSearchParams } from "react-router-dom";
 import { DashboardHero } from "../../components/DashboardHero/DashboardHero";
 import { MatchList } from "../../components/MatchList/MatchList";
 import { OrganizationRequired } from "../../components/OrganizationRequired/OrganizationRequired";
@@ -6,6 +7,9 @@ import { MatchDrawerContainer } from "../../containers/MatchDrawerContainer/Matc
 import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteContext";
 
 export function MatchesPage() {
+  const [searchParams] = useSearchParams();
+  const autoOpenedMatchId = useRef("");
+  const linkedMatchId = searchParams.get("match");
   const {
     organization,
     organizationId,
@@ -41,6 +45,19 @@ export function MatchesPage() {
     onCloseDrawer,
     onJoinWithCode,
   } = useOutletContext<WorkspaceRouteContext>();
+
+  useEffect(() => {
+    if (
+      !linkedMatchId ||
+      autoOpenedMatchId.current === linkedMatchId ||
+      !allMatches.some((match) => match.id === linkedMatchId)
+    ) {
+      return;
+    }
+
+    autoOpenedMatchId.current = linkedMatchId;
+    onOpenMatch(linkedMatchId);
+  }, [allMatches, linkedMatchId, onOpenMatch]);
 
   if (isLoadingOrganizations) {
     return (

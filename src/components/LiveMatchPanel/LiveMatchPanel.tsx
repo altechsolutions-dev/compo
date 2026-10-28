@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Check, CircleDot, Goal } from "lucide-react";
+import { CircleDot, Goal } from "lucide-react";
+import { MatchGoalTimeline } from "../MatchGoalTimeline/MatchGoalTimeline";
 import type { MatchGoal } from "../../types";
 
 type LiveMatchPanelProps = {
@@ -120,37 +121,9 @@ export function LiveMatchPanel({
         </button>
       </form>
 
-      <ol
-        aria-label="Buts marqués"
-        className="mt-3 max-h-36 list-none divide-y divide-(--line) overflow-y-auto p-0"
-      >
-        {[...goals].reverse().map((goal) => (
-          <li
-            className="flex items-center gap-2 py-2 text-[10px] text-(--text-secondary)"
-            key={goal.id}
-          >
-            <Check
-              aria-hidden="true"
-              className={
-                goal.team === 0 ? "text-(--team-a-red)" : "text-(--team-b-blue)"
-              }
-              size={13}
-            />
-            <span className="min-w-0 flex-1 truncate">
-              {playerNames[goal.scorerId] ?? "Joueur"} · Équipe{" "}
-              {goal.team === 0 ? "A" : "B"}
-            </span>
-            <time className="font-mono tabular-nums">
-              {formatClock(goal.elapsedSeconds)}
-            </time>
-          </li>
-        ))}
-      </ol>
-      {goals.length === 0 && (
-        <p className="mb-0 mt-3 text-center text-[10px] text-(--text-secondary)">
-          Aucun but pour le moment
-        </p>
-      )}
+      <div className="mt-3 max-h-48 overflow-y-auto">
+        <MatchGoalTimeline goals={goals} playerNames={playerNames} />
+      </div>
     </section>
   );
 }

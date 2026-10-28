@@ -146,7 +146,7 @@ describe("MatchDetailsContent", () => {
     expect(onRegister).toHaveBeenCalledOnce();
   });
 
-  it("affiche les buteurs dans des tableaux séparés par équipe pour un match terminé", () => {
+  it("affiche le fil chronologique et la composition standard pour un match terminé", () => {
     const finishedMatch: MatchSlot = {
       ...match,
       status: "finished",
@@ -185,43 +185,98 @@ describe("MatchDetailsContent", () => {
       }),
     );
 
-    expect(screen.getAllByText("1", { selector: "strong" })).toHaveLength(2);
     expect(
-      within(screen.getByRole("region", { name: "Résultat final" })).getByText(
+      within(
+        screen.getByRole("region", { name: "Score du match" }),
+      ).getAllByText("1", { selector: "strong" }),
+    ).toHaveLength(2);
+    expect(
+      within(screen.getByRole("region", { name: "Score du match" })).getByText(
+        "TERMINÉ",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("timer", { name: "Temps de jeu" }),
+    ).toHaveTextContent("60:00");
+    expect(
+      within(screen.getByRole("region", { name: "Score du match" })).getByText(
         "60:00",
       ),
     ).toBeInTheDocument();
-    const redScorers = screen.getByRole("region", {
-      name: "Buteurs de l'équipe rouge",
+    const goalTimeline = screen.getByRole("list", {
+      name: "Événements du match",
     });
-    const blueScorers = screen.getByRole("region", {
-      name: "Buteurs de l'équipe bleue",
-    });
-    expect(within(redScorers).getByText("Alex Martin")).toBeInTheDocument();
-    expect(within(redScorers).getByText("02:05")).toBeInTheDocument();
-    expect(within(blueScorers).getByText("Malik Diallo")).toBeInTheDocument();
-    expect(within(blueScorers).getByText("04:05")).toBeInTheDocument();
+    expect(within(goalTimeline).getAllByRole("listitem")[0]).toHaveTextContent(
+      "Malik Diallo",
+    );
+    expect(within(goalTimeline).getAllByRole("listitem")[0]).toHaveTextContent(
+      "04:05",
+    );
+    expect(within(goalTimeline).getAllByRole("listitem")[1]).toHaveTextContent(
+      "Alex Martin",
+    );
+    expect(within(goalTimeline).getAllByRole("listitem")[1]).toHaveTextContent(
+      "02:05",
+    );
     expect(
-      within(redScorers).queryByText("Malik Diallo"),
-    ).not.toBeInTheDocument();
-    expect(
-      within(blueScorers).queryByText("Alex Martin"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Composition" }),
-    ).toBeInTheDocument();
-    const redComposition = screen.getByRole("region", {
-      name: "Composition de l'équipe rouge",
-    });
-    const blueComposition = screen.getByRole("region", {
-      name: "Composition de l'équipe bleue",
-    });
-    expect(
-      within(redComposition).getByText("Sarah Benali"),
+      screen.getByRole("heading", { name: "Composition du match" }),
     ).toBeInTheDocument();
     expect(
-      within(blueComposition).getByText("Inès Laurent"),
-    ).toBeInTheDocument();
+      screen.getByRole("heading", { name: "Composition du match" })
+        .parentElement?.parentElement,
+    ).toHaveClass("mt-0", "pt-1");
+    expect(screen.getByText("Sarah Benali")).toBeInTheDocument();
+    expect(screen.getByText("Inès Laurent")).toBeInTheDocument();
+  });
+
+  it("copie le lien du résumé terminé avec l’identifiant du match", async () => {
+    const finishedMatch: MatchSlot = {
+      ...match,
+      id: "match / 1",
+      status: "finished",
+    };
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(
+      navigator,
+      "clipboard",
+    );
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    try {
+      render(
+        renderMatchDetailsContent({
+          match: finishedMatch,
+          isFull: true,
+          isRegistered: true,
+          isRegistering: false,
+          playerNames,
+          onClose: vi.fn(),
+          onRegister: vi.fn(),
+        }),
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Partager le résumé" }),
+      );
+
+      await waitFor(() =>
+        expect(writeText).toHaveBeenCalledWith(
+          `${window.location.origin}/app/matches?match=match+%2F+1`,
+        ),
+      );
+      expect(
+        screen.getByRole("button", { name: "Lien copié" }),
+      ).toBeInTheDocument();
+    } finally {
+      if (clipboardDescriptor) {
+        Object.defineProperty(navigator, "clipboard", clipboardDescriptor);
+      } else {
+        Reflect.deleteProperty(navigator, "clipboard");
+      }
+    }
   });
 
   it("affiche le pseudo d’un invité comme buteur dans le résumé", () => {
@@ -260,7 +315,7 @@ describe("MatchDetailsContent", () => {
 
     expect(
       within(
-        screen.getByRole("region", { name: "Buteurs de l'équipe rouge" }),
+        screen.getByRole("list", { name: "Événements du match" }),
       ).getByText("Pote de Sam"),
     ).toBeInTheDocument();
   });
@@ -302,7 +357,7 @@ describe("MatchDetailsContent", () => {
         onClose: vi.fn(),
         onRegister: vi.fn(),
         manOfTheMatchPoll: {
-          myVote: null,
+          myVote: "malik",
           voteTotals: [{ candidateId: "alex", voteCount: 1 }],
           voteCount: 1,
           eligibleVoterCount: 4,
@@ -313,17 +368,161 @@ describe("MatchDetailsContent", () => {
       }),
     );
 
+    expect(
+      screen.getByRole("button", { name: /Malik Diallo/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Malik Diallo/ })).toHaveClass(
+      "cursor-pointer",
+      "focus-visible:outline-2",
+      "enabled:hover:bg-(--team-b-blue)/25",
+      "border-l-(--team-b-blue)",
+    );
+    expect(screen.getByRole("button", { name: /Alex Martin/ })).toHaveClass(
+      "border-l-(--team-a-red)",
+      "enabled:hover:border-(--team-a-red)",
+      "enabled:hover:bg-(--team-a-red)/10",
+    );
+    expect(
+      within(screen.getByRole("button", { name: /Alex Martin/ })).getByText(
+        "Alex Martin",
+      ),
+    ).toHaveClass("text-(--team-a-red)");
     fireEvent.click(screen.getByRole("button", { name: /Malik Diallo/ }));
 
     expect(onVote).toHaveBeenCalledWith("malik");
     expect(
-      screen.getByRole("heading", { name: "Meilleur buteur" }),
+      screen.getByRole("region", { name: "Distinctions du match" }),
+    ).toHaveClass("border-l-4");
+    expect(
+      screen.getByRole("progressbar", { name: "Participation au vote" }),
+    ).toHaveAttribute("aria-valuenow", "1");
+    const motmSection = screen.getByRole("region", {
+      name: "Vote homme du match",
+    });
+    expect(
+      within(
+        within(motmSection).getByRole("region", { name: "Équipe Bleue" }),
+      ).getByRole("button", { name: /Malik Diallo/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Alex Martin · 1 but").closest("li")).toHaveClass(
+    expect(
+      within(
+        within(motmSection).getByRole("region", { name: "Équipe Rouge" }),
+      ).getByRole("button", { name: /Alex Martin/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Cliquez pour voter ou changer votre choix."),
+    ).toBeInTheDocument();
+    const distinctions = screen.getByRole("region", {
+      name: "Distinctions du match",
+    });
+    expect(
+      within(distinctions).getByRole("heading", {
+        level: 2,
+        name: "Distinctions du match",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(distinctions).getByRole("heading", {
+        level: 3,
+        name: "Homme du match",
+      }),
+    ).toBeInTheDocument();
+    const bestScorers = within(distinctions).getByRole("region", {
+      name: /Meilleurs? buteurs?/,
+    });
+    expect(
+      within(bestScorers).getByRole("heading", {
+        level: 3,
+        name: "Meilleurs buteurs",
+      }),
+    ).toBeInTheDocument();
+    expect(bestScorers).toHaveTextContent(
+      "Meilleurs buteursAlex Martin et Malik Diallo avec 1 but chacun",
+    );
+    expect(within(bestScorers).getByText("Alex Martin")).toHaveClass(
       "text-(--team-a-red)",
     );
-    expect(screen.getByText("Malik Diallo · 1 but").closest("li")).toHaveClass(
+    expect(within(bestScorers).getByText("Malik Diallo")).toHaveClass(
       "text-(--team-b-blue)",
+    );
+    expect(bestScorers).toHaveTextContent("avec 1 but chacun");
+  });
+
+  it("réserve un emplacement fixe au message d'enregistrement du vote", () => {
+    const finishedMatch: MatchSlot = {
+      ...match,
+      status: "finished",
+      goals: [],
+    };
+
+    render(
+      renderMatchDetailsContent({
+        match: finishedMatch,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        playerNames,
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+        manOfTheMatchPoll: {
+          myVote: null,
+          voteTotals: [],
+          voteCount: 0,
+          eligibleVoterCount: 4,
+          isComplete: false,
+          winnerIds: [],
+        },
+        manOfTheMatchVoteSaving: true,
+        onVoteForManOfTheMatch: vi.fn(),
+      }),
+    );
+
+    const savingMessage = screen.getByText("Enregistrement de votre vote…");
+    expect(savingMessage.parentElement).toHaveClass("mt-2", "min-h-3");
+    const candidateButton = screen.getByRole("button", { name: /Alex Martin/ });
+    expect(candidateButton).toHaveAttribute("aria-disabled", "true");
+    expect(candidateButton).not.toBeDisabled();
+    expect(candidateButton).toHaveClass(
+      "cursor-pointer",
+      "enabled:hover:bg-(--team-b-blue)/10",
+    );
+  });
+
+  it("conserve la couleur rouge de l'équipe pour le joueur sélectionné", () => {
+    const finishedMatch: MatchSlot = {
+      ...match,
+      status: "finished",
+      teams: [
+        ["alex", "sarah"],
+        ["malik", "ines"],
+      ],
+      goals: [],
+    };
+
+    render(
+      renderMatchDetailsContent({
+        match: finishedMatch,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        playerNames,
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+        manOfTheMatchPoll: {
+          myVote: "alex",
+          voteTotals: [],
+          voteCount: 1,
+          eligibleVoterCount: 4,
+          isComplete: false,
+          winnerIds: [],
+        },
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: /Alex Martin/ })).toHaveClass(
+      "border-(--team-a-red)",
+      "bg-(--team-a-red)/15",
+      "ring-(--team-a-red)",
     );
   });
 
@@ -356,6 +555,12 @@ describe("MatchDetailsContent", () => {
       }),
     );
 
-    expect(screen.getByText("Alex Martin, Malik Diallo")).toBeInTheDocument();
+    const motmSection = screen.getByRole("region", {
+      name: "Vote homme du match",
+    });
+    expect(motmSection).toHaveTextContent("Vote clôturé");
+    expect(within(motmSection).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(motmSection).getByText("Alex Martin")).toBeInTheDocument();
+    expect(within(motmSection).getByText("Malik Diallo")).toBeInTheDocument();
   });
 });

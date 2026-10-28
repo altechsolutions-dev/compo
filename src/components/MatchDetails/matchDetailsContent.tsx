@@ -1,9 +1,12 @@
-import type { ReactNode } from "react";
-import { ArrowRight, Check, MapPin, X } from "lucide-react";
+import { Fragment, type ReactNode } from "react";
+import { ArrowRight, Check, Goal, MapPin, Trophy, X } from "lucide-react";
 import type { MatchManOfTheMatchPoll, MatchSlot } from "../../types";
 import { formatMatchDate } from "../../helpers/formatMatchDate/formatMatchDate";
 import { LiveMatchPanel } from "../LiveMatchPanel/LiveMatchPanel";
+import { MatchGoalTimeline } from "../MatchGoalTimeline/MatchGoalTimeline";
+import { MatchScoreboard } from "../MatchScoreboard/MatchScoreboard";
 import { MatchTeamComposition } from "./MatchTeamComposition";
+import { MatchShareButton } from "./MatchShareButton";
 import "./MatchDetails.css";
 
 export type MatchDetailsContentOptions = {
@@ -51,10 +54,6 @@ export function renderMatchDetailsContent({
 
   if (match.status === "finished") {
     const goals = match.goals ?? [];
-    const score = [
-      goals.filter((goal) => goal.team === 0).length,
-      goals.filter((goal) => goal.team === 1).length,
-    ];
     const scorerTotals = goals.reduce<Record<string, number>>(
       (totals, goal) => {
         totals[goal.scorerId] = (totals[goal.scorerId] ?? 0) + 1;
@@ -66,7 +65,75 @@ export function renderMatchDetailsContent({
     const bestScorerIds = Object.entries(scorerTotals)
       .filter(([, count]) => count === bestScorerCount && count > 0)
       .map(([id]) => id);
-    const matchTeams = teams ?? match.teams;
+    const matchTeams = teams ?? match.teams ?? [[], []];
+    const votingCandidates = match.attendees.filter(
+      (candidateId) => !(candidateId in (match.attendeeNames ?? {})),
+    );
+    const renderCandidateButton = (candidateId: string): ReactNode => {
+      const candidateVotes =
+        manOfTheMatchPoll?.voteTotals.find(
+          (vote) => vote.candidateId === candidateId,
+        )?.voteCount ?? 0;
+      const isSelected = manOfTheMatchPoll?.myVote === candidateId;
+      const candidateTeam = matchTeams.findIndex((players) =>
+        players.includes(candidateId),
+      );
+      const teamColorClass =
+        candidateTeam === 0
+          ? "text-(--team-a-red)"
+          : candidateTeam === 1
+            ? "text-(--team-b-blue)"
+            : "text-(--text-primary)";
+      const teamBorderClass =
+        candidateTeam === 0
+          ? "border-l-(--team-a-red)"
+          : candidateTeam === 1
+            ? "border-l-(--team-b-blue)"
+            : "";
+      const selectedTeamClass =
+        candidateTeam === 0
+          ? "border-(--team-a-red) bg-(--team-a-red)/15 text-(--team-a-red) ring-1 ring-(--team-a-red) enabled:hover:bg-(--team-a-red)/25"
+          : "border-(--team-b-blue) bg-(--team-b-blue)/15 text-(--team-b-blue) ring-1 ring-(--team-b-blue) enabled:hover:bg-(--team-b-blue)/25";
+      const teamHoverClass =
+        candidateTeam === 0
+          ? "enabled:hover:border-(--team-a-red) enabled:hover:bg-(--team-a-red)/10 enabled:hover:text-(--team-a-red)"
+          : "enabled:hover:border-(--team-b-blue) enabled:hover:bg-(--team-b-blue)/10 enabled:hover:text-(--team-b-blue)";
+
+      return (
+        <button
+          aria-pressed={isSelected}
+          aria-disabled={manOfTheMatchVoteSaving || !onVoteForManOfTheMatch}
+          className={`flex min-h-16 cursor-pointer items-center justify-between gap-3 border border-l-4 px-4 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-b-blue) disabled:cursor-not-allowed disabled:opacity-50 ${teamBorderClass} ${isSelected ? selectedTeamClass : `border-(--line) bg-(--bg-surface) text-(--text-primary) ${teamHoverClass}`}`}
+          disabled={!onVoteForManOfTheMatch}
+          key={candidateId}
+          onClick={() => {
+            if (!manOfTheMatchVoteSaving) onVoteForManOfTheMatch?.(candidateId);
+          }}
+          type="button"
+        >
+          <span className="min-w-0">
+            <span
+              className={`block truncate text-sm font-bold ${teamColorClass}`}
+            >
+              {playerNames[candidateId] ?? "Joueur"}
+            </span>
+            {isSelected && (
+              <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.8px]">
+                Votre choix
+              </span>
+            )}
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold tabular-nums">
+            {candidateVotes}
+            {isSelected && <Check aria-hidden="true" size={15} />}
+          </span>
+        </button>
+      );
+    };
+    const unassignedCandidates = votingCandidates.filter(
+      (candidateId) =>
+        !matchTeams.some((players) => players.includes(candidateId)),
+    );
 
     return (
       <>
@@ -87,253 +154,236 @@ export function renderMatchDetailsContent({
         <h2 className="drawer-title" id="match-drawer-title">
           {match.venue}
         </h2>
+        <div className="mb-5">
+          <MatchShareButton matchId={match.id} />
+        </div>
+
+        <MatchScoreboard
+          goals={goals}
+          elapsedSeconds={match.elapsedSeconds ?? 0}
+          status="finished"
+        />
 
         <section
-          aria-label="Résultat final"
-          className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-y border-(--line) text-center"
+          aria-labelledby="match-awards-title"
+          className="mt-7 border-l-4 border-(--team-b-blue) bg-linear-to-r from-(--team-b-blue)/10 to-(--bg-surface) px-5 py-5 sm:px-7 sm:py-6"
         >
-          <div className="flex flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-2 py-4">
-            <p className="mb-1 text-[9px] font-bold uppercase text-(--team-b-blue)">
-              Équipe bleue
-            </p>
-            <strong className="font-mono text-4xl tabular-nums text-(--team-b-blue)">
-              {score[1]}
-            </strong>
-          </div>
-          <div className="flex flex-col items-center justify-center border-x border-(--line) px-2 py-4">
-            <p className="mb-1 text-[9px] font-bold uppercase text-(--text-secondary)">
-              Chrono
-            </p>
-            <strong className="font-mono text-lg tabular-nums text-(--text-primary)">
-              {formatElapsedTime(match.elapsedSeconds ?? 0)}
-            </strong>
-          </div>
-          <div className="flex flex-col justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-2 py-4">
-            <p className="mb-1 text-[9px] font-bold uppercase text-(--team-a-red)">
-              Équipe rouge
-            </p>
-            <strong className="font-mono text-4xl tabular-nums text-(--team-a-red)">
-              {score[0]}
-            </strong>
-          </div>
-        </section>
-
-        <section
-          aria-label="Distinctions du match"
-          className="mt-6 grid gap-x-10 gap-y-5 py-2 sm:grid-cols-2"
-        >
-          <div className="min-w-0">
-            <h3 className="mb-2 text-sm font-bold text-(--text-primary)">
+          <h2
+            className="mb-5 text-xl font-bold text-(--text-primary)"
+            id="match-awards-title"
+          >
+            Distinctions du match
+          </h2>
+          <div className="mb-5 flex items-center gap-3">
+            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-(--team-b-blue)/15 text-(--team-b-blue)">
+              <Trophy aria-hidden="true" size={21} />
+            </span>
+            <h3 className="m-0 text-lg font-bold text-(--text-primary)">
               Homme du match
             </h3>
+          </div>
+
+          <section aria-label="Vote homme du match">
             {manOfTheMatchPollLoading ? (
-              <p className="m-0 text-xs text-(--text-secondary)" role="status">
+              <p className="m-0 text-sm text-(--text-secondary)" role="status">
                 Chargement du sondage…
               </p>
             ) : manOfTheMatchPoll?.isComplete ? (
-              <p className="m-0 text-sm font-semibold text-(--team-b-blue)">
-                {manOfTheMatchPoll.winnerIds
-                  .map((id) => playerNames[id] ?? "Joueur")
-                  .join(", ") || "Aucun vote"}
-              </p>
-            ) : manOfTheMatchPoll ? (
-              <>
+              <div aria-live="polite">
                 <p
-                  className="mb-3 text-[10px] text-(--text-secondary)"
+                  className="mb-3 text-xs text-(--text-secondary)"
                   role="status"
                 >
-                  Vote en cours · {manOfTheMatchPoll.voteCount}/
-                  {manOfTheMatchPoll.eligibleVoterCount} votes
+                  Vote clôturé · {manOfTheMatchPoll.voteCount} /{" "}
+                  {manOfTheMatchPoll.eligibleVoterCount} votes exprimés
                 </p>
-                <div className="grid gap-1.5">
-                  {match.attendees
-                    .filter(
-                      (candidateId) =>
-                        !(candidateId in (match.attendeeNames ?? {})),
-                    )
-                    .map((candidateId) => {
-                      const candidateVotes =
-                        manOfTheMatchPoll.voteTotals.find(
-                          (vote) => vote.candidateId === candidateId,
-                        )?.voteCount ?? 0;
-                      const isSelected =
-                        manOfTheMatchPoll.myVote === candidateId;
-
-                      return (
-                        <button
-                          aria-pressed={isSelected}
-                          className={`flex min-h-10 items-center justify-between gap-3 rounded-md border px-3 text-left text-xs font-semibold ${isSelected ? "border-(--team-b-blue) bg-(--team-b-blue)/10 text-(--team-b-blue)" : "border-(--line) bg-(--bg-surface) text-(--text-primary)"}`}
-                          disabled={
-                            manOfTheMatchVoteSaving || !onVoteForManOfTheMatch
-                          }
-                          key={candidateId}
-                          onClick={() => onVoteForManOfTheMatch?.(candidateId)}
-                          type="button"
-                        >
-                          <span className="truncate">
-                            {playerNames[candidateId] ?? "Joueur"}
-                            {isSelected ? " · Votre vote" : ""}
-                          </span>
-                          <span className="shrink-0 font-mono tabular-nums">
-                            {candidateVotes}
-                          </span>
-                        </button>
-                      );
-                    })}
-                </div>
-                {manOfTheMatchVoteError && (
-                  <p
-                    className="mb-0 mt-2 text-xs text-(--team-a-red)"
-                    role="alert"
-                  >
-                    {manOfTheMatchVoteError}
+                {manOfTheMatchPoll.winnerIds.length ? (
+                  <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
+                    {manOfTheMatchPoll.winnerIds.map((id) => (
+                      <li
+                        className="flex min-h-14 items-center gap-3 border border-(--team-b-blue)/35 bg-(--team-b-blue)/10 px-4 py-3 text-sm font-bold text-(--team-b-blue)"
+                        key={id}
+                      >
+                        <Trophy aria-hidden="true" size={17} />
+                        {playerNames[id] ?? "Joueur"}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="m-0 text-sm font-semibold text-(--text-secondary)">
+                    Aucun vote enregistré
                   </p>
                 )}
+              </div>
+            ) : manOfTheMatchPoll ? (
+              <>
+                <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+                  <p
+                    className="m-0 text-sm font-semibold text-(--text-primary)"
+                    role="status"
+                  >
+                    {manOfTheMatchPoll.voteCount} /{" "}
+                    {manOfTheMatchPoll.eligibleVoterCount} participants ont voté
+                  </p>
+                  <p className="m-0 text-xs text-(--text-secondary)">
+                    Cliquez pour voter ou changer votre choix.
+                  </p>
+                </div>
+                <div
+                  aria-label="Participation au vote"
+                  aria-valuemax={manOfTheMatchPoll.eligibleVoterCount}
+                  aria-valuemin={0}
+                  aria-valuenow={manOfTheMatchPoll.voteCount}
+                  className="mb-5 h-2 overflow-hidden rounded-full bg-(--bg-elevated)"
+                  role="progressbar"
+                >
+                  <span
+                    className="block h-full bg-(--team-b-blue) transition-[width]"
+                    style={{
+                      width: `${manOfTheMatchPoll.eligibleVoterCount ? Math.min((manOfTheMatchPoll.voteCount / manOfTheMatchPoll.eligibleVoterCount) * 100, 100) : 0}%`,
+                    }}
+                  />
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  {(
+                    [
+                      { index: 1, name: "Équipe Bleue" },
+                      { index: 0, name: "Équipe Rouge" },
+                    ] as const
+                  ).map(({ index, name }) => {
+                    const teamColorClass =
+                      index === 1
+                        ? "text-(--team-b-blue)"
+                        : "text-(--team-a-red)";
+                    const teamCandidates = votingCandidates.filter(
+                      (candidateId) => matchTeams[index].includes(candidateId),
+                    );
+
+                    return (
+                      <section
+                        aria-label={name}
+                        className="min-w-0"
+                        key={index}
+                      >
+                        <h4
+                          className={`mb-2 flex items-center gap-2 text-xs font-bold ${teamColorClass}`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`size-2 rounded-full ${index === 1 ? "bg-(--team-b-blue)" : "bg-(--team-a-red)"}`}
+                          />
+                          {name}
+                        </h4>
+                        <div className="grid gap-2">
+                          {teamCandidates.map(renderCandidateButton)}
+                        </div>
+                      </section>
+                    );
+                  })}
+                  {unassignedCandidates.length > 0 && (
+                    <section
+                      aria-label="Autres joueurs"
+                      className="min-w-0 sm:col-span-2"
+                    >
+                      <h4 className="mb-2 text-xs font-bold text-(--text-secondary)">
+                        Autres joueurs
+                      </h4>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {unassignedCandidates.map(renderCandidateButton)}
+                      </div>
+                    </section>
+                  )}
+                </div>
+                <div className="mt-2 min-h-3">
+                  {manOfTheMatchVoteError ? (
+                    <p
+                      className="m-0 text-xs leading-3 text-(--team-a-red)"
+                      role="alert"
+                    >
+                      {manOfTheMatchVoteError}
+                    </p>
+                  ) : manOfTheMatchVoteSaving ? (
+                    <p
+                      className="m-0 text-xs leading-3 text-(--text-secondary)"
+                      role="status"
+                    >
+                      Enregistrement de votre vote…
+                    </p>
+                  ) : null}
+                </div>
               </>
             ) : (
-              <p className="m-0 text-xs text-(--text-secondary)" role="status">
+              <p className="m-0 text-sm text-(--text-secondary)" role="status">
                 {manOfTheMatchVoteError || "Sondage indisponible."}
               </p>
             )}
-          </div>
-          <div>
-            <h3 className="mb-2 text-sm font-bold text-(--text-primary)">
-              Meilleur buteur
+          </section>
+
+          <section
+            aria-labelledby="best-scorer-title"
+            className="mt-6 flex items-start gap-3"
+          >
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-(--team-a-red)/10 text-(--team-a-red)">
+              <Goal aria-hidden="true" size={19} />
+            </span>
+            <div className="min-w-0">
+              <h3
+                className="m-0 text-lg font-bold text-(--text-primary)"
+                id="best-scorer-title"
+              >
+                {bestScorerIds.length > 1
+                  ? "Meilleurs buteurs"
+                  : "Meilleur buteur"}
+              </h3>
+              {bestScorerIds.length ? (
+                <p className="m-0 text-sm leading-relaxed text-(--text-primary)">
+                  {bestScorerIds.map((id, index) => {
+                    const team = matchTeams.findIndex((players) =>
+                      players.includes(id),
+                    );
+
+                    return (
+                      <Fragment key={id}>
+                        {index > 0 ? " et " : ""}
+                        <span
+                          className={`font-semibold ${team === 0 ? "text-(--team-a-red)" : team === 1 ? "text-(--team-b-blue)" : "text-(--text-primary)"}`}
+                        >
+                          {playerNames[id] ?? "Joueur"}
+                        </span>
+                      </Fragment>
+                    );
+                  })}
+                  {` avec ${bestScorerCount} but${bestScorerCount === 1 ? "" : "s"}`}
+                  {bestScorerIds.length > 1 ? " chacun" : ""}
+                </p>
+              ) : (
+                <p className="m-0 text-sm text-(--text-secondary)">
+                  Aucun buteur
+                </p>
+              )}
+            </div>
+          </section>
+        </section>
+
+        <div className="mt-6 grid gap-x-8 gap-y-5 lg:grid-cols-2">
+          <section className="pt-1" aria-labelledby="finished-scorers-title">
+            <h3
+              className="mb-4 text-sm font-bold text-(--text-primary)"
+              id="finished-scorers-title"
+            >
+              Fil du match
             </h3>
-            {bestScorerIds.length ? (
-              <ul className="m-0 list-none space-y-1 p-0 text-sm font-semibold">
-                {bestScorerIds.map((id) => {
-                  const team = matchTeams?.findIndex((players) =>
-                    players.includes(id),
-                  );
+            <MatchGoalTimeline goals={goals} playerNames={playerNames} />
+          </section>
 
-                  return (
-                    <li
-                      className={
-                        team === 0
-                          ? "text-(--team-a-red)"
-                          : team === 1
-                            ? "text-(--team-b-blue)"
-                            : "text-(--text-primary)"
-                      }
-                      key={id}
-                    >
-                      {playerNames[id] ?? "Joueur"} · {bestScorerCount} but
-                      {bestScorerCount === 1 ? "" : "s"}
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="m-0 text-xs text-(--text-secondary)">
-                Aucun buteur
-              </p>
-            )}
-          </div>
-        </section>
-
-        <section
-          className="mt-6 border-t border-(--line) pt-5"
-          aria-labelledby="finished-scorers-title"
-        >
-          <h3
-            className="mb-4 text-sm font-bold text-(--text-primary)"
-            id="finished-scorers-title"
-          >
-            Buteurs
-          </h3>
-          <div className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
-            {([1, 0] as const).map((team) => {
-              const teamGoals = goals.filter((goal) => goal.team === team);
-              const teamLabel = team === 0 ? "rouge" : "bleue";
-
-              return (
-                <section
-                  aria-label={`Buteurs de l'équipe ${teamLabel}`}
-                  className="min-w-0"
-                  key={team}
-                >
-                  <h4
-                    className={`mb-3 text-[10px] font-bold uppercase ${team === 0 ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
-                  >
-                    Équipe {teamLabel}
-                  </h4>
-                  {teamGoals.length ? (
-                    <table className="w-full border-collapse text-left text-xs">
-                      <thead>
-                        <tr className="text-[9px] uppercase text-(--text-secondary)">
-                          <th className="py-2 font-semibold">Buteur</th>
-                          <th className="py-2 text-right font-semibold">
-                            Minute
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {teamGoals.map((goal) => (
-                          <tr key={goal.id}>
-                            <td className="py-2.5 text-(--text-primary)">
-                              {playerNames[goal.scorerId] ?? "Joueur"}
-                            </td>
-                            <td className="py-2.5 text-right font-mono tabular-nums text-(--text-secondary)">
-                              {formatElapsedTime(goal.elapsedSeconds)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <p className="m-0 text-xs text-(--text-secondary)">
-                      Aucun but
-                    </p>
-                  )}
-                </section>
-              );
-            })}
-          </div>
-        </section>
-
-        <section
-          aria-labelledby="finished-composition-title"
-          className="mt-7 border-t border-(--line) pt-5"
-        >
-          <h3
-            className="mb-4 text-sm font-bold text-(--text-primary)"
-            id="finished-composition-title"
-          >
-            Composition
-          </h3>
-          <div className="grid gap-x-10 gap-y-5 sm:grid-cols-2">
-            {([1, 0] as const).map((team) => {
-              const teamLabel = team === 0 ? "rouge" : "bleue";
-              const teamPlayers = teams?.[team] ?? match.teams?.[team] ?? [];
-
-              return (
-                <section
-                  aria-label={`Composition de l'équipe ${teamLabel}`}
-                  className="min-w-0"
-                  key={team}
-                >
-                  <h4
-                    className={`mb-2 text-[10px] font-bold uppercase ${team === 0 ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
-                  >
-                    Équipe {teamLabel}
-                  </h4>
-                  {teamPlayers.length ? (
-                    <ul className="m-0 list-none space-y-1 p-0 text-xs text-(--text-secondary)">
-                      {teamPlayers.map((id) => (
-                        <li key={id}>{playerNames[id] ?? "Joueur"}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="m-0 text-xs text-(--text-secondary)">
-                      Composition non enregistrée
-                    </p>
-                  )}
-                </section>
-              );
-            })}
-          </div>
-        </section>
+          <MatchTeamComposition
+            className="mt-0 pt-1"
+            isFull={match.attendees.length >= match.maxPlayers}
+            match={match}
+            playerNames={playerNames}
+            teams={matchTeams}
+          />
+        </div>
       </>
     );
   }
@@ -488,8 +538,4 @@ export function renderMatchDetailsContent({
         )}
     </>
   );
-}
-
-function formatElapsedTime(totalSeconds: number) {
-  return `${String(Math.floor(totalSeconds / 60)).padStart(2, "0")}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
