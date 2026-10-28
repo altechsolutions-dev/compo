@@ -74,33 +74,35 @@ export function useMatches({
           setMatchNotice(`Impossible de charger les matchs : ${error.message}`);
           return;
         }
-        const loadedMatches = ((data ?? []) as MatchSlotRow[]).map(
-          (row): MatchSlot => ({
-            id: row.id,
-            createdBy: row.created_by,
-            date: row.match_date,
-            time: row.match_time,
-            venue: row.venue,
-            maxPlayers: row.max_players,
-            attendees: row.attendees ?? [],
-            attendeeNames: row.attendee_names ?? {},
-            status: row.status ?? "scheduled",
-            startedAt: row.started_at ?? undefined,
-            elapsedSeconds: row.elapsed_seconds ?? 0,
-            teams:
-              row.team_a && row.team_b ? [row.team_a, row.team_b] : undefined,
-            goals: (row.goals ?? []).map(
-              (goal): MatchGoal => ({
-                id: goal.id,
-                scorerId: goal.scorer_id,
-                team: goal.team === 0 ? 0 : 1,
-                elapsedSeconds: goal.elapsed_seconds,
-                createdAt: goal.created_at,
-                undoable: goal.undoable ?? false,
-              }),
-            ),
-          }),
-        );
+        const loadedMatches = ((data ?? []) as MatchSlotRow[])
+          .filter((row) => row.status !== "cancelled")
+          .map(
+            (row): MatchSlot => ({
+              id: row.id,
+              createdBy: row.created_by,
+              date: row.match_date,
+              time: row.match_time,
+              venue: row.venue,
+              maxPlayers: row.max_players,
+              attendees: row.attendees ?? [],
+              attendeeNames: row.attendee_names ?? {},
+              status: row.status ?? "scheduled",
+              startedAt: row.started_at ?? undefined,
+              elapsedSeconds: row.elapsed_seconds ?? 0,
+              teams:
+                row.team_a && row.team_b ? [row.team_a, row.team_b] : undefined,
+              goals: (row.goals ?? []).map(
+                (goal): MatchGoal => ({
+                  id: goal.id,
+                  scorerId: goal.scorer_id,
+                  team: goal.team === 0 ? 0 : 1,
+                  elapsedSeconds: goal.elapsed_seconds,
+                  createdAt: goal.created_at,
+                  undoable: goal.undoable ?? false,
+                }),
+              ),
+            }),
+          );
         setMatches(loadedMatches);
         setSelectedMatchId((current) =>
           loadedMatches.some((match) => match.id === current)
@@ -122,31 +124,35 @@ export function useMatches({
         ?.rpc("get_match_slots", { p_organization_id: organizationId })
         .then(({ data, error }) => {
           if (error) return;
-          const loadedMatches = ((data ?? []) as MatchSlotRow[]).map(
-            (row): MatchSlot => ({
-              id: row.id,
-              createdBy: row.created_by,
-              date: row.match_date,
-              time: row.match_time,
-              venue: row.venue,
-              maxPlayers: row.max_players,
-              attendees: row.attendees ?? [],
-              attendeeNames: row.attendee_names ?? {},
-              status: row.status ?? "scheduled",
-              startedAt: row.started_at ?? undefined,
-              elapsedSeconds: row.elapsed_seconds ?? 0,
-              teams:
-                row.team_a && row.team_b ? [row.team_a, row.team_b] : undefined,
-              goals: (row.goals ?? []).map((goal) => ({
-                id: goal.id,
-                scorerId: goal.scorer_id,
-                team: goal.team === 0 ? (0 as const) : (1 as const),
-                elapsedSeconds: goal.elapsed_seconds,
-                createdAt: goal.created_at,
-                undoable: goal.undoable ?? false,
-              })),
-            }),
-          );
+          const loadedMatches = ((data ?? []) as MatchSlotRow[])
+            .filter((row) => row.status !== "cancelled")
+            .map(
+              (row): MatchSlot => ({
+                id: row.id,
+                createdBy: row.created_by,
+                date: row.match_date,
+                time: row.match_time,
+                venue: row.venue,
+                maxPlayers: row.max_players,
+                attendees: row.attendees ?? [],
+                attendeeNames: row.attendee_names ?? {},
+                status: row.status ?? "scheduled",
+                startedAt: row.started_at ?? undefined,
+                elapsedSeconds: row.elapsed_seconds ?? 0,
+                teams:
+                  row.team_a && row.team_b
+                    ? [row.team_a, row.team_b]
+                    : undefined,
+                goals: (row.goals ?? []).map((goal) => ({
+                  id: goal.id,
+                  scorerId: goal.scorer_id,
+                  team: goal.team === 0 ? (0 as const) : (1 as const),
+                  elapsedSeconds: goal.elapsed_seconds,
+                  createdAt: goal.created_at,
+                  undoable: goal.undoable ?? false,
+                })),
+              }),
+            );
           setMatches(loadedMatches);
           setSelectedMatchId((current) =>
             loadedMatches.some((match) => match.id === current)
@@ -170,7 +176,9 @@ export function useMatches({
   const currentAttendeeId = session?.user.id ?? currentPlayerId;
   const selectedMatch = matches.find((match) => match.id === selectedMatchId);
   const allMatches = matches;
-  const visibleMatches = matches.filter((match) => match.status !== "finished");
+  const visibleMatches = matches.filter(
+    (match) => match.status !== "finished" && match.status !== "cancelled",
+  );
   const filteredMatches =
     matchFilter === "finished"
       ? matches.filter((match) => match.status === "finished")

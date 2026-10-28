@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { MatchGoal, MatchSlot, MatchStateAction } from "../../types";
 import { supabase } from "../../lib/supabase/supabase";
+import { notifyMatchEvent } from "../../lib/pushNotifications/notifyMatchEvent";
 
 type MatchSlotRow = {
   id: string;
@@ -264,6 +265,7 @@ export function useMatchActions({
           maxPlayers: row.max_players,
           attendees: row.attendees ?? [],
         };
+        void notifyMatchEvent("new_match", match.id);
         setMatches((current) =>
           [...current, match].sort((a, b) =>
             `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`),
@@ -338,6 +340,15 @@ export function useMatchActions({
           p_max_players: matchMaxPlayers,
         });
         if (error) throw error;
+        const hasChanges =
+          match.date !== matchDate ||
+          match.time !== matchTime ||
+          match.venue !== venue.trim() ||
+          match.maxPlayers !== matchMaxPlayers;
+        if (hasChanges) void notifyMatchEvent("match_updated", matchId);
+        if (matchMaxPlayers > match.maxPlayers) {
+          void notifyMatchEvent("spot_available", matchId, match.maxPlayers);
+        }
       }
 
       setMatches((current) =>
@@ -369,6 +380,36 @@ export function useMatchActions({
       );
     } finally {
       setMatchSaving(false);
+    }
+  }
+
+  async function cancelMatch(matchId: string): Promise<boolean> {
+    const match = matches.find((item) => item.id === matchId);
+    if (
+      !match ||
+      match.createdBy !== currentAttendeeId ||
+      (match.status && match.status !== "scheduled")
+    ) {
+      return false;
+    }
+
+    try {
+      if (supabase && session) {
+        const { error } = await supabase.rpc("cancel_match_slot", {
+          p_match_id: matchId,
+        });
+        if (error) throw error;
+        void notifyMatchEvent("match_cancelled", matchId);
+      }
+      setMatches((current) => current.filter((item) => item.id !== matchId));
+      setSelectedMatchId("");
+      setMatchNotice("");
+      return true;
+    } catch (error) {
+      setMatchNotice(
+        `Impossible d’annuler le match : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+      return false;
     }
   }
 
@@ -745,6 +786,7 @@ export function useMatchActions({
     addGuestToMatch,
     createMatch,
     updateMatch,
+    cancelMatch,
     startMatch,
     saveScheduledMatchTeams,
     setMatchState,

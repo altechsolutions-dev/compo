@@ -24,6 +24,7 @@ export function MatchesPage() {
     onRegisterForMatch,
     onAddGuestToMatch,
     onEditMatch,
+    onCancelMatch,
     onStartMatch,
     onSaveScheduledMatchTeams,
     onRecordGoal,
@@ -103,6 +104,7 @@ export function MatchesPage() {
           composeTeams={composeTeams}
           onClose={onCloseDrawer}
           onRegister={onRegisterForMatch}
+          onCancelMatch={onCancelMatch}
           onStartMatch={onStartMatch}
           onSaveScheduledMatchTeams={onSaveScheduledMatchTeams}
           onRecordGoal={onRecordGoal}

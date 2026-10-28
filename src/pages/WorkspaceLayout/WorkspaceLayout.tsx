@@ -325,6 +325,7 @@ export function WorkspaceLayout() {
     addGuestToMatch,
     createMatch,
     updateMatch,
+    cancelMatch,
     startMatch,
     saveScheduledMatchTeams,
     setMatchState,
@@ -510,6 +511,11 @@ export function WorkspaceLayout() {
       setMatchMaxPlayers(match.maxPlayers);
       setJoinMatchOnCreate(false);
       setModal("match");
+    },
+    onCancelMatch: (matchId: string) => {
+      void (async () => {
+        if (await cancelMatch(matchId)) closeMatchDrawer();
+      })();
     },
     onStartMatch: async (matchId, teams) => {
       if (await startMatch(matchId, teams)) {

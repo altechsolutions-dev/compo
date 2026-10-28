@@ -41,6 +41,13 @@ npm run dev
    Enfin, exécutez [`20261025000200_match_guest_attendees.sql`](supabase/migrations/20261025000200_match_guest_attendees.sql), y compris après `schema.sql`, pour autoriser l’inscription d’invités par pseudo sans compte. Les buts d’un invité apparaissent dans le résumé du match, sans créer ni modifier de statistiques sur une fiche joueur.
 3. Dans Authentication > URL Configuration, définissez `Site URL` sur l’URL de production et ajoutez aux `Redirect URLs` les URL correspondant à chaque environnement : `http://127.0.0.1:5174/**` en local, les domaines exacts de préproduction et de production, ainsi que le motif de domaine de preview fourni par votre hébergeur. L’application transmet l’origine courante comme URL de retour OAuth ; si cette URL n’est pas autorisée par Supabase, celui-ci peut utiliser `Site URL` à la place. Gardez les motifs de preview aussi précis que possible.
 4. Redémarrez Vite après toute modification de `.env`.
+5. Pour les notifications push, appliquez aussi [`20261028000100_push_notifications.sql`](supabase/migrations/20261028000100_push_notifications.sql), puis ajoutez la clé publique VAPID à `VITE_WEB_PUSH_PUBLIC_KEY` dans `.env`. Générez une paire de clés avec `npx web-push generate-vapid-keys`, déployez la fonction avec `supabase functions deploy send-match-push`, puis configurez les secrets serveur :
+
+   ```sh
+   supabase secrets set VAPID_PUBLIC_KEY=<clé-publique> VAPID_PRIVATE_KEY=<clé-privée> VAPID_SUBJECT=mailto:admin@example.com
+   ```
+
+   La clé publique configurée côté client doit être identique à `VAPID_PUBLIC_KEY`. La clé privée ne doit jamais être ajoutée à `.env` avec un préfixe `VITE_`. Les utilisateurs activent ensuite les alertes dans l’onglet **Club**; l’autorisation du navigateur et HTTPS en production sont nécessaires.
 
 Un organisateur connecté peut créer une organisation et partager son lien ou son code. Les invités doivent créer un compte ou se connecter avant de rejoindre. Les accès directs aux tables sont fermés par RLS ; les opérations passent par des fonctions RPC.
 

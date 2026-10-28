@@ -193,6 +193,28 @@ describe("useMatchActions", () => {
     expect(props.showMatchesView).toHaveBeenCalledOnce();
   });
 
+  it("annule un match créé par le joueur courant", async () => {
+    const match: MatchSlot = {
+      id: "match-cancel",
+      createdBy: currentPlayerId,
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 10,
+      attendees: [currentPlayerId, "player-2"],
+    };
+    const { result, getMatches, props } = setup([match]);
+    let cancelled = false;
+
+    await act(async () => {
+      cancelled = await result.current.cancelMatch("match-cancel");
+    });
+
+    expect(cancelled).toBe(true);
+    expect(getMatches()).toEqual([]);
+    expect(props.setSelectedMatchId).toHaveBeenCalledWith("");
+  });
+
   it("modifie un créneau local créé par le joueur courant", async () => {
     const match: MatchSlot = {
       id: "match-edit",

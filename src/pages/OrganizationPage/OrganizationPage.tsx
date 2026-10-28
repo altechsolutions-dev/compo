@@ -2,6 +2,7 @@ import { useOutletContext } from "react-router-dom";
 import { DashboardHero } from "../../components/DashboardHero/DashboardHero";
 import { OrganizationRequired } from "../../components/OrganizationRequired/OrganizationRequired";
 import { OrganizationRoster } from "../../components/OrganizationRoster/OrganizationRoster";
+import { PushNotificationsControl } from "../../components/PushNotificationsControl/PushNotificationsControl";
 import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteContext";
 
 export function OrganizationPage() {
@@ -51,6 +52,7 @@ export function OrganizationPage() {
         activeView="organization"
         onCreateMatch={onCreateMatch}
       />
+      <PushNotificationsControl />
       <OrganizationRoster
         organization={organization}
         members={members}
