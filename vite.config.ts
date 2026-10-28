@@ -15,6 +15,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      devOptions: {
+        enabled: true,
+        type: "classic",
+      },
       includeAssets: [
         "compo-icon.svg",
         "compo-icon-192.png",
@@ -45,6 +49,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+        importScripts: ["/push-handler.js"],
       },
     }),
   ],

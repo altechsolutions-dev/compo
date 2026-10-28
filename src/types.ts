@@ -8,7 +8,7 @@ export type MatchSlot = {
   attendees: string[];
   attendeeNames?: Record<string, string>;
   teams?: [string[], string[]];
-  status?: "scheduled" | "in_progress" | "paused" | "finished";
+  status?: "scheduled" | "in_progress" | "paused" | "finished" | "cancelled";
   startedAt?: string;
   elapsedSeconds?: number;
   goals?: MatchGoal[];

@@ -15,6 +15,8 @@ export type MatchDetailsContentOptions = {
   playerNames: Record<string, string>;
   onClose: () => void;
   onRegister: () => void;
+  canCancel?: boolean;
+  onCancelMatch?: () => void;
   onSaveTeams?: (teams: [string[], string[]]) => Promise<boolean>;
   onStartMatch?: (teams: [string[], string[]]) => void;
   onRecordGoal?: (scorerId: string) => void;
@@ -34,6 +36,8 @@ export function renderMatchDetailsContent({
   playerNames,
   onClose,
   onRegister,
+  canCancel = false,
+  onCancelMatch,
   onSaveTeams,
   onStartMatch,
   onRecordGoal,
@@ -463,6 +467,25 @@ export function renderMatchDetailsContent({
           ? `Les ${match.maxPlayers} places sont prises.`
           : `Encore ${spotsRemaining} place${spotsRemaining > 1 ? "s" : ""} disponible${spotsRemaining > 1 ? "s" : ""}`}
       </p>
+      {canCancel &&
+        (!match.status || match.status === "scheduled") &&
+        onCancelMatch && (
+          <button
+            className="mt-5 flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[3px] border border-(--team-a-red)/40 bg-transparent text-xs font-semibold text-(--team-a-red) hover:bg-(--team-a-red)/5"
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Annuler ce match et prévenir les joueurs inscrits ?",
+                )
+              ) {
+                onCancelMatch();
+              }
+            }}
+            type="button"
+          >
+            Annuler le match
+          </button>
+        )}
     </>
   );
 }
