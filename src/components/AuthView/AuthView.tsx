@@ -1,5 +1,5 @@
 import type { FormEventHandler } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Fingerprint } from "lucide-react";
 import logo from "../../assets/logo.png";
 import { Drawer } from "../Drawer/Drawer";
 import { useDrawerTransition } from "../../hooks/useDrawerTransition/useDrawerTransition";
@@ -9,12 +9,17 @@ import "./AuthView.css";
 export type AuthViewProps = {
   authMode: Exclude<AuthMode, null>;
   authSubmitting: boolean;
+  googleSubmitting: boolean;
+  passkeyAuthSubmitting: boolean;
   authNotice: string;
   authNoticeKind: "error" | "success";
+  rememberSession: boolean;
   onAuthModeChange: (mode: AuthMode) => void;
   onClearNotice: () => void;
+  onRememberSessionChange: (remember: boolean) => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
   onSignInWithGoogle: () => void;
+  onSignInWithPasskey: () => void;
 };
 
 const authTitles: Record<Exclude<AuthMode, null>, string> = {
@@ -45,17 +50,24 @@ const submitLabels: Record<Exclude<AuthMode, null>, string> = {
 export function AuthView({
   authMode,
   authSubmitting,
+  googleSubmitting,
+  passkeyAuthSubmitting,
   authNotice,
   authNoticeKind,
+  rememberSession,
   onAuthModeChange,
   onClearNotice,
+  onRememberSessionChange,
   onSubmit,
   onSignInWithGoogle,
+  onSignInWithPasskey,
 }: AuthViewProps) {
   const drawer = useDrawerTransition(true);
   const isLoginOrSignup = authMode === "login" || authMode === "signup";
   const hasConfirmationError =
     authNoticeKind === "error" && authNotice.includes("lien de confirmation");
+  const isAuthSubmitting =
+    authSubmitting || googleSubmitting || passkeyAuthSubmitting;
 
   return (
     <main className="auth-view relative isolate grid min-h-svh w-full place-items-center overflow-hidden bg-(--bg-main) text-(--text-primary)">
@@ -92,7 +104,7 @@ export function AuthView({
         backdropClassName="auth-view-drawer-backdrop z-3"
       >
         <section>
-          <h1 className="absolute top-8 left-[clamp(28px,7vw,112px)] right-[clamp(28px,7vw,112px)] mx-auto hidden max-w-140 max-[900px]:block">
+          <h1 className="auth-view__mobile-logo">
             <img className="block h-auto w-33" src={logo} alt="Compo" />
           </h1>
           <div className="mx-auto w-full max-w-140">
@@ -190,6 +202,18 @@ export function AuthView({
                   </label>
                 )}
               {authMode === "login" && (
+                <label className="auth-view__remember">
+                  <input
+                    checked={rememberSession}
+                    onChange={(event) =>
+                      onRememberSessionChange(event.currentTarget.checked)
+                    }
+                    type="checkbox"
+                  />
+                  Rester connecté sur cet appareil
+                </label>
+              )}
+              {authMode === "login" && (
                 <button
                   className="auth-view__recovery"
                   onClick={() => {
@@ -220,7 +244,7 @@ export function AuthView({
               )}
               <button
                 className="auth-view__submit"
-                disabled={authSubmitting}
+                disabled={isAuthSubmitting}
                 type="submit"
               >
                 {authSubmitting ? (
@@ -242,7 +266,7 @@ export function AuthView({
                 </div>
                 <button
                   className="auth-view__google"
-                  disabled={authSubmitting}
+                  disabled={isAuthSubmitting}
                   onClick={onSignInWithGoogle}
                   type="button"
                 >
@@ -252,10 +276,23 @@ export function AuthView({
                   >
                     G
                   </span>
-                  {authSubmitting
+                  {googleSubmitting
                     ? "Redirection vers Google…"
                     : "Continuer avec Google"}
                 </button>
+                {authMode === "login" && (
+                  <button
+                    className="auth-view__google mt-2.5"
+                    disabled={isAuthSubmitting}
+                    onClick={onSignInWithPasskey}
+                    type="button"
+                  >
+                    <Fingerprint size={18} aria-hidden="true" />
+                    {passkeyAuthSubmitting
+                      ? "Vérification en cours…"
+                      : "Se connecter avec Face ID ou l’empreinte"}
+                  </button>
+                )}
               </div>
             )}
             {isLoginOrSignup && (
@@ -277,7 +314,7 @@ export function AuthView({
             )}
             {authNotice && (
               <p
-                className={`mt-3.5 text-[11px] leading-1.5 ${authNoticeKind === "error" ? "text-(--team-a-red)" : "text-(--status-success)"}`}
+                className={`mt-3.5 text-[11px] ${authNoticeKind === "error" ? "text-(--team-a-red)" : "text-(--status-success)"}`}
                 role={authNoticeKind === "error" ? "alert" : "status"}
               >
                 {authNotice}

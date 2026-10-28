@@ -17,11 +17,16 @@ function App() {
   const {
     authMode,
     setAuthMode,
+    rememberSession,
+    setRememberSession,
     authNotice,
     setAuthNotice,
     authNoticeKind,
     setAuthNoticeKind,
     authSubmitting,
+    googleSubmitting,
+    passkeyAuthSubmitting,
+    signInWithPasskey,
     session,
     authLoading,
     signInWithGoogle,
@@ -46,15 +51,20 @@ function App() {
     <LoginPage
       authMode={authMode}
       authSubmitting={authSubmitting}
+      googleSubmitting={googleSubmitting}
+      passkeyAuthSubmitting={passkeyAuthSubmitting}
       authNotice={authNotice}
       authNoticeKind={authNoticeKind}
+      rememberSession={rememberSession}
       onAuthModeChange={(mode) => {
         setAuthMode(mode);
         if (mode === "signup") setAuthNoticeKind("success");
       }}
       onClearNotice={() => setAuthNotice("")}
+      onRememberSessionChange={setRememberSession}
       onSubmit={submitAuth}
       onSignInWithGoogle={() => void signInWithGoogle()}
+      onSignInWithPasskey={() => void signInWithPasskey()}
     />
   ) : null;
 

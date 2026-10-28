@@ -2,19 +2,26 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AuthView } from "./AuthView";
 
-function renderAuthView() {
+function renderAuthView(
+  submitting: { google?: boolean; passkey?: boolean } = {},
+) {
   const callbacks = {
     onAuthModeChange: vi.fn(),
     onClearNotice: vi.fn(),
     onSubmit: vi.fn((event) => event.preventDefault()),
     onSignInWithGoogle: vi.fn(),
+    onSignInWithPasskey: vi.fn(),
+    onRememberSessionChange: vi.fn(),
   };
   render(
     <AuthView
       authMode="login"
       authSubmitting={false}
+      googleSubmitting={submitting.google ?? false}
+      passkeyAuthSubmitting={submitting.passkey ?? false}
       authNotice=""
       authNoticeKind="success"
+      rememberSession
       {...callbacks}
     />,
   );
@@ -33,8 +40,13 @@ describe("AuthView", () => {
     expect(onClearNotice).toHaveBeenCalledOnce();
   });
 
-  it("transmet la soumission et la connexion Google", async () => {
-    const { onSubmit, onSignInWithGoogle } = renderAuthView();
+  it("transmet la soumission et les options de connexion", async () => {
+    const {
+      onSubmit,
+      onSignInWithGoogle,
+      onSignInWithPasskey,
+      onRememberSessionChange,
+    } = renderAuthView();
 
     fireEvent.submit(
       (await screen.findByRole("button", { name: "Se connecter" })).closest(
@@ -44,7 +56,32 @@ describe("AuthView", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Continuer avec Google" }),
     );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Se connecter avec Face ID ou l’empreinte",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Rester connecté sur cet appareil",
+      }),
+    );
     expect(onSubmit).toHaveBeenCalledOnce();
     expect(onSignInWithGoogle).toHaveBeenCalledOnce();
+    expect(onSignInWithPasskey).toHaveBeenCalledOnce();
+    expect(onRememberSessionChange).toHaveBeenCalledWith(false);
+  });
+
+  it("affiche le chargement uniquement sur le fournisseur sélectionné", async () => {
+    renderAuthView({ google: true });
+
+    expect(
+      await screen.findByRole("button", { name: "Redirection vers Google…" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Se connecter avec Face ID ou l’empreinte",
+      }),
+    ).toBeDisabled();
   });
 });

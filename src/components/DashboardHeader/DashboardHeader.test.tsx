@@ -7,8 +7,6 @@ function renderHeader() {
   const callbacks = {
     onNavigate: vi.fn(),
     onChooseOrganization: vi.fn(),
-    onShareInvite: vi.fn(),
-    onJoinWithCode: vi.fn(),
     onSignOut: vi.fn(),
     onInstall: vi.fn(),
   };
@@ -18,9 +16,7 @@ function renderHeader() {
         organization="Les Panthères"
         organizationMemberCount={8}
         activeView="matches"
-        avatarLabel="AM"
         isSignedIn
-        canShareInvite
         canInstall
         {...callbacks}
       />
@@ -44,25 +40,25 @@ describe("DashboardHeader", () => {
     expect(onNavigate).toHaveBeenCalledWith("organization");
   });
 
-  it("transmet les actions de partage, sélection, installation et déconnexion", () => {
+  it("transmet les actions de sélection, installation et déconnexion", () => {
     const callbacks = renderHeader();
 
     fireEvent.click(screen.getByRole("button", { name: "Choisir un club" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Partager le lien d’invitation" }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Rejoindre un club avec un code",
-      }),
-    );
     fireEvent.click(screen.getByRole("button", { name: "Se déconnecter" }));
+    expect(screen.getByText("Déconnexion")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Installer Compo" }));
 
     expect(callbacks.onChooseOrganization).toHaveBeenCalledOnce();
-    expect(callbacks.onShareInvite).toHaveBeenCalledOnce();
-    expect(callbacks.onJoinWithCode).toHaveBeenCalledOnce();
     expect(callbacks.onSignOut).toHaveBeenCalledOnce();
     expect(callbacks.onInstall).toHaveBeenCalledOnce();
+    expect(
+      screen.queryByRole("button", { name: "Partager le lien d’invitation" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Rejoindre un club avec un code" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Enregistrer une passkey" }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -1,9 +1,52 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { DashboardLayout } from "./DashboardLayout";
 
 describe("DashboardLayout", () => {
+  it("propose d’activer la connexion biométrique après la connexion et permet de reporter", () => {
+    const onRegisterPasskey = vi.fn();
+    const onDismissPasskeyPrompt = vi.fn();
+    render(
+      <MemoryRouter initialEntries={["/app/matches"]}>
+        <Routes>
+          <Route
+            path="/app/*"
+            element={
+              <DashboardLayout
+                organization="Les Panthères"
+                organizationMemberCount={4}
+                isSignedIn
+                canInstall={false}
+                onNavigate={vi.fn()}
+                onChooseOrganization={vi.fn()}
+                onSignOut={vi.fn()}
+                onRegisterPasskey={onRegisterPasskey}
+                passkeySubmitting={false}
+                passkeyPromptOpen
+                onDismissPasskeyPrompt={onDismissPasskeyPrompt}
+                passkeyNotice=""
+                onInstall={vi.fn()}
+                isSynchronized
+              >
+                <div />
+              </DashboardLayout>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Active Face ID ou l’empreinte" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Activer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Plus tard" }));
+
+    expect(onRegisterPasskey).toHaveBeenCalledOnce();
+    expect(onDismissPasskeyPrompt).toHaveBeenCalledOnce();
+  });
+
   it("affiche la page Matchs et propose la navigation vers le club", () => {
     render(
       <MemoryRouter initialEntries={["/app/matches"]}>
@@ -14,15 +57,16 @@ describe("DashboardLayout", () => {
               <DashboardLayout
                 organization="Les Panthères"
                 organizationMemberCount={4}
-                avatarLabel="AM"
                 isSignedIn
-                canShareInvite
                 canInstall={false}
                 onNavigate={vi.fn()}
                 onChooseOrganization={vi.fn()}
-                onShareInvite={vi.fn()}
-                onJoinWithCode={vi.fn()}
                 onSignOut={vi.fn()}
+                onRegisterPasskey={vi.fn()}
+                passkeySubmitting={false}
+                passkeyPromptOpen={false}
+                onDismissPasskeyPrompt={vi.fn()}
+                passkeyNotice=""
                 onInstall={vi.fn()}
                 isSynchronized
               >
@@ -54,15 +98,16 @@ describe("DashboardLayout", () => {
               <DashboardLayout
                 organization="Les Panthères"
                 organizationMemberCount={4}
-                avatarLabel="AM"
                 isSignedIn
-                canShareInvite
                 canInstall={false}
                 onNavigate={vi.fn()}
                 onChooseOrganization={vi.fn()}
-                onShareInvite={vi.fn()}
-                onJoinWithCode={vi.fn()}
                 onSignOut={vi.fn()}
+                onRegisterPasskey={vi.fn()}
+                passkeySubmitting={false}
+                passkeyPromptOpen={false}
+                onDismissPasskeyPrompt={vi.fn()}
+                passkeyNotice=""
                 onInstall={vi.fn()}
                 isSynchronized
               >

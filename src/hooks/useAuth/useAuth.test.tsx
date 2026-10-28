@@ -10,13 +10,24 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { storePendingInviteCode } from "../../lib/pendingInvite/pendingInvite";
 import { getAuthenticatedDestination, useAuth } from "./useAuth";
 
+const authMocks = vi.hoisted(() => ({
+  client: null as unknown,
+  onAuthStateChange: null as ((event: string, session: null) => void) | null,
+}));
+
 vi.mock("../../lib/supabase/supabase", () => ({
   initialAuthCallbackMessage: "",
-  supabase: null,
+  get supabase() {
+    return authMocks.client;
+  },
 }));
 
 describe("useAuth", () => {
-  afterEach(() => localStorage.clear());
+  afterEach(() => {
+    localStorage.clear();
+    authMocks.client = null;
+    authMocks.onAuthStateChange = null;
+  });
 
   it("garde le code mémorisé si la query a déjà disparu", () => {
     expect(getAuthenticatedDestination("", "ABC123")).toBe(
@@ -30,6 +41,26 @@ describe("useAuth", () => {
     expect(result.current.session).toBeNull();
     expect(result.current.authLoading).toBe(false);
     expect(result.current.authMode).toBe("login");
+  });
+
+  it("réaffiche le formulaire de connexion après une déconnexion", async () => {
+    authMocks.client = {
+      auth: {
+        getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+        onAuthStateChange: vi.fn((callback) => {
+          authMocks.onAuthStateChange = callback;
+          return { data: { subscription: { unsubscribe: vi.fn() } } };
+        }),
+      },
+    };
+    const { result } = renderHook(() => useAuth(), { wrapper: MemoryRouter });
+
+    act(() => result.current.setAuthMode(null));
+    act(() => authMocks.onAuthStateChange?.("SIGNED_OUT", null));
+
+    await waitFor(() => {
+      expect(result.current.authMode).toBe("login");
+    });
   });
 
   it("restaure le code sauvegardé dans l’URL après un callback sans query", async () => {

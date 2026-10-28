@@ -55,6 +55,11 @@ export function WorkspaceLayout() {
     setAuthNotice,
     setAuthMode,
     signOut,
+    registerPasskey,
+    passkeySubmitting,
+    passkeyNotice,
+    passkeyPromptOpen,
+    setPasskeyPromptOpen,
   } = auth;
   const [modal, setModalState] = useState<DialogKind | null>(() => {
     if (createOrganizationIntentReady) return "organization";
@@ -421,21 +426,10 @@ export function WorkspaceLayout() {
     />
   );
 
-  const avatarLabel = session?.user.user_metadata.full_name
-    ? String(session.user.user_metadata.full_name)
-        .split(" ")
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : (session?.user.email?.slice(0, 2).toUpperCase() ?? "AM");
-
   const layout = {
     organization,
     organizationMemberCount: organizationMembers.length,
-    avatarLabel,
     isSignedIn: Boolean(session),
-    canShareInvite: Boolean(organizationId && inviteCode),
     canInstall: Boolean(installPrompt),
     onNavigate: (nextView: "matches" | "live" | "organization") =>
       navigate(
@@ -446,18 +440,17 @@ export function WorkspaceLayout() {
             : "/app/organizations",
       ),
     onChooseOrganization: () => setModal("organizations"),
-    onShareInvite: () => openInviteDialog(organization, inviteCode),
-    onJoinWithCode: () => {
-      setJoinCode("");
-      setOrganizationFeatureNotice("");
-      setModal("code");
-    },
     onSignOut: () => {
       void (async () => {
         await signOut();
         clearOrganizationSession();
       })();
     },
+    onRegisterPasskey: () => void registerPasskey(),
+    passkeySubmitting,
+    passkeyNotice,
+    passkeyPromptOpen,
+    onDismissPasskeyPrompt: () => setPasskeyPromptOpen(false),
     onInstall: installApp,
     isSynchronized: Boolean(session),
   };
