@@ -3,6 +3,7 @@ import { ArrowLeftRight, Check, CircleDot, Pencil, Shirt } from "lucide-react";
 import type { MatchSlot } from "../../types";
 
 type MatchTeamCompositionProps = {
+  className?: string;
   isFull: boolean;
   match: MatchSlot;
   onSaveTeams?: (teams: [string[], string[]]) => Promise<boolean>;
@@ -12,6 +13,7 @@ type MatchTeamCompositionProps = {
 };
 
 export function MatchTeamComposition({
+  className = "mt-4.75 pt-4",
   isFull,
   match,
   onSaveTeams,
@@ -54,7 +56,7 @@ export function MatchTeamComposition({
   }
 
   return (
-    <section className="match-drawer-line mt-4.75 border-t border-white/15 pt-4">
+    <section className={`match-drawer-line ${className}`}>
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="m-0 text-sm font-bold text-(--ink)">
           Composition du match

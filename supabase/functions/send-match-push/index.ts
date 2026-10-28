@@ -13,7 +13,8 @@ type PushEvent =
   | "new_match"
   | "match_updated"
   | "spot_available"
-  | "match_cancelled";
+  | "match_cancelled"
+  | "match_finished";
 
 const messages: Record<
   PushEvent,
@@ -54,6 +55,10 @@ const messages: Record<
       match.match_time,
       match.venue,
     ),
+  }),
+  match_finished: () => ({
+    title: "Match terminé",
+    body: "Le résumé et le vote pour l’homme du match sont disponibles.",
   }),
 };
 
@@ -146,16 +151,25 @@ Deno.serve(async (request) => {
       );
     }
     const matchRow = match as MatchRow;
-    if (matchRow.created_by !== user.id) {
+    const attendeeIds = matchRow.match_slot_attendees.map(
+      (attendee) => attendee.user_id,
+    );
+    const isAuthorizedSender =
+      event === "match_finished"
+        ? attendeeIds.includes(user.id)
+        : matchRow.created_by === user.id;
+    if (!isAuthorizedSender) {
       return Response.json(
-        { error: "Only the match creator can send this alert" },
+        { error: "Only an authorized match participant can send this alert" },
         { status: 403, headers: corsHeaders },
       );
     }
     const validStatus =
       event === "match_cancelled"
         ? matchRow.status === "cancelled"
-        : matchRow.status === "scheduled";
+        : event === "match_finished"
+          ? matchRow.status === "finished"
+          : matchRow.status === "scheduled";
     if (!validStatus) {
       return Response.json(
         { error: "Match state does not match this alert" },
@@ -191,11 +205,10 @@ Deno.serve(async (request) => {
         { status: 403, headers: corsHeaders },
       );
     }
-    const attendeeIds = matchRow.match_slot_attendees.map(
-      (attendee) => attendee.user_id,
-    );
     const recipients =
-      event === "match_updated" || event === "match_cancelled"
+      event === "match_updated" ||
+      event === "match_cancelled" ||
+      event === "match_finished"
         ? attendeeIds
         : memberIds;
     const recipientIds = [
@@ -210,6 +223,18 @@ Deno.serve(async (request) => {
       .select("endpoint, p256dh, auth")
       .in("user_id", recipientIds);
     if (subscriptionsError) throw subscriptionsError;
+    if (event === "match_finished" && subscriptions?.length) {
+      const { error: claimError } = await admin
+        .from("match_finish_push_claims")
+        .insert({ match_id: matchRow.id });
+      if (claimError?.code === "23505") {
+        return Response.json(
+          { sent: 0, failed: 0, duplicate: true },
+          { headers: corsHeaders },
+        );
+      }
+      if (claimError) throw claimError;
+    }
 
     webpush.setVapidDetails(vapidSubject, publicKey, privateKey);
     const message = messages[event](matchRow);
@@ -221,7 +246,13 @@ Deno.serve(async (request) => {
               endpoint: subscription.endpoint,
               keys: { p256dh: subscription.p256dh, auth: subscription.auth },
             },
-            JSON.stringify({ ...message, url: "/app/matches" }),
+            JSON.stringify({
+              ...message,
+              url:
+                event === "match_finished"
+                  ? `/app/matches?match=${encodeURIComponent(matchRow.id)}`
+                  : "/app/matches",
+            }),
           );
         } catch (error) {
           if (

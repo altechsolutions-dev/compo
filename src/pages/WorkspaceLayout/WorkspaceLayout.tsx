@@ -12,6 +12,7 @@ import { composeMatchTeams } from "../../lib/composeMatchTeams/composeMatchTeams
 import { playerRating } from "../../lib/playerRating/playerRating";
 import { dateAfter } from "../../data/dateAfter/dateAfter";
 import { players } from "../../data/players/players";
+import { notifyMatchEvent } from "../../lib/pushNotifications/notifyMatchEvent";
 import type {
   DialogKind,
   MatchSlot,
@@ -263,8 +264,12 @@ export function WorkspaceLayout() {
 
   async function voteForManOfTheMatch(candidateId: string) {
     if (!supabase || !selectedMatch || manOfTheMatchVoteSaving) return;
+    const previousPoll = manOfTheMatchPoll;
     setManOfTheMatchVoteSaving(true);
     setManOfTheMatchVoteError("");
+    if (previousPoll && !previousPoll.isComplete) {
+      setManOfTheMatchPoll({ ...previousPoll, myVote: candidateId });
+    }
     try {
       const { data, error } = await supabase.rpc(
         "vote_match_man_of_the_match",
@@ -291,17 +296,8 @@ export function WorkspaceLayout() {
         isComplete: row.is_complete,
         winnerIds: row.winner_ids ?? [],
       });
-      if (row.is_complete && organizationId) {
-        const { data: stats, error: statsError } = await supabase
-          .from("players")
-          .select(
-            "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, goals",
-          )
-          .eq("organization_id", organizationId);
-        if (statsError) throw statsError;
-        setPlayerStats((stats ?? []) as OrganizationPlayerStats[]);
-      }
     } catch (error) {
+      if (previousPoll) setManOfTheMatchPoll(previousPoll);
       setManOfTheMatchVoteError(
         `Impossible d’enregistrer votre vote : ${error instanceof Error ? error.message : "erreur inconnue"}`,
       );
@@ -526,8 +522,12 @@ export function WorkspaceLayout() {
     onSetMatchState: (matchId, action) => {
       void (async () => {
         const updated = await setMatchState(matchId, action);
-        if (!updated || action !== "finish" || !supabase || !organizationId)
-          return;
+        if (!updated || action !== "finish") return;
+
+        void notifyMatchEvent("match_finished", matchId);
+        navigate(`/app/matches?match=${encodeURIComponent(matchId)}`);
+
+        if (!supabase || !organizationId) return;
 
         const { data, error } = await supabase
           .from("players")

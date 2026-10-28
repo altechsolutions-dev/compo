@@ -465,6 +465,15 @@ create table if not exists public.match_slots (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.match_finish_push_claims (
+  match_id uuid primary key references public.match_slots (id) on delete cascade,
+  claimed_at timestamptz not null default now()
+);
+
+alter table public.match_finish_push_claims enable row level security;
+revoke all on table public.match_finish_push_claims from public, anon, authenticated;
+grant all on table public.match_finish_push_claims to service_role;
+
 create index if not exists match_slots_organization_schedule_idx
   on public.match_slots (organization_id, match_date, match_time);
 
