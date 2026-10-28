@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
+import { formatMatchNotification } from "./formatMatchSchedule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,19 +21,39 @@ const messages: Record<
 > = {
   new_match: (match) => ({
     title: "Nouveau match",
-    body: `${match.venue} · ${match.match_date} à ${match.match_time}`,
+    body: formatMatchNotification(
+      match.organization?.name ?? "Votre club",
+      match.match_date,
+      match.match_time,
+      match.venue,
+    ),
   }),
   match_updated: (match) => ({
     title: "Match modifié",
-    body: `${match.venue} · ${match.match_date} à ${match.match_time}`,
+    body: formatMatchNotification(
+      match.organization?.name ?? "Votre club",
+      match.match_date,
+      match.match_time,
+      match.venue,
+    ),
   }),
   spot_available: (match) => ({
     title: "Une place est disponible",
-    body: `${match.venue} · ${match.match_date} à ${match.match_time}`,
+    body: formatMatchNotification(
+      match.organization?.name ?? "Votre club",
+      match.match_date,
+      match.match_time,
+      match.venue,
+    ),
   }),
   match_cancelled: (match) => ({
     title: "Match annulé",
-    body: `${match.venue} · ${match.match_date} à ${match.match_time}`,
+    body: formatMatchNotification(
+      match.organization?.name ?? "Votre club",
+      match.match_date,
+      match.match_time,
+      match.venue,
+    ),
   }),
 };
 
@@ -46,6 +67,7 @@ type MatchRow = {
   max_players: number;
   status: string;
   match_slot_attendees: { user_id: string }[];
+  organization: { name: string } | null;
 };
 
 Deno.serve(async (request) => {
@@ -113,7 +135,7 @@ Deno.serve(async (request) => {
     const { data: match, error: matchError } = await admin
       .from("match_slots")
       .select(
-        "id, organization_id, created_by, match_date, match_time, venue, max_players, status, match_slot_attendees(user_id)",
+        "id, organization_id, created_by, match_date, match_time, venue, max_players, status, match_slot_attendees(user_id), organization:organizations(name)",
       )
       .eq("id", matchId)
       .single();
