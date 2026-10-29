@@ -1,14 +1,33 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Session } from "@supabase/supabase-js";
 import type { MatchSlot } from "../../types";
 import { currentPlayerId } from "../../data/currentPlayerId/currentPlayerId";
 import { useMatchActions } from "./useMatchActions";
 
-vi.mock("../../lib/supabase/supabase", () => ({ supabase: null }));
+const { rpc, notifyMatchEvent, supabaseState } = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  notifyMatchEvent: vi.fn(),
+  supabaseState: { current: null as { rpc: typeof vi.fn } | null },
+}));
+
+vi.mock("../../lib/supabase/supabase", () => ({
+  get supabase() {
+    return supabaseState.current;
+  },
+}));
+vi.mock("../../lib/pushNotifications/notifyMatchEvent", () => ({
+  notifyMatchEvent,
+}));
 
 function setup(
   matches: MatchSlot[],
-  overrides: Partial<{ matchDate: string; matchTime: string }> = {},
+  overrides: Partial<{
+    matchDate: string;
+    matchTime: string;
+    matchMaxPlayers: number;
+    session: Session | null;
+  }> = {},
 ) {
   let currentMatches = matches;
   const setMatches = vi.fn(
@@ -51,6 +70,12 @@ function setup(
 }
 
 describe("useMatchActions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    supabaseState.current = null;
+    rpc.mockResolvedValue({ data: [], error: null });
+  });
+
   it("inscrit le joueur courant dans un match de démonstration", async () => {
     const match: MatchSlot = {
       id: "match-1",
@@ -65,6 +90,88 @@ describe("useMatchActions", () => {
     await act(() => result.current.registerForMatch("match-1"));
 
     expect(getMatches()[0].attendees).toEqual(["player-1", currentPlayerId]);
+  });
+
+  it("notifie les joueurs quand une inscription rend le match complet", async () => {
+    const match: MatchSlot = {
+      id: "match-full",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 2,
+      attendees: ["player-1"],
+    };
+    rpc.mockResolvedValueOnce({
+      data: [{ attendees: ["player-1", currentPlayerId] }],
+      error: null,
+    });
+    supabaseState.current = { rpc };
+    const { result } = setup([match], { session: {} as Session });
+
+    await act(() => result.current.registerForMatch("match-full"));
+
+    expect(notifyMatchEvent).toHaveBeenCalledWith(
+      "match_confirmed",
+      "match-full",
+    );
+  });
+
+  it("notifie les joueurs quand l’ajout d’un invité complète le match", async () => {
+    const match: MatchSlot = {
+      id: "match-guest-full",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 2,
+      attendees: ["player-1"],
+    };
+    rpc.mockResolvedValueOnce({
+      data: [
+        {
+          guest_id: "guest-1",
+          attendees: ["player-1", "guest-1"],
+          attendee_names: { "guest-1": "Alex" },
+        },
+      ],
+      error: null,
+    });
+    supabaseState.current = { rpc };
+    const { result } = setup([match], { session: {} as Session });
+
+    await act(() => result.current.addGuestToMatch("match-guest-full", "Alex"));
+
+    expect(notifyMatchEvent).toHaveBeenCalledWith(
+      "match_confirmed",
+      "match-guest-full",
+    );
+  });
+
+  it("confirme le match si l’organisateur réduit les places jusqu’à complet", async () => {
+    const match: MatchSlot = {
+      id: "match-capacity-full",
+      createdBy: currentPlayerId,
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 4,
+      attendees: ["player-1", "player-2"],
+    };
+    supabaseState.current = { rpc };
+    const { result } = setup([match], {
+      session: {} as Session,
+      matchMaxPlayers: 2,
+    });
+
+    await act(() =>
+      result.current.updateMatch("match-capacity-full", {
+        preventDefault: vi.fn(),
+      } as never),
+    );
+
+    expect(notifyMatchEvent).toHaveBeenCalledWith(
+      "match_confirmed",
+      "match-capacity-full",
+    );
   });
 
   it("enregistre un but d’invité pour le résumé sans fiche de joueur", async () => {

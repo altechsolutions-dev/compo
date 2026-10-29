@@ -12,6 +12,7 @@ export type DashboardLayoutProps = {
   isSignedIn: boolean;
   canShareInvite: boolean;
   canInstall: boolean;
+  unreadDiscussionCount?: number;
   onNavigate: (view: DashboardView) => void;
   onChooseOrganization: () => void;
   onShareInvite: () => void;
@@ -29,6 +30,7 @@ export function DashboardLayout({
   isSignedIn,
   canShareInvite,
   canInstall,
+  unreadDiscussionCount = 0,
   onNavigate,
   onChooseOrganization,
   onShareInvite,
@@ -44,7 +46,9 @@ export function DashboardLayout({
       ? "organization"
       : location.pathname === "/app/live"
         ? "live"
-        : "matches";
+        : location.pathname === "/app/discussions"
+          ? "discussions"
+          : "matches";
 
   return (
     <main className="dashboard-page mx-auto flex min-h-svh w-[min(calc(100%-56px),1440px)] flex-col animate-[appear_500ms_ease-out_both] max-[680px]:w-[calc(100%-32px)] max-[380px]:w-[calc(100%-24px)]">
@@ -56,6 +60,7 @@ export function DashboardLayout({
         isSignedIn={isSignedIn}
         canShareInvite={canShareInvite}
         canInstall={canInstall}
+        unreadDiscussionCount={unreadDiscussionCount}
         onNavigate={onNavigate}
         onChooseOrganization={onChooseOrganization}
         onShareInvite={onShareInvite}

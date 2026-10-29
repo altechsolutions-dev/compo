@@ -3,6 +3,7 @@ import {
   Check,
   Clock3,
   Eye,
+  MessageCircle,
   MapPin,
   Pencil,
   Sparkles,
@@ -20,6 +21,7 @@ export type MatchCardProps = {
   matchRegistering: boolean;
   playerNames?: Record<string, string>;
   onOpen: () => void;
+  onOpenDiscussion?: () => void;
   onRegister: () => void;
   onAddGuest?: (guestName: string) => void;
   onEdit?: () => void;
@@ -32,6 +34,7 @@ export function MatchCard({
   matchRegistering,
   playerNames = {},
   onOpen,
+  onOpenDiscussion,
   onRegister,
   onAddGuest,
   onEdit,
@@ -130,6 +133,28 @@ export function MatchCard({
                 role="tooltip"
               >
                 Voir les détails du match
+              </span>
+            </div>
+          )}
+          {onOpenDiscussion && (
+            <div className="group relative">
+              <button
+                aria-label="Ouvrir la discussion du match"
+                className="grid size-8 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-elevated) text-(--text-secondary) transition-colors hover:border-(--team-b-blue) hover:text-(--team-b-blue) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-b-blue)"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenDiscussion();
+                }}
+                title="Ouvrir la discussion du match"
+                type="button"
+              >
+                <MessageCircle aria-hidden="true" size={15} />
+              </button>
+              <span
+                className="pointer-events-none invisible absolute right-0 top-full z-10 mt-2 whitespace-nowrap rounded bg-(--ink) px-2 py-1 text-[10px] font-semibold text-(--bg-main) opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+                role="tooltip"
+              >
+                Ouvrir la discussion du match
               </span>
             </div>
           )}

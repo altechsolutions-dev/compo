@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { DashboardHeader } from "./DashboardHeader";
 
-function renderHeader() {
+function renderHeader(unreadDiscussionCount = 0) {
   const callbacks = {
     onNavigate: vi.fn(),
     onChooseOrganization: vi.fn(),
@@ -22,6 +22,7 @@ function renderHeader() {
         isSignedIn
         canShareInvite
         canInstall
+        unreadDiscussionCount={unreadDiscussionCount}
         {...callbacks}
       />
     </MemoryRouter>,
@@ -40,6 +41,8 @@ describe("DashboardHeader", () => {
     expect(screen.getByText("8")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "En direct" }));
     expect(onNavigate).toHaveBeenCalledWith("live");
+    fireEvent.click(screen.getByRole("tab", { name: "Discussions" }));
+    expect(onNavigate).toHaveBeenCalledWith("discussions");
     fireEvent.click(screen.getByRole("tab", { name: /Club/ }));
     expect(onNavigate).toHaveBeenCalledWith("organization");
   });
@@ -64,5 +67,21 @@ describe("DashboardHeader", () => {
     expect(callbacks.onJoinWithCode).toHaveBeenCalledOnce();
     expect(callbacks.onSignOut).toHaveBeenCalledOnce();
     expect(callbacks.onInstall).toHaveBeenCalledOnce();
+  });
+
+  it("signale les discussions non lues par une puce", () => {
+    renderHeader(2);
+
+    const discussionsTab = screen.getByRole("tab", {
+      name: "Discussions, messages non lus",
+    });
+    const unreadDot = discussionsTab.querySelector("span[aria-hidden='true']");
+    expect(unreadDot).toHaveClass(
+      "relative",
+      "-top-0.5",
+      "rounded-full",
+      "bg-(--team-a-red)",
+    );
+    expect(unreadDot?.previousElementSibling).toHaveTextContent("Discussions");
   });
 });

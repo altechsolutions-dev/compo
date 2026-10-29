@@ -23,6 +23,8 @@ export type WorkspaceRouteContext = {
   matchNotice: string;
   onFilterChange: (filter: "all" | "available" | "finished") => void;
   onOpenMatch: (matchId: string) => void;
+  onOpenDiscussion: (matchId: string) => void;
+  onDiscussionRead?: () => void;
   onRegisterForMatch: (matchId: string) => void;
   onAddGuestToMatch: (matchId: string, guestName: string) => void;
   onEditMatch: (match: MatchSlot) => void;

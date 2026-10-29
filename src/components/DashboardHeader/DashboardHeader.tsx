@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   ChevronDown,
+  MessageCircle,
   Download,
   Share2,
   Users,
@@ -19,6 +20,7 @@ export type DashboardHeaderProps = {
   isSignedIn: boolean;
   canShareInvite: boolean;
   canInstall: boolean;
+  unreadDiscussionCount?: number;
   onNavigate: (view: DashboardView) => void;
   onChooseOrganization: () => void;
   onShareInvite: () => void;
@@ -35,6 +37,7 @@ export function DashboardHeader({
   isSignedIn,
   canShareInvite,
   canInstall,
+  unreadDiscussionCount = 0,
   onNavigate,
   onChooseOrganization,
   onShareInvite,
@@ -79,6 +82,27 @@ export function DashboardHeader({
         >
           <span className="size-1.5 rounded-full bg-(--team-a-red)" />
           <span className="max-[380px]:sr-only">En direct</span>
+        </button>
+        <button
+          className={`relative inline-flex h-12.25 cursor-pointer items-center gap-2 border-0 bg-transparent text-xs ${activeView === "discussions" ? "font-semibold text-(--ink) after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-(--team-b-blue) after:content-['']" : "text-(--muted)"}`}
+          onClick={() => onNavigate("discussions")}
+          type="button"
+          role="tab"
+          aria-selected={activeView === "discussions"}
+          aria-label={
+            unreadDiscussionCount > 0
+              ? "Discussions, messages non lus"
+              : "Discussions"
+          }
+        >
+          <MessageCircle size={16} />
+          <span className="max-[380px]:sr-only">Discussions</span>
+          {unreadDiscussionCount > 0 && (
+            <span
+              aria-hidden="true"
+              className="relative -top-0.5 size-2 shrink-0 rounded-full bg-(--team-a-red) ring-2 ring-(--bg-main)"
+            />
+          )}
         </button>
         <button
           className={`relative inline-flex h-12.25 cursor-pointer items-center gap-2 border-0 bg-transparent text-xs ${activeView === "organization" ? "font-semibold text-(--ink) after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-(--team-b-blue) after:content-['']" : "text-(--muted)"}`}

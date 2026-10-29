@@ -461,6 +461,10 @@ describe("MatchDetailsContent", () => {
         isFull: true,
         isRegistered: true,
         isRegistering: false,
+        teams: [
+          ["alex", "sarah"],
+          ["malik", "ines"],
+        ],
         playerNames,
         onClose: vi.fn(),
         onRegister: vi.fn(),
@@ -484,7 +488,7 @@ describe("MatchDetailsContent", () => {
     expect(candidateButton).not.toBeDisabled();
     expect(candidateButton).toHaveClass(
       "cursor-pointer",
-      "enabled:hover:bg-(--team-b-blue)/10",
+      "enabled:hover:bg-(--team-a-red)/10",
     );
   });
 
@@ -505,6 +509,10 @@ describe("MatchDetailsContent", () => {
         isFull: true,
         isRegistered: true,
         isRegistering: false,
+        teams: [
+          ["alex", "sarah"],
+          ["malik", "ines"],
+        ],
         playerNames,
         onClose: vi.fn(),
         onRegister: vi.fn(),
@@ -538,6 +546,10 @@ describe("MatchDetailsContent", () => {
         isFull: true,
         isRegistered: true,
         isRegistering: false,
+        teams: [
+          ["alex", "sarah"],
+          ["malik", "ines"],
+        ],
         playerNames,
         onClose: vi.fn(),
         onRegister: vi.fn(),
@@ -560,7 +572,11 @@ describe("MatchDetailsContent", () => {
     });
     expect(motmSection).toHaveTextContent("Vote clôturé");
     expect(within(motmSection).getAllByRole("listitem")).toHaveLength(2);
-    expect(within(motmSection).getByText("Alex Martin")).toBeInTheDocument();
-    expect(within(motmSection).getByText("Malik Diallo")).toBeInTheDocument();
+    expect(
+      within(motmSection).getByText("Alex Martin").closest("li"),
+    ).toHaveClass("border-(--team-a-red)/35", "text-(--team-a-red)");
+    expect(
+      within(motmSection).getByText("Malik Diallo").closest("li"),
+    ).toHaveClass("border-(--team-b-blue)/35", "text-(--team-b-blue)");
   });
 });

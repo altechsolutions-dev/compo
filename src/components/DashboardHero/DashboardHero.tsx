@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import "./DashboardHero.css";
 
-export type DashboardView = "matches" | "live" | "organization";
+export type DashboardView = "matches" | "live" | "discussions" | "organization";
 
 export type DashboardHeroProps = {
   organization: string;

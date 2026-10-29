@@ -466,13 +466,27 @@ create table if not exists public.match_slots (
 );
 
 create table if not exists public.match_finish_push_claims (
-  match_id uuid primary key references public.match_slots (id) on delete cascade,
+  match_id uuid not null references public.match_slots (id) on delete cascade,
+  endpoint text not null,
+  primary key (match_id, endpoint),
   claimed_at timestamptz not null default now()
 );
 
 alter table public.match_finish_push_claims enable row level security;
 revoke all on table public.match_finish_push_claims from public, anon, authenticated;
 grant all on table public.match_finish_push_claims to service_role;
+
+create table if not exists public.match_confirmation_push_claims (
+  match_id uuid not null references public.match_slots (id) on delete cascade,
+  endpoint text not null,
+  primary key (match_id, endpoint),
+  claimed_at timestamptz not null default now()
+);
+
+alter table public.match_confirmation_push_claims enable row level security;
+revoke all on table public.match_confirmation_push_claims
+  from public, anon, authenticated;
+grant all on table public.match_confirmation_push_claims to service_role;
 
 create index if not exists match_slots_organization_schedule_idx
   on public.match_slots (organization_id, match_date, match_time);
@@ -492,6 +506,64 @@ create index if not exists match_slot_attendees_user_id_idx
 
 alter table public.match_slot_attendees enable row level security;
 revoke all on table public.match_slot_attendees from anon, authenticated;
+
+create or replace function public.clear_match_confirmation_claims_when_incomplete()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  target_match_id uuid;
+begin
+  if tg_table_name = 'match_slot_attendees' then
+    if tg_op = 'DELETE' then
+      target_match_id := old.match_slot_id;
+    else
+      target_match_id := new.match_slot_id;
+    end if;
+  else
+    target_match_id := new.id;
+  end if;
+
+  delete from public.match_confirmation_push_claims as claim
+  where claim.match_id = target_match_id
+    and exists (
+      select 1
+      from public.match_slots as slot
+      where slot.id = target_match_id
+        and slot.status = 'scheduled'
+        and (
+          select count(*)
+          from public.match_slot_attendees as attendee
+          where attendee.match_slot_id = slot.id
+        ) < slot.max_players
+    );
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function
+  public.clear_match_confirmation_claims_when_incomplete()
+  from public, anon, authenticated;
+
+drop trigger if exists clear_match_confirmation_claims_on_attendee_change
+  on public.match_slot_attendees;
+create trigger clear_match_confirmation_claims_on_attendee_change
+after insert or delete on public.match_slot_attendees
+for each row execute function
+  public.clear_match_confirmation_claims_when_incomplete();
+
+drop trigger if exists clear_match_confirmation_claims_on_capacity_change
+  on public.match_slots;
+create trigger clear_match_confirmation_claims_on_capacity_change
+after update of max_players, status on public.match_slots
+for each row execute function
+  public.clear_match_confirmation_claims_when_incomplete();
 
 drop function if exists public.get_match_slots(uuid);
 
@@ -687,6 +759,724 @@ $$;
 
 revoke all on function public.register_for_match(uuid) from public;
 grant execute on function public.register_for_match(uuid) to authenticated;
+
+notify pgrst, 'reload schema';
+
+alter table public.match_slots
+  add column if not exists status text not null default 'scheduled';
+
+create table if not exists public.match_discussion_messages (
+  id uuid primary key default gen_random_uuid(),
+  match_slot_id uuid not null references public.match_slots (id) on delete cascade,
+  author_id uuid not null references auth.users (id) on delete cascade,
+  body text not null check (char_length(trim(body)) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+
+alter table public.match_discussion_messages enable row level security;
+revoke all on table public.match_discussion_messages from anon, authenticated;
+
+create table if not exists public.match_discussion_reads (
+  match_slot_id uuid not null references public.match_slots (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  last_read_at timestamptz not null,
+  last_read_message_id uuid not null,
+  primary key (match_slot_id, user_id)
+);
+
+alter table public.match_discussion_reads enable row level security;
+revoke all on table public.match_discussion_reads from anon, authenticated;
+
+create or replace function public.get_match_discussion_messages(p_match_id uuid)
+returns table (
+  id uuid,
+  author_id uuid,
+  author_name text,
+  body text,
+  created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  match_organization_id uuid;
+  match_status text;
+begin
+  select slot.organization_id, slot.status
+  into match_organization_id, match_status
+  from public.match_slots as slot
+  where slot.id = p_match_id;
+
+  if match_organization_id is null then
+    raise exception 'Match not found';
+  end if;
+  if auth.uid() is null or not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = match_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+  if match_status = 'finished' then
+    raise exception 'Discussion was deleted when the match finished';
+  end if;
+
+  return query
+  select recent.id, recent.author_id,
+    coalesce(author.display_name, 'Joueur'), recent.body, recent.created_at
+  from (
+    select message.id, message.author_id, message.body, message.created_at
+    from public.match_discussion_messages as message
+    where message.match_slot_id = p_match_id
+    order by message.created_at desc, message.id desc
+    limit 500
+  ) as recent
+  left join public.organization_members as author
+    on author.organization_id = match_organization_id
+    and author.user_id = recent.author_id
+  order by recent.created_at, recent.id;
+end;
+$$;
+
+revoke all on function public.get_match_discussion_messages(uuid) from public;
+grant execute on function public.get_match_discussion_messages(uuid) to authenticated;
+
+notify pgrst, 'reload schema';
+
+alter table public.match_slots
+  add column if not exists status text not null default 'scheduled';
+
+create table if not exists public.match_discussion_messages (
+  id uuid primary key default gen_random_uuid(),
+  match_slot_id uuid not null references public.match_slots (id) on delete cascade,
+  author_id uuid not null references auth.users (id) on delete cascade,
+  body text not null check (char_length(trim(body)) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+
+alter table public.match_discussion_messages enable row level security;
+revoke all on table public.match_discussion_messages from anon, authenticated;
+
+create table if not exists public.match_discussion_reads (
+  match_slot_id uuid not null references public.match_slots (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  last_read_at timestamptz not null,
+  last_read_message_id uuid not null,
+  primary key (match_slot_id, user_id)
+);
+
+alter table public.match_discussion_reads enable row level security;
+revoke all on table public.match_discussion_reads from anon, authenticated;
+
+create or replace function public.get_unread_match_discussion_count(
+  p_organization_id uuid
+)
+returns integer
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  unread_count integer;
+begin
+  if auth.uid() is null or not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = p_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+
+  select count(distinct slot.id)::integer
+  into unread_count
+  from public.match_slots as slot
+  join public.match_discussion_messages as message
+    on message.match_slot_id = slot.id
+  left join public.match_discussion_reads as receipt
+    on receipt.match_slot_id = slot.id
+    and receipt.user_id = auth.uid()
+  where slot.organization_id = p_organization_id
+    and slot.status <> 'finished'
+    and message.author_id <> auth.uid()
+    and (
+      receipt.user_id is null
+      or (message.created_at, message.id) >
+        (receipt.last_read_at, receipt.last_read_message_id)
+    );
+
+  return coalesce(unread_count, 0);
+end;
+$$;
+
+create or replace function public.get_match_discussion_messages_with_readers(
+  p_match_id uuid
+)
+returns table (
+  id uuid,
+  author_id uuid,
+  author_name text,
+  body text,
+  created_at timestamptz,
+  readers jsonb
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  match_organization_id uuid;
+  match_status text;
+  latest_read_at timestamptz;
+  latest_read_message_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  select slot.organization_id, slot.status
+  into match_organization_id, match_status
+  from public.match_slots as slot
+  where slot.id = p_match_id;
+
+  if match_organization_id is null then
+    raise exception 'Match not found';
+  end if;
+  if not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = match_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+  if match_status = 'finished' then
+    raise exception 'Discussion was deleted when the match finished';
+  end if;
+
+  select message.created_at, message.id
+  into latest_read_at, latest_read_message_id
+  from public.match_discussion_messages as message
+  where message.match_slot_id = p_match_id
+  order by message.created_at desc, message.id desc
+  limit 1;
+
+  if latest_read_message_id is not null then
+    insert into public.match_discussion_reads (
+      match_slot_id, user_id, last_read_at, last_read_message_id
+    ) values (
+      p_match_id, auth.uid(), latest_read_at, latest_read_message_id
+    )
+    on conflict (match_slot_id, user_id)
+    do update set
+      last_read_at = excluded.last_read_at,
+      last_read_message_id = excluded.last_read_message_id
+    where (excluded.last_read_at, excluded.last_read_message_id) >
+      (match_discussion_reads.last_read_at, match_discussion_reads.last_read_message_id);
+  end if;
+
+  return query
+  select recent.id, recent.author_id,
+    coalesce(author.display_name, 'Joueur'), recent.body, recent.created_at,
+    coalesce(reader_data.readers, '[]'::jsonb)
+  from (
+    select message.id, message.author_id, message.body, message.created_at
+    from public.match_discussion_messages as message
+    where message.match_slot_id = p_match_id
+    order by message.created_at desc, message.id desc
+    limit 500
+  ) as recent
+  left join public.organization_members as author
+    on author.organization_id = match_organization_id
+    and author.user_id = recent.author_id
+  left join lateral (
+    select jsonb_agg(
+      jsonb_build_object(
+        'user_id', receipt.user_id,
+        'display_name', reader.display_name
+      ) order by reader.display_name
+    ) as readers
+    from public.match_discussion_reads as receipt
+    join public.organization_members as reader
+      on reader.organization_id = match_organization_id
+      and reader.user_id = receipt.user_id
+    where receipt.match_slot_id = p_match_id
+      and receipt.user_id <> recent.author_id
+      and (receipt.last_read_at, receipt.last_read_message_id) >=
+        (recent.created_at, recent.id)
+  ) as reader_data on true
+  order by recent.created_at, recent.id;
+end;
+$$;
+
+revoke all on function public.get_unread_match_discussion_count(uuid) from public;
+revoke all on function public.get_match_discussion_messages_with_readers(uuid) from public;
+grant execute on function public.get_unread_match_discussion_count(uuid) to authenticated;
+grant execute on function public.get_match_discussion_messages_with_readers(uuid) to authenticated;
+
+create or replace function public.purge_finished_match_discussion()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.status = 'finished' and old.status is distinct from new.status then
+    delete from public.match_discussion_reads as receipt
+    where receipt.match_slot_id = new.id;
+    delete from public.match_discussion_messages as message
+    where message.match_slot_id = new.id;
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.purge_finished_match_discussion() from public;
+
+drop trigger if exists match_slots_purge_discussion_on_finish
+  on public.match_slots;
+create trigger match_slots_purge_discussion_on_finish
+after update of status on public.match_slots
+for each row
+when (old.status is distinct from new.status and new.status = 'finished')
+execute function public.purge_finished_match_discussion();
+
+create or replace function public.get_match_discussion_messages(p_match_id uuid)
+returns table (
+  id uuid,
+  author_id uuid,
+  author_name text,
+  body text,
+  created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  match_organization_id uuid;
+  match_status text;
+begin
+  select slot.organization_id, slot.status
+  into match_organization_id, match_status
+  from public.match_slots as slot
+  where slot.id = p_match_id;
+
+  if match_organization_id is null then
+    raise exception 'Match not found';
+  end if;
+  if auth.uid() is null or not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = match_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+  if match_status = 'finished' then
+    raise exception 'Discussion was deleted when the match finished';
+  end if;
+
+  return query
+  select recent.id, recent.author_id,
+    coalesce(author.display_name, 'Joueur'), recent.body, recent.created_at
+  from (
+    select message.id, message.author_id, message.body, message.created_at
+    from public.match_discussion_messages as message
+    where message.match_slot_id = p_match_id
+    order by message.created_at desc, message.id desc
+    limit 500
+  ) as recent
+  left join public.organization_members as author
+    on author.organization_id = match_organization_id
+    and author.user_id = recent.author_id
+  order by recent.created_at, recent.id;
+end;
+$$;
+
+revoke all on function public.get_match_discussion_messages(uuid) from public;
+grant execute on function public.get_match_discussion_messages(uuid) to authenticated;
+
+notify pgrst, 'reload schema';
+
+alter table public.match_slots
+  add column if not exists status text not null default 'scheduled';
+
+create table if not exists public.match_discussion_messages (
+  id uuid primary key default gen_random_uuid(),
+  match_slot_id uuid not null references public.match_slots (id) on delete cascade,
+  author_id uuid not null references auth.users (id) on delete cascade,
+  body text not null check (char_length(trim(body)) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+
+create or replace function public.edit_match_discussion_message(
+  p_message_id uuid,
+  p_body text
+)
+returns table (
+  id uuid,
+  author_id uuid,
+  author_name text,
+  body text,
+  created_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  message_match_id uuid;
+  message_author_id uuid;
+  match_organization_id uuid;
+  match_status text;
+  clean_body text := trim(p_body);
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select message.match_slot_id, message.author_id,
+    slot.organization_id, slot.status
+  into message_match_id, message_author_id,
+    match_organization_id, match_status
+  from public.match_discussion_messages as message
+  join public.match_slots as slot on slot.id = message.match_slot_id
+  where message.id = p_message_id
+  for update of message, slot;
+
+  if message_match_id is null then
+    raise exception 'Message not found';
+  end if;
+  if message_author_id <> auth.uid() then
+    raise exception 'Only the message author can edit it';
+  end if;
+  if not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = match_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+  if match_status in ('finished', 'cancelled') then
+    raise exception 'Discussion is read-only';
+  end if;
+  if clean_body is null or char_length(clean_body) not between 1 and 2000 then
+    raise exception 'Message must contain 1 to 2000 characters';
+  end if;
+
+  update public.match_discussion_messages as message
+  set body = clean_body
+  where message.id = p_message_id;
+
+  return query
+  select message.id, message.author_id,
+    coalesce(author.display_name, 'Joueur'), message.body, message.created_at
+  from public.match_discussion_messages as message
+  left join public.organization_members as author
+    on author.organization_id = match_organization_id
+    and author.user_id = message.author_id
+  where message.id = p_message_id;
+end;
+$$;
+
+create or replace function public.delete_match_discussion_message(
+  p_message_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  message_match_id uuid;
+  message_author_id uuid;
+  match_organization_id uuid;
+  match_status text;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select message.match_slot_id, message.author_id,
+    slot.organization_id, slot.status
+  into message_match_id, message_author_id,
+    match_organization_id, match_status
+  from public.match_discussion_messages as message
+  join public.match_slots as slot on slot.id = message.match_slot_id
+  where message.id = p_message_id
+  for update of message, slot;
+
+  if message_match_id is null then
+    raise exception 'Message not found';
+  end if;
+  if message_author_id <> auth.uid() then
+    raise exception 'Only the message author can delete it';
+  end if;
+  if not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = match_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+  if match_status in ('finished', 'cancelled') then
+    raise exception 'Discussion is read-only';
+  end if;
+
+  delete from public.match_discussion_messages as message
+  where message.id = p_message_id;
+end;
+$$;
+
+revoke all on function public.edit_match_discussion_message(uuid, text) from public;
+revoke all on function public.delete_match_discussion_message(uuid) from public;
+grant execute on function public.edit_match_discussion_message(uuid, text) to authenticated;
+grant execute on function public.delete_match_discussion_message(uuid) to authenticated;
+
+notify pgrst, 'reload schema';
+
+create table if not exists public.match_discussion_messages (
+  id uuid primary key default gen_random_uuid(),
+  match_slot_id uuid not null references public.match_slots (id) on delete cascade,
+  author_id uuid not null references auth.users (id) on delete cascade,
+  body text not null check (char_length(trim(body)) between 1 and 2000),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists match_discussion_messages_match_created_idx
+  on public.match_discussion_messages (match_slot_id, created_at desc);
+
+alter table public.match_discussion_messages enable row level security;
+revoke all on table public.match_discussion_messages from anon, authenticated;
+
+create table if not exists public.match_chat_push_claims (
+  message_id uuid not null references public.match_discussion_messages (id) on delete cascade,
+  endpoint text not null,
+  primary key (message_id, endpoint),
+  claimed_at timestamptz not null default now()
+);
+
+alter table public.match_chat_push_claims enable row level security;
+revoke all on table public.match_chat_push_claims from anon, authenticated;
+
+create or replace function public.get_match_discussions(p_organization_id uuid)
+returns table (
+  match_id uuid,
+  match_date text,
+  match_time text,
+  venue text,
+  status text,
+  last_message_body text,
+  last_author_name text,
+  last_message_at timestamptz,
+  has_unread boolean
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = p_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+
+  return query
+  select slot.id, to_char(slot.match_date, 'YYYY-MM-DD'),
+    to_char(slot.match_time, 'HH24:MI'), slot.venue, slot.status, latest.body,
+    coalesce(author.display_name, 'Joueur'), latest.created_at,
+    exists (
+      select 1
+      from public.match_discussion_messages as unread
+      left join public.match_discussion_reads as receipt
+        on receipt.match_slot_id = slot.id
+        and receipt.user_id = auth.uid()
+      where unread.match_slot_id = slot.id
+        and slot.status <> 'finished'
+        and unread.author_id <> auth.uid()
+        and (
+          receipt.user_id is null
+          or (unread.created_at, unread.id) >
+            (receipt.last_read_at, receipt.last_read_message_id)
+        )
+    )
+  from public.match_slots as slot
+  join lateral (
+    select message.body, message.author_id, message.created_at
+    from public.match_discussion_messages as message
+    where message.match_slot_id = slot.id
+    order by message.created_at desc, message.id desc
+    limit 1
+  ) as latest on true
+  left join public.organization_members as author
+    on author.organization_id = slot.organization_id
+    and author.user_id = latest.author_id
+  where slot.organization_id = p_organization_id
+  order by latest.created_at desc;
+end;
+$$;
+
+create or replace function public.get_match_discussion_messages(p_match_id uuid)
+returns table (
+  id uuid,
+  author_id uuid,
+  author_name text,
+  body text,
+  created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  match_organization_id uuid;
+begin
+  select slot.organization_id into match_organization_id
+  from public.match_slots as slot where slot.id = p_match_id;
+
+  if match_organization_id is null then
+    raise exception 'Match not found';
+  end if;
+  if auth.uid() is null or not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = match_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+
+  return query
+  select recent.id, recent.author_id,
+    coalesce(author.display_name, 'Joueur'), recent.body, recent.created_at
+  from (
+    select message.id, message.author_id, message.body, message.created_at
+    from public.match_discussion_messages as message
+    where message.match_slot_id = p_match_id
+    order by message.created_at desc, message.id desc
+    limit 500
+  ) as recent
+  left join public.organization_members as author
+    on author.organization_id = match_organization_id
+    and author.user_id = recent.author_id
+  order by recent.created_at, recent.id;
+end;
+$$;
+
+create or replace function public.send_match_discussion_message(
+  p_match_id uuid,
+  p_body text
+)
+returns table (
+  id uuid,
+  author_id uuid,
+  author_name text,
+  body text,
+  created_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  match_organization_id uuid;
+  match_status text;
+  clean_body text := trim(p_body);
+  new_message_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  select slot.organization_id, slot.status
+  into match_organization_id, match_status
+  from public.match_slots as slot
+  where slot.id = p_match_id
+  for update;
+
+  if match_organization_id is null then
+    raise exception 'Match not found';
+  end if;
+  if not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = match_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+  if match_status in ('finished', 'cancelled') then
+    raise exception 'Discussion is read-only';
+  end if;
+  if clean_body is null or char_length(clean_body) not between 1 and 2000 then
+    raise exception 'Message must contain 1 to 2000 characters';
+  end if;
+
+  insert into public.match_discussion_messages (match_slot_id, author_id, body)
+  values (p_match_id, auth.uid(), clean_body)
+  returning match_discussion_messages.id into new_message_id;
+
+  return query
+  select message.id, message.author_id,
+    coalesce(author.display_name, 'Joueur'), message.body, message.created_at
+  from public.match_discussion_messages as message
+  left join public.organization_members as author
+    on author.organization_id = match_organization_id
+    and author.user_id = message.author_id
+  where message.id = new_message_id;
+end;
+$$;
+
+create or replace function public.delete_match_discussion(p_match_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  match_organization_id uuid;
+  match_creator_id uuid;
+  match_status text;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  select slot.organization_id, slot.created_by, slot.status
+  into match_organization_id, match_creator_id, match_status
+  from public.match_slots as slot
+  where slot.id = p_match_id
+  for update;
+
+  if match_organization_id is null then
+    raise exception 'Match not found';
+  end if;
+  if match_status <> 'finished' then
+    raise exception 'Only finished match discussions can be deleted';
+  end if;
+  if not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = match_organization_id
+      and membership.user_id = auth.uid()
+      and (membership.role = 'owner' or match_creator_id = auth.uid())
+  ) then
+    raise exception 'Only the match creator or organization owner can delete this discussion';
+  end if;
+  delete from public.match_discussion_messages as message
+  where message.match_slot_id = p_match_id;
+end;
+$$;
+
+revoke all on function public.get_match_discussions(uuid) from public;
+revoke all on function public.get_match_discussion_messages(uuid) from public;
+revoke all on function public.send_match_discussion_message(uuid, text) from public;
+revoke all on function public.delete_match_discussion(uuid) from public;
+grant execute on function public.get_match_discussions(uuid) to authenticated;
+grant execute on function public.get_match_discussion_messages(uuid) to authenticated;
+grant execute on function public.send_match_discussion_message(uuid, text) to authenticated;
+grant execute on function public.delete_match_discussion(uuid) to authenticated;
 
 notify pgrst, 'reload schema';
 
@@ -1331,6 +2121,64 @@ revoke all on function public.get_match_man_of_the_match(uuid) from public;
 revoke all on function public.vote_match_man_of_the_match(uuid, uuid) from public;
 grant execute on function public.get_match_man_of_the_match(uuid) to authenticated;
 grant execute on function public.vote_match_man_of_the_match(uuid, uuid) to authenticated;
+
+notify pgrst, 'reload schema';
+
+create or replace function public.get_match_discussion_messages(p_match_id uuid)
+returns table (
+  id uuid,
+  author_id uuid,
+  author_name text,
+  body text,
+  created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  match_organization_id uuid;
+  match_status text;
+begin
+  select slot.organization_id, slot.status
+  into match_organization_id, match_status
+  from public.match_slots as slot
+  where slot.id = p_match_id;
+
+  if match_organization_id is null then
+    raise exception 'Match not found';
+  end if;
+  if auth.uid() is null or not exists (
+    select 1 from public.organization_members as membership
+    where membership.organization_id = match_organization_id
+      and membership.user_id = auth.uid()
+  ) then
+    raise exception 'Organization membership required';
+  end if;
+  if match_status = 'finished' then
+    raise exception 'Discussion was deleted when the match finished';
+  end if;
+
+  return query
+  select recent.id, recent.author_id,
+    coalesce(author.display_name, 'Joueur'), recent.body, recent.created_at
+  from (
+    select message.id, message.author_id, message.body, message.created_at
+    from public.match_discussion_messages as message
+    where message.match_slot_id = p_match_id
+    order by message.created_at desc, message.id desc
+    limit 500
+  ) as recent
+  left join public.organization_members as author
+    on author.organization_id = match_organization_id
+    and author.user_id = recent.author_id
+  order by recent.created_at, recent.id;
+end;
+$$;
+
+revoke all on function public.get_match_discussion_messages(uuid) from public;
+grant execute on function public.get_match_discussion_messages(uuid) to authenticated;
 
 notify pgrst, 'reload schema';
 

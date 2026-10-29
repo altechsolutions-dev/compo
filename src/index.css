@@ -17,7 +17,7 @@
   --ink: var(--text-primary);
   --muted: var(--text-secondary);
   --line: var(--border-neutral);
-  --accent: var(--team-a-red);
+  --accent: var(--team-b-blue);
   --lime: var(--team-b-blue);
   --paper: var(--bg-elevated);
   scrollbar-gutter: stable;

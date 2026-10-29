@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ModalManager } from "../../components/ModalManager/ModalManager";
 import { useMatchActions } from "../../hooks/useMatchActions/useMatchActions";
@@ -38,6 +38,15 @@ export function WorkspaceLayout() {
   const navigate = useNavigate();
   const auth = useAuthContext();
   const [playerStats, setPlayerStats] = useState<OrganizationPlayerStats[]>([]);
+  const [unreadDiscussionState, setUnreadDiscussionState] = useState<{
+    organizationId: string | null;
+    count: number;
+  }>({ organizationId: null, count: 0 });
+  const [unreadDiscussionRefreshVersion, setUnreadDiscussionRefreshVersion] =
+    useState(0);
+  const onDiscussionRead = useCallback(() => {
+    setUnreadDiscussionRefreshVersion((version) => version + 1);
+  }, []);
   const [playerStatsNotice, setPlayerStatsNotice] = useState("");
   const [manOfTheMatchPoll, setManOfTheMatchPoll] =
     useState<MatchManOfTheMatchPoll | null>(null);
@@ -111,6 +120,40 @@ export function WorkspaceLayout() {
     openInviteDialog,
     clearOrganizationSession,
   } = organizationWorkflow;
+
+  const unreadDiscussionCount =
+    session && unreadDiscussionState.organizationId === organizationId
+      ? unreadDiscussionState.count
+      : 0;
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !session || !organizationId) return;
+
+    let cancelled = false;
+    const refreshUnreadCount = async () => {
+      const { data, error } = await client.rpc(
+        "get_unread_match_discussion_count",
+        { p_organization_id: organizationId },
+      );
+      if (cancelled || error) return;
+      setUnreadDiscussionState({
+        organizationId,
+        count: typeof data === "number" ? data : 0,
+      });
+    };
+    void refreshUnreadCount();
+    const timer = window.setInterval(() => void refreshUnreadCount(), 15_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshUnreadCount();
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [organizationId, session, unreadDiscussionRefreshVersion]);
 
   useEffect(() => {
     const client = supabase;
@@ -430,17 +473,22 @@ export function WorkspaceLayout() {
   const layout = {
     organization,
     organizationMemberCount: organizationMembers.length,
+    unreadDiscussionCount,
     avatarLabel,
     isSignedIn: Boolean(session),
     canShareInvite: Boolean(organizationId && inviteCode),
     canInstall: Boolean(installPrompt),
-    onNavigate: (nextView: "matches" | "live" | "organization") =>
+    onNavigate: (
+      nextView: "matches" | "live" | "discussions" | "organization",
+    ) =>
       navigate(
         nextView === "matches"
           ? "/app/matches"
           : nextView === "live"
             ? "/app/live"
-            : "/app/organizations",
+            : nextView === "discussions"
+              ? "/app/discussions"
+              : "/app/organizations",
       ),
     onChooseOrganization: () => setModal("organizations"),
     onShareInvite: () => openInviteDialog(organization, inviteCode),
@@ -490,6 +538,9 @@ export function WorkspaceLayout() {
       }
       openMatchDrawer(matchId);
     },
+    onOpenDiscussion: (matchId: string) =>
+      navigate(`/app/discussions?match=${encodeURIComponent(matchId)}`),
+    onDiscussionRead,
     onRegisterForMatch: (matchId: string) => void registerForMatch(matchId),
     onAddGuestToMatch: (matchId: string, guestName: string) =>
       void addGuestToMatch(matchId, guestName),

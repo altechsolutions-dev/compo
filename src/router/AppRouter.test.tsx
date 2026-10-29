@@ -30,6 +30,10 @@ vi.mock("../pages/LiveMatchPage/LiveMatchPage", () => ({
   LiveMatchPage: () => <div>Tableau du match en direct</div>,
 }));
 
+vi.mock("../pages/DiscussionsPage/DiscussionsPage", () => ({
+  DiscussionsPage: () => <div>Discussions du match</div>,
+}));
+
 function LoginLocation() {
   const location = useLocation();
   return (
@@ -55,6 +59,22 @@ describe("AppRouter", () => {
     );
 
     expect(screen.getByText("Tableau du match en direct")).toBeInTheDocument();
+  });
+
+  it("ouvre la page Discussions dans le workspace authentifié", () => {
+    render(
+      <MemoryRouter initialEntries={["/app/discussions?match=match-1"]}>
+        <AppRouter
+          authLoading={false}
+          isConnected
+          hasSupabase
+          loginPage={null}
+          consentPage={null}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText("Discussions du match")).toBeInTheDocument();
   });
 
   it("conserve le code d’invitation lors de la redirection d’une session active", async () => {
