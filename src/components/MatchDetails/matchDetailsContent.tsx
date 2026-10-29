@@ -199,15 +199,27 @@ export function renderMatchDetailsContent({
                 </p>
                 {manOfTheMatchPoll.winnerIds.length ? (
                   <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
-                    {manOfTheMatchPoll.winnerIds.map((id) => (
-                      <li
-                        className="flex min-h-14 items-center gap-3 border border-(--team-b-blue)/35 bg-(--team-b-blue)/10 px-4 py-3 text-sm font-bold text-(--team-b-blue)"
-                        key={id}
-                      >
-                        <Trophy aria-hidden="true" size={17} />
-                        {playerNames[id] ?? "Joueur"}
-                      </li>
-                    ))}
+                    {manOfTheMatchPoll.winnerIds.map((id) => {
+                      const winnerTeam = matchTeams.findIndex((players) =>
+                        players.includes(id),
+                      );
+                      const winnerTeamClass =
+                        winnerTeam === 0
+                          ? "border-(--team-a-red)/35 bg-(--team-a-red)/10 text-(--team-a-red)"
+                          : winnerTeam === 1
+                            ? "border-(--team-b-blue)/35 bg-(--team-b-blue)/10 text-(--team-b-blue)"
+                            : "border-(--line) bg-(--bg-surface) text-(--text-primary)";
+
+                      return (
+                        <li
+                          className={`flex min-h-14 items-center gap-3 border px-4 py-3 text-sm font-bold ${winnerTeamClass}`}
+                          key={id}
+                        >
+                          <Trophy aria-hidden="true" size={17} />
+                          {playerNames[id] ?? "Joueur"}
+                        </li>
+                      );
+                    })}
                   </ul>
                 ) : (
                   <p className="m-0 text-sm font-semibold text-(--text-secondary)">

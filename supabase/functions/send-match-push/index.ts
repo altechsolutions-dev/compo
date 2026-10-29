@@ -14,7 +14,9 @@ type PushEvent =
   | "match_updated"
   | "spot_available"
   | "match_cancelled"
-  | "match_finished";
+  | "match_confirmed"
+  | "match_finished"
+  | "chat_message";
 
 const messages: Record<
   PushEvent,
@@ -47,6 +49,15 @@ const messages: Record<
       match.venue,
     ),
   }),
+  match_confirmed: (match) => ({
+    title: "Match confirmé",
+    body: `Le match est complet. Consultez la composition : ${formatMatchNotification(
+      match.organization?.name ?? "Votre club",
+      match.match_date,
+      match.match_time,
+      match.venue,
+    )}.`,
+  }),
   match_cancelled: (match) => ({
     title: "Match annulé",
     body: formatMatchNotification(
@@ -59,6 +70,10 @@ const messages: Record<
   match_finished: () => ({
     title: "Match terminé",
     body: "Le résumé et le vote pour l’homme du match sont disponibles.",
+  }),
+  chat_message: (match) => ({
+    title: "Nouveau message",
+    body: `Un nouveau message dans la discussion du match à ${match.venue}.`,
   }),
 };
 
@@ -126,9 +141,11 @@ Deno.serve(async (request) => {
     const body = await request.json();
     const event = body.event as PushEvent;
     const matchId = body.match_id;
+    const messageId = body.chat_message_id;
     if (
       !Object.prototype.hasOwnProperty.call(messages, event) ||
-      typeof matchId !== "string"
+      typeof matchId !== "string" ||
+      (event === "chat_message" && typeof messageId !== "string")
     ) {
       return Response.json(
         { error: "Invalid push event" },
@@ -154,10 +171,42 @@ Deno.serve(async (request) => {
     const attendeeIds = matchRow.match_slot_attendees.map(
       (attendee) => attendee.user_id,
     );
+    if (
+      event === "match_confirmed" &&
+      (matchRow.status !== "scheduled" ||
+        attendeeIds.length < matchRow.max_players)
+    ) {
+      return Response.json(
+        { error: "Match is not full and scheduled" },
+        { status: 409, headers: corsHeaders },
+      );
+    }
+    if (event === "chat_message") {
+      const { data: chatMessage, error: chatMessageError } = await admin
+        .from("match_discussion_messages")
+        .select("id, match_slot_id, author_id")
+        .eq("id", messageId)
+        .eq("match_slot_id", matchId)
+        .maybeSingle();
+      if (
+        chatMessageError ||
+        !chatMessage ||
+        chatMessage.author_id !== user.id
+      ) {
+        return Response.json(
+          { error: "Message not found or sender is not its author" },
+          { status: 403, headers: corsHeaders },
+        );
+      }
+    }
     const isAuthorizedSender =
       event === "match_finished"
         ? attendeeIds.includes(user.id)
-        : matchRow.created_by === user.id;
+        : event === "chat_message"
+          ? true
+          : event === "match_confirmed"
+            ? attendeeIds.includes(user.id) || matchRow.created_by === user.id
+            : matchRow.created_by === user.id;
     if (!isAuthorizedSender) {
       return Response.json(
         { error: "Only an authorized match participant can send this alert" },
@@ -165,11 +214,13 @@ Deno.serve(async (request) => {
       );
     }
     const validStatus =
-      event === "match_cancelled"
-        ? matchRow.status === "cancelled"
-        : event === "match_finished"
-          ? matchRow.status === "finished"
-          : matchRow.status === "scheduled";
+      event === "chat_message"
+        ? matchRow.status !== "finished" && matchRow.status !== "cancelled"
+        : event === "match_cancelled"
+          ? matchRow.status === "cancelled"
+          : event === "match_finished"
+            ? matchRow.status === "finished"
+            : matchRow.status === "scheduled";
     if (!validStatus) {
       return Response.json(
         { error: "Match state does not match this alert" },
@@ -208,7 +259,8 @@ Deno.serve(async (request) => {
     const recipients =
       event === "match_updated" ||
       event === "match_cancelled" ||
-      event === "match_finished"
+      event === "match_finished" ||
+      event === "match_confirmed"
         ? attendeeIds
         : memberIds;
     const recipientIds = [
@@ -223,23 +275,90 @@ Deno.serve(async (request) => {
       .select("endpoint, p256dh, auth")
       .in("user_id", recipientIds);
     if (subscriptionsError) throw subscriptionsError;
-    if (event === "match_finished" && subscriptions?.length) {
-      const { error: claimError } = await admin
-        .from("match_finish_push_claims")
-        .insert({ match_id: matchRow.id });
-      if (claimError?.code === "23505") {
+    let subscriptionsToSend = subscriptions ?? [];
+    if (event === "match_confirmed" && subscriptions?.length) {
+      const claimRows = subscriptions.map((subscription) => ({
+        match_id: matchRow.id,
+        endpoint: subscription.endpoint,
+      }));
+      const { data: claimedRows, error: claimError } = await admin
+        .from("match_confirmation_push_claims")
+        .upsert(claimRows, {
+          onConflict: "match_id,endpoint",
+          ignoreDuplicates: true,
+        })
+        .select("endpoint");
+      if (claimError) throw claimError;
+      const claimedEndpoints = new Set(
+        (claimedRows ?? []).map((claim) => claim.endpoint),
+      );
+      subscriptionsToSend = subscriptions.filter((subscription) =>
+        claimedEndpoints.has(subscription.endpoint),
+      );
+      if (subscriptionsToSend.length === 0) {
         return Response.json(
           { sent: 0, failed: 0, duplicate: true },
           { headers: corsHeaders },
         );
       }
+    }
+    if (event === "chat_message") {
+      const claimRows = subscriptionsToSend.map((subscription) => ({
+        message_id: messageId,
+        endpoint: subscription.endpoint,
+      }));
+      const { data: claimedRows, error: claimError } = await admin
+        .from("match_chat_push_claims")
+        .upsert(claimRows, {
+          onConflict: "message_id,endpoint",
+          ignoreDuplicates: true,
+        })
+        .select("endpoint");
       if (claimError) throw claimError;
+      const claimedEndpoints = new Set(
+        (claimedRows ?? []).map((claim) => claim.endpoint),
+      );
+      subscriptionsToSend = subscriptionsToSend.filter((subscription) =>
+        claimedEndpoints.has(subscription.endpoint),
+      );
+      if (subscriptionsToSend.length === 0) {
+        return Response.json(
+          { sent: 0, failed: 0, duplicate: true },
+          { headers: corsHeaders },
+        );
+      }
+    }
+    if (event === "match_finished" && subscriptions?.length) {
+      const claimRows = subscriptionsToSend.map((subscription) => ({
+        match_id: matchRow.id,
+        endpoint: subscription.endpoint,
+      }));
+      const { data: claimedRows, error: claimError } = await admin
+        .from("match_finish_push_claims")
+        .upsert(claimRows, {
+          onConflict: "match_id,endpoint",
+          ignoreDuplicates: true,
+        })
+        .select("endpoint");
+      if (claimError) throw claimError;
+      const claimedEndpoints = new Set(
+        (claimedRows ?? []).map((claim) => claim.endpoint),
+      );
+      subscriptionsToSend = subscriptionsToSend.filter((subscription) =>
+        claimedEndpoints.has(subscription.endpoint),
+      );
+      if (subscriptionsToSend.length === 0) {
+        return Response.json(
+          { sent: 0, failed: 0, duplicate: true },
+          { headers: corsHeaders },
+        );
+      }
     }
 
     webpush.setVapidDetails(vapidSubject, publicKey, privateKey);
     const message = messages[event](matchRow);
     const results = await Promise.allSettled(
-      (subscriptions ?? []).map(async (subscription) => {
+      subscriptionsToSend.map(async (subscription) => {
         try {
           await webpush.sendNotification(
             {
@@ -249,9 +368,13 @@ Deno.serve(async (request) => {
             JSON.stringify({
               ...message,
               url:
-                event === "match_finished"
-                  ? `/app/matches?match=${encodeURIComponent(matchRow.id)}`
-                  : "/app/matches",
+                event === "chat_message"
+                  ? `/app/discussions?match=${encodeURIComponent(matchRow.id)}`
+                  : event === "match_confirmed"
+                    ? `/app/matches?match=${encodeURIComponent(matchRow.id)}`
+                    : event === "match_finished"
+                      ? `/app/matches?match=${encodeURIComponent(matchRow.id)}`
+                      : "/app/matches",
             }),
           );
         } catch (error) {
@@ -274,8 +397,35 @@ Deno.serve(async (request) => {
     const failed = results.filter(
       (result) => result.status === "rejected",
     ).length;
+    if (failed > 0) {
+      const failedEndpoints = subscriptionsToSend
+        .filter((_, index) => results[index].status === "rejected")
+        .map((subscription) => subscription.endpoint);
+      const claimTable =
+        event === "chat_message"
+          ? "match_chat_push_claims"
+          : event === "match_finished"
+            ? "match_finish_push_claims"
+            : event === "match_confirmed"
+              ? "match_confirmation_push_claims"
+              : null;
+      const claimKey =
+        event === "chat_message"
+          ? "message_id"
+          : claimTable === null
+            ? null
+            : "match_id";
+      if (claimTable && claimKey) {
+        const { error: cleanupError } = await admin
+          .from(claimTable)
+          .delete()
+          .eq(claimKey, event === "chat_message" ? messageId : matchRow.id)
+          .in("endpoint", failedEndpoints);
+        if (cleanupError) throw cleanupError;
+      }
+    }
     return Response.json(
-      { sent: (subscriptions?.length ?? 0) - failed, failed },
+      { sent: subscriptionsToSend.length - failed, failed },
       { headers: corsHeaders },
     );
   } catch (error) {

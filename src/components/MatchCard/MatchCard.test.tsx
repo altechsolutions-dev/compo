@@ -17,6 +17,7 @@ function renderCard(
   playerNames: Record<string, string> = {},
 ) {
   const onOpen = vi.fn();
+  const onOpenDiscussion = vi.fn();
   const onRegister = vi.fn();
   const onAddGuest = vi.fn();
   const onEdit = vi.fn();
@@ -28,15 +29,27 @@ function renderCard(
       matchRegistering={false}
       playerNames={playerNames}
       onOpen={onOpen}
+      onOpenDiscussion={onOpenDiscussion}
       onRegister={onRegister}
       onAddGuest={onAddGuest}
       onEdit={onEdit}
     />,
   );
-  return { onOpen, onRegister, onAddGuest, onEdit };
+  return { onOpen, onOpenDiscussion, onRegister, onAddGuest, onEdit };
 }
 
 describe("MatchCard", () => {
+  it("ouvre la discussion sans ouvrir les détails du match", () => {
+    const { onOpen, onOpenDiscussion } = renderCard();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ouvrir la discussion du match" }),
+    );
+
+    expect(onOpenDiscussion).toHaveBeenCalledOnce();
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
   it("affiche directement les bulles des inscrits sans ouvrir le drawer", () => {
     const { onOpen } = renderCard(baseMatch, {
       alex: "Alex Martin",

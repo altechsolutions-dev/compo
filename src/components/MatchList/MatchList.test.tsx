@@ -21,6 +21,7 @@ const fullMatch: MatchSlot = {
 function renderList(matches: MatchSlot[], totalMatchCount = matches.length) {
   const onFilterChange = vi.fn();
   const onOpenMatch = vi.fn();
+  const onOpenDiscussion = vi.fn();
   const onRegister = vi.fn();
   render(
     <MatchList
@@ -32,10 +33,11 @@ function renderList(matches: MatchSlot[], totalMatchCount = matches.length) {
       notice=""
       onFilterChange={onFilterChange}
       onOpenMatch={onOpenMatch}
+      onOpenDiscussion={onOpenDiscussion}
       onRegister={onRegister}
     />,
   );
-  return { onFilterChange, onOpenMatch, onRegister };
+  return { onFilterChange, onOpenMatch, onOpenDiscussion, onRegister };
 }
 
 describe("MatchList", () => {
@@ -47,6 +49,30 @@ describe("MatchList", () => {
     expect(onFilterChange).toHaveBeenCalledWith("available");
     fireEvent.click(screen.getByRole("button", { name: "Terminés" }));
     expect(onFilterChange).toHaveBeenCalledWith("finished");
+  });
+
+  it("masque l’accès à la discussion depuis une carte de match terminé", () => {
+    render(
+      <MatchList
+        matches={[{ ...availableMatch, status: "finished" }]}
+        totalMatchCount={1}
+        currentAttendeeId="current-player"
+        matchRegistering={false}
+        filter="finished"
+        notice=""
+        onFilterChange={vi.fn()}
+        onOpenMatch={vi.fn()}
+        onOpenDiscussion={vi.fn()}
+        onRegister={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen
+        .getByRole("button", { name: "Voir le résumé" })
+        .closest("article")
+        ?.querySelector('[aria-label="Ouvrir la discussion du match"]'),
+    ).toBeNull();
   });
 
   it("affiche seulement le score et le chrono avant d’ouvrir le résumé", () => {
@@ -129,6 +155,7 @@ describe("MatchList", () => {
         latestFinishedMatch={latestFinishedMatch}
         onFilterChange={vi.fn()}
         onOpenMatch={vi.fn()}
+        onOpenDiscussion={vi.fn()}
         onRegister={vi.fn()}
       />,
     );
@@ -143,6 +170,12 @@ describe("MatchList", () => {
     expect(
       screen.getByRole("button", { name: "Voir le résumé" }).closest("article"),
     ).toHaveAttribute("data-winner", "blue");
+    expect(
+      screen
+        .getByRole("button", { name: "Voir le résumé" })
+        .closest("article")
+        ?.querySelector('[aria-label="Ouvrir la discussion du match"]'),
+    ).toBeNull();
   });
 
   it("distingue une liste vide de matchs complets d’une liste sans matchs", () => {

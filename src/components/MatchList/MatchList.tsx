@@ -17,6 +17,7 @@ export type MatchListProps = {
   latestFinishedMatch?: MatchSlot;
   onFilterChange: (filter: MatchFilter) => void;
   onOpenMatch: (matchId: string) => void;
+  onOpenDiscussion?: (matchId: string) => void;
   onRegister: (matchId: string) => void;
   onAddGuest?: (matchId: string, guestName: string) => void;
   onEditMatch?: (match: MatchSlot) => void;
@@ -34,6 +35,7 @@ export function MatchList({
   latestFinishedMatch,
   onFilterChange,
   onOpenMatch,
+  onOpenDiscussion,
   onRegister,
   onAddGuest,
   onEditMatch,
@@ -132,6 +134,11 @@ export function MatchList({
                 matchRegistering={matchRegistering}
                 playerNames={playerNames}
                 onOpen={() => onOpenMatch(match.id)}
+                onOpenDiscussion={
+                  onOpenDiscussion
+                    ? () => onOpenDiscussion(match.id)
+                    : undefined
+                }
                 onRegister={() => onRegister(match.id)}
                 onAddGuest={
                   onAddGuest
@@ -201,13 +208,15 @@ function FinishedMatchCard({
           Chrono · {elapsedMinutes}:{elapsedRemainder}
         </p>
       </div>
-      <button
-        className="mt-4 min-h-10 w-full cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) text-xs font-bold text-(--text-primary) hover:border-(--team-b-blue) sm:w-auto sm:px-4"
-        onClick={onOpen}
-        type="button"
-      >
-        Voir le résumé
-      </button>
+      <div className="mt-4 flex gap-2">
+        <button
+          className="min-h-10 min-w-0 flex-1 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) text-xs font-bold text-(--text-primary) hover:border-(--team-b-blue) sm:flex-none sm:px-4"
+          onClick={onOpen}
+          type="button"
+        >
+          Voir le résumé
+        </button>
+      </div>
     </article>
   );
 }

@@ -25,6 +25,7 @@ export function MatchesPage() {
     matchNotice,
     onFilterChange,
     onOpenMatch,
+    onOpenDiscussion,
     onRegisterForMatch,
     onAddGuestToMatch,
     onEditMatch,
@@ -107,6 +108,7 @@ export function MatchesPage() {
           latestFinishedMatch={latestFinishedMatch}
           onFilterChange={onFilterChange}
           onOpenMatch={onOpenMatch}
+          onOpenDiscussion={onOpenDiscussion}
           onRegister={onRegisterForMatch}
           onAddGuest={onAddGuestToMatch}
           onEditMatch={onEditMatch}

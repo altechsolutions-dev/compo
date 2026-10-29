@@ -7,12 +7,24 @@ update public.match_slot_attendees
 set account_user_id = user_id
 where account_user_id is null and guest_name is null;
 
-alter table public.match_slot_attendees
-  add constraint match_slot_attendees_identity_check check (
-    (account_user_id is not null and guest_name is null and user_id = account_user_id)
-    or (account_user_id is null and guest_name is not null
-        and char_length(trim(guest_name)) between 1 and 40)
-  );
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint as constraint_info
+    where constraint_info.conrelid =
+      'public.match_slot_attendees'::regclass
+      and constraint_info.conname = 'match_slot_attendees_identity_check'
+  ) then
+    alter table public.match_slot_attendees
+      add constraint match_slot_attendees_identity_check check (
+        (account_user_id is not null and guest_name is null and user_id = account_user_id)
+        or (account_user_id is null and guest_name is not null
+            and char_length(trim(guest_name)) between 1 and 40)
+      );
+  end if;
+end;
+$$;
 
 create or replace function public.create_match_slot(
   p_organization_id uuid,

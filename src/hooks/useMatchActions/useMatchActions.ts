@@ -128,6 +128,12 @@ export function useMatchActions({
         });
         if (error) throw error;
         const registeredAttendees = (data?.[0]?.attendees ?? []) as string[];
+        if (
+          matchToRegister.attendees.length < matchToRegister.maxPlayers &&
+          registeredAttendees.length >= matchToRegister.maxPlayers
+        ) {
+          void notifyMatchEvent("match_confirmed", matchToRegister.id);
+        }
         setMatches((current) =>
           current.map((match) =>
             match.id === matchToRegister.id
@@ -186,6 +192,12 @@ export function useMatchActions({
         if (!row) throw new Error("Supabase n’a renvoyé aucun invité ajouté.");
         attendeeId = row.guest_id;
         attendeeNames = row.attendee_names;
+        if (
+          match.attendees.length < match.maxPlayers &&
+          row.attendees.length >= match.maxPlayers
+        ) {
+          void notifyMatchEvent("match_confirmed", matchId);
+        }
         setMatches((current) =>
           current.map((item) =>
             item.id === matchId
@@ -340,12 +352,19 @@ export function useMatchActions({
           p_max_players: matchMaxPlayers,
         });
         if (error) throw error;
+        const becameFull =
+          match.attendees.length < match.maxPlayers &&
+          match.attendees.length >= matchMaxPlayers;
         const hasChanges =
           match.date !== matchDate ||
           match.time !== matchTime ||
           match.venue !== venue.trim() ||
           match.maxPlayers !== matchMaxPlayers;
-        if (hasChanges) void notifyMatchEvent("match_updated", matchId);
+        if (becameFull) {
+          void notifyMatchEvent("match_confirmed", matchId);
+        } else if (hasChanges) {
+          void notifyMatchEvent("match_updated", matchId);
+        }
         if (matchMaxPlayers > match.maxPlayers) {
           void notifyMatchEvent("spot_available", matchId, match.maxPlayers);
         }
