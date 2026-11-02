@@ -67,6 +67,37 @@ function renderLivePage(
 }
 
 describe("LiveMatchPage", () => {
+  it("verrouille le paysage pendant le match puis libère l’orientation en quittant", async () => {
+    const lock = vi.fn().mockResolvedValue(undefined);
+    const unlock = vi.fn();
+    const previousOrientation = Object.getOwnPropertyDescriptor(
+      window.screen,
+      "orientation",
+    );
+    Object.defineProperty(window.screen, "orientation", {
+      configurable: true,
+      value: { lock, unlock },
+    });
+
+    try {
+      const { unmount } = renderLivePage();
+      await waitFor(() => expect(lock).toHaveBeenCalledWith("landscape"));
+
+      unmount();
+      expect(unlock).toHaveBeenCalledOnce();
+    } finally {
+      if (previousOrientation) {
+        Object.defineProperty(
+          window.screen,
+          "orientation",
+          previousOrientation,
+        );
+      } else {
+        Reflect.deleteProperty(window.screen, "orientation");
+      }
+    }
+  });
+
   it("maintient l’écran éveillé pendant le match et libère le verrou en quittant", async () => {
     const release = vi.fn().mockResolvedValue(undefined);
     const request = vi.fn().mockResolvedValue({ released: false, release });
@@ -117,27 +148,16 @@ describe("LiveMatchPage", () => {
     const actionNavigation = screen.getByRole("navigation", {
       name: "Actions du match",
     });
-    expect(actionNavigation).toHaveClass(
-      "bottom-[calc(64px+env(safe-area-inset-bottom))]",
-      "shadow-[0_-12px_32px_#0008]",
-      "sm:shadow-none",
-    );
+    expect(actionNavigation).toHaveClass("live-match-actions-toolbar");
     const actionButtons = within(actionNavigation).getAllByRole("button");
-    expect(actionButtons[0]).toHaveClass("max-sm:h-14");
-    expect(actionButtons[1]).toHaveClass("max-sm:h-14");
-    expect(actionButtons[2]).toHaveClass("max-sm:h-14");
-    expect(actionButtons[0]).not.toHaveClass("max-sm:border-l");
-    expect(actionButtons[1]).toHaveClass(
-      "max-sm:border-l",
-      "max-sm:border-l-(--line)",
-    );
-    expect(actionButtons[2]).toHaveClass(
-      "max-sm:border-l",
-      "max-sm:border-l-(--line)",
-    );
+    expect(actionButtons[0]).toHaveAccessibleName("Ajouter un but");
+    expect(actionButtons[0]).toHaveClass("live-match-toolbar-button--primary");
+    expect(actionButtons[1]).toHaveClass("live-match-toolbar-button");
+    expect(actionButtons[2]).toHaveClass("live-match-toolbar-button");
+    expect(actionButtons[3]).toHaveClass("live-match-toolbar-button");
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
     const scoreRegion = screen.getByRole("region", { name: "Score du match" });
-    const scorePanels = scoreRegion.querySelectorAll(":scope > div");
+    const scorePanels = Array.from(scoreRegion.children);
     expect(scorePanels[0]).toHaveClass("px-5", "max-[380px]:px-3");
     expect(scorePanels[2]).toHaveClass("px-5", "max-[380px]:px-3");
     expect(scorePanels[0]).toHaveTextContent("ÉQUIPE BLEUE");
@@ -185,6 +205,42 @@ describe("LiveMatchPage", () => {
       }),
     );
     expect(context.onRemoveGoal).toHaveBeenCalledWith("match-live", "goal-1");
+  });
+
+  it("ouvre les buteurs de la bonne équipe lorsqu’on touche son score", async () => {
+    const { context } = renderLivePage();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ajouter un but à l’équipe bleue" }),
+    );
+    const picker = await screen.findByRole("dialog", {
+      name: "Qui a marqué pour l’équipe bleue ?",
+    });
+    expect(
+      within(picker).getByRole("button", { name: "But de Théo Bernard" }),
+    ).toBeInTheDocument();
+    expect(
+      within(picker).queryByRole("button", { name: "But de Lucas Martin" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(picker).getByRole("button", { name: "But de Théo Bernard" }),
+    );
+    expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
+  });
+
+  it("permet de noter un but depuis la barre fixe du match", async () => {
+    const { context } = renderLivePage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ajouter un but" }));
+    const picker = await screen.findByRole("dialog", {
+      name: "Qui a marqué ?",
+    });
+    fireEvent.click(
+      within(picker).getByRole("button", { name: "But de Théo Bernard" }),
+    );
+
+    expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
   });
 
   it("permet de supprimer un but depuis la liste même après le délai du slider", () => {

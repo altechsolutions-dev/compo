@@ -565,9 +565,9 @@ export function WorkspaceLayout() {
       })();
     },
     onStartMatch: async (matchId, teams) => {
-      if (await startMatch(matchId, teams)) {
-        navigate(`/app/live?match=${encodeURIComponent(matchId)}`);
-      }
+      const started = await startMatch(matchId, teams);
+      if (started) navigate(`/app/live?match=${encodeURIComponent(matchId)}`);
+      return started;
     },
     onSaveScheduledMatchTeams: saveScheduledMatchTeams,
     onSetMatchState: (matchId, action) => {

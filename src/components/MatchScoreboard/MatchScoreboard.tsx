@@ -4,6 +4,7 @@ type MatchScoreboardProps = {
   goals: MatchGoal[];
   elapsedSeconds: number;
   status: "in_progress" | "paused" | "finished";
+  onSelectTeam?: (team: 0 | 1) => void;
 };
 
 function formatClock(totalSeconds: number) {
@@ -16,6 +17,7 @@ export function MatchScoreboard({
   goals,
   elapsedSeconds,
   status,
+  onSelectTeam,
 }: MatchScoreboardProps) {
   const blueScore = goals.filter((goal) => goal.team === 1).length;
   const redScore = goals.filter((goal) => goal.team === 0).length;
@@ -23,24 +25,41 @@ export function MatchScoreboard({
   return (
     <section
       aria-label="Score du match"
-      className="mt-6 grid min-h-44 grid-cols-[minmax(0,1fr)_7.5rem_minmax(0,1fr)] overflow-hidden rounded-xl border border-(--line) bg-(--bg-surface) sm:min-h-47 sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]"
+      className="live-match-scoreboard mt-6 grid min-h-44 grid-cols-[minmax(0,1fr)_7.5rem_minmax(0,1fr)] overflow-hidden rounded-xl border border-(--line) bg-(--bg-surface) sm:min-h-47 sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]"
     >
-      <div className="flex min-w-0 flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-5 py-5 max-[380px]:px-3">
-        <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
-          <span className="size-1.5 rounded-full bg-(--team-b-blue)" /> ÉQUIPE
-          BLEUE
-        </p>
-        <strong className="text-5xl font-bold leading-none tabular-nums text-(--team-b-blue) sm:text-6xl">
-          {blueScore}
-        </strong>
-      </div>
+      {onSelectTeam ? (
+        <button
+          aria-label="Ajouter un but à l’équipe bleue"
+          className="flex min-w-0 cursor-pointer flex-col justify-center border-0 bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-5 py-5 text-left text-inherit transition hover:brightness-125 focus-visible:z-10 max-[380px]:px-3"
+          onClick={() => onSelectTeam(1)}
+          type="button"
+        >
+          <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
+            <span className="size-1.5 rounded-full bg-(--team-b-blue)" /> ÉQUIPE
+            BLEUE
+          </p>
+          <strong className="live-match-score-value text-5xl font-bold leading-none tabular-nums text-(--team-b-blue) sm:text-6xl">
+            {blueScore}
+          </strong>
+        </button>
+      ) : (
+        <div className="flex min-w-0 flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-5 py-5 max-[380px]:px-3">
+          <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
+            <span className="size-1.5 rounded-full bg-(--team-b-blue)" /> ÉQUIPE
+            BLEUE
+          </p>
+          <strong className="live-match-score-value text-5xl font-bold leading-none tabular-nums text-(--team-b-blue) sm:text-6xl">
+            {blueScore}
+          </strong>
+        </div>
+      )}
       <div className="flex flex-col items-center justify-center border-x border-(--line) px-2 text-center">
         <p className="mb-1 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
           CHRONO
         </p>
         <time
           aria-label="Temps de jeu"
-          className="inline-block w-[6ch] text-center font-sans text-3xl font-bold tabular-nums text-(--text-primary) sm:text-4xl"
+          className="live-match-score-clock inline-block w-[6ch] text-center font-sans text-3xl font-bold tabular-nums text-(--text-primary) sm:text-4xl"
           role="timer"
         >
           {formatClock(elapsedSeconds)}
@@ -55,15 +74,32 @@ export function MatchScoreboard({
               : "TERMINÉ"}
         </p>
       </div>
-      <div className="flex min-w-0 flex-col items-end justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-5 py-5 text-right max-[380px]:px-3">
-        <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
-          ÉQUIPE ROUGE{" "}
-          <span className="size-1.5 rounded-full bg-(--team-a-red)" />
-        </p>
-        <strong className="text-5xl font-bold leading-none tabular-nums text-(--team-a-red) sm:text-6xl">
-          {redScore}
-        </strong>
-      </div>
+      {onSelectTeam ? (
+        <button
+          aria-label="Ajouter un but à l’équipe rouge"
+          className="flex min-w-0 cursor-pointer flex-col items-end justify-center border-0 bg-linear-to-l from-(--team-a-red)/15 to-transparent px-5 py-5 text-right text-inherit transition hover:brightness-125 focus-visible:z-10 max-[380px]:px-3"
+          onClick={() => onSelectTeam(0)}
+          type="button"
+        >
+          <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
+            ÉQUIPE ROUGE{" "}
+            <span className="size-1.5 rounded-full bg-(--team-a-red)" />
+          </p>
+          <strong className="live-match-score-value text-5xl font-bold leading-none tabular-nums text-(--team-a-red) sm:text-6xl">
+            {redScore}
+          </strong>
+        </button>
+      ) : (
+        <div className="flex min-w-0 flex-col items-end justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-5 py-5 text-right max-[380px]:px-3">
+          <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
+            ÉQUIPE ROUGE{" "}
+            <span className="size-1.5 rounded-full bg-(--team-a-red)" />
+          </p>
+          <strong className="live-match-score-value text-5xl font-bold leading-none tabular-nums text-(--team-a-red) sm:text-6xl">
+            {redScore}
+          </strong>
+        </div>
+      )}
     </section>
   );
 }

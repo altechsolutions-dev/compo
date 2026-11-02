@@ -63,6 +63,48 @@ function getRemainingGoalUndoSeconds(goal: MatchGoal, now: number) {
   );
 }
 
+type LandscapeLockState = {
+  requested: boolean;
+  active: boolean;
+  pending: Promise<boolean> | null;
+};
+
+function requestLandscapeLock(state: LandscapeLockState) {
+  const orientation = window.screen?.orientation;
+  if (!orientation || typeof orientation.lock !== "function") {
+    return Promise.resolve(false);
+  }
+
+  state.requested = true;
+  if (state.active) return Promise.resolve(true);
+  if (state.pending) return state.pending;
+
+  const request = orientation
+    .lock("landscape")
+    .then(() => {
+      if (!state.requested) {
+        orientation.unlock();
+        return false;
+      }
+      state.active = true;
+      return true;
+    })
+    .catch(() => false)
+    .finally(() => {
+      state.pending = null;
+      if (!state.active) state.requested = false;
+    });
+  state.pending = request;
+  return request;
+}
+
+function releaseLandscapeLock(state: LandscapeLockState) {
+  state.requested = false;
+  if (!state.active) return;
+  window.screen?.orientation?.unlock();
+  state.active = false;
+}
+
 function GoalUndoButton({
   goal,
   matchId,
@@ -166,9 +208,14 @@ function useDialogAccessibility(
 function MatchLaunchList({
   matches,
   context,
+  onStartMatch,
 }: {
   matches: MatchSlot[];
   context: WorkspaceRouteContext;
+  onStartMatch: (
+    matchId: string,
+    teams: [string[], string[]],
+  ) => Promise<boolean>;
 }) {
   const [compositionMatchId, setCompositionMatchId] = useState<string | null>(
     null,
@@ -265,7 +312,7 @@ function MatchLaunchList({
                   aria-label={`Lancer le match de ${match.venue}`}
                   className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-md bg-(--team-b-blue) px-3 text-xs font-bold text-(--bg-main) transition hover:brightness-110"
                   onClick={() =>
-                    context.onStartMatch(
+                    void onStartMatch(
                       match.id,
                       match.teams ?? context.composeTeams(match.attendees),
                     )
@@ -356,6 +403,8 @@ export function LiveMatchPage({
     ),
   );
   const [undoClock, setUndoClock] = useState(() => Date.now());
+  const [goalPickerOpen, setGoalPickerOpen] = useState(false);
+  const [goalPickerTeam, setGoalPickerTeam] = useState<0 | 1 | null>(null);
   const [swapPickerOpen, setSwapPickerOpen] = useState(false);
   const [compositionOpen, setCompositionOpen] = useState(false);
   const [compositionMounted, setCompositionMounted] = useState(false);
@@ -364,18 +413,40 @@ export function LiveMatchPage({
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [isResettingMatch, setIsResettingMatch] = useState(false);
+  const landscapeLockStateRef = useRef<LandscapeLockState>({
+    requested: false,
+    active: false,
+    pending: null,
+  });
+  const goalPicker = useDrawerTransition(goalPickerOpen);
   const swapDrawer = useDrawerTransition(swapPickerOpen);
   const finishDrawer = useDrawerTransition(confirmFinish);
   const resetDrawer = useDrawerTransition(confirmReset);
   const compositionDialogRef = useRef<HTMLElement | null>(null);
+  const goalPickerDialogRef = useRef<HTMLElement | null>(null);
   const swapDialogRef = useRef<HTMLElement | null>(null);
   const finishDialogRef = useRef<HTMLElement | null>(null);
   const resetDialogRef = useRef<HTMLElement | null>(null);
   const compositionTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const goalPickerTriggerRef = useRef<HTMLButtonElement | null>(null);
   const swapTriggerRef = useRef<HTMLButtonElement | null>(null);
   const finishTriggerRef = useRef<HTMLButtonElement | null>(null);
   const resetTriggerRef = useRef<HTMLButtonElement | null>(null);
   const compositionCloseTimerRef = useRef<number | null>(null);
+
+  async function startMatchInLandscape(
+    matchId: string,
+    matchTeams: [string[], string[]],
+  ) {
+    void requestLandscapeLock(landscapeLockStateRef.current);
+    if (!context) {
+      releaseLandscapeLock(landscapeLockStateRef.current);
+      return false;
+    }
+    const started = await context.onStartMatch(matchId, matchTeams);
+    if (!started) releaseLandscapeLock(landscapeLockStateRef.current);
+    return started;
+  }
 
   const openComposition = useCallback(() => {
     if (compositionCloseTimerRef.current !== null) {
@@ -401,6 +472,11 @@ export function LiveMatchPage({
     compositionOpen,
     compositionDialogRef,
     compositionTriggerRef,
+  );
+  useDialogAccessibility(
+    goalPicker.open,
+    goalPickerDialogRef,
+    goalPickerTriggerRef,
   );
   useDialogAccessibility(swapDrawer.open, swapDialogRef, swapTriggerRef);
   useDialogAccessibility(finishDrawer.open, finishDialogRef, finishTriggerRef);
@@ -474,6 +550,13 @@ export function LiveMatchPage({
 
   useEffect(() => {
     if (!canRecordActions) return;
+    const landscapeLockState = landscapeLockStateRef.current;
+    void requestLandscapeLock(landscapeLockState);
+    return () => releaseLandscapeLock(landscapeLockState);
+  }, [canRecordActions]);
+
+  useEffect(() => {
+    if (!canRecordActions) return;
     const timer = window.setInterval(() => setUndoClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [canRecordActions]);
@@ -505,7 +588,13 @@ export function LiveMatchPage({
   }
 
   if (!match) {
-    return <MatchLaunchList matches={liveCandidates} context={context} />;
+    return (
+      <MatchLaunchList
+        matches={liveCandidates}
+        context={context}
+        onStartMatch={startMatchInLandscape}
+      />
+    );
   }
 
   async function resetCurrentMatch() {
@@ -540,11 +629,7 @@ export function LiveMatchPage({
 
   return (
     <section
-      className={
-        canRecordActions
-          ? "pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-10"
-          : "pb-10"
-      }
+      className={`live-match-page ${canRecordActions ? "live-match-page--active pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-10" : "pb-10"}`}
     >
       {!canRecordActions && (
         <header className="flex flex-wrap items-end justify-between gap-6 border-b border-(--line) py-8 sm:py-10">
@@ -585,7 +670,7 @@ export function LiveMatchPage({
               </button>
               <button
                 className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border-0 bg-(--team-b-blue) px-4 text-xs font-bold text-(--bg-main) transition hover:brightness-110"
-                onClick={() => context.onStartMatch(match.id, teams)}
+                onClick={() => void startMatchInLandscape(match.id, teams)}
                 type="button"
               >
                 <Play aria-hidden="true" fill="currentColor" size={14} />
@@ -599,21 +684,35 @@ export function LiveMatchPage({
       {(isLive || isPaused) && (
         <nav
           aria-label="Actions du match"
-          className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-40 grid grid-cols-3 border-t border-(--line) bg-(--bg-surface) px-4 py-2 shadow-[0_-12px_32px_#0008] sm:static sm:flex sm:shrink-0 sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none"
+          className="live-match-actions-toolbar"
         >
           <button
+            aria-label="Ajouter un but"
+            className="live-match-toolbar-button live-match-toolbar-button--primary cursor-pointer rounded-md border-0 bg-(--team-b-blue) text-[10px] font-bold text-(--bg-main) transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 sm:text-xs"
+            disabled={!isLive}
+            onClick={() => {
+              setGoalPickerTeam(null);
+              setGoalPickerOpen(true);
+            }}
+            ref={goalPickerTriggerRef}
+            type="button"
+          >
+            <Goal aria-hidden="true" size={19} />
+            But
+          </button>
+          <button
             aria-label="Réinitialiser"
-            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-secondary) transition hover:border-(--team-a-red) hover:text-(--team-a-red) max-sm:h-14 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
+            className="live-match-toolbar-button cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) text-xs font-bold text-(--text-secondary) transition hover:border-(--team-a-red) hover:text-(--team-a-red)"
             onClick={() => setConfirmReset(true)}
             ref={resetTriggerRef}
             type="button"
           >
             <RotateCcw aria-hidden="true" size={20} />
-            <span className="hidden sm:inline">Réinitialiser</span>
+            <span>Réinitialiser</span>
           </button>
           <button
             aria-label={isLive ? "Mettre en pause" : "Reprendre"}
-            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--line) bg-(--bg-elevated) px-0 text-xs font-bold text-(--text-primary) transition hover:brightness-110 max-sm:h-14 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-l max-sm:border-l-(--line) max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
+            className="live-match-toolbar-button cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) text-xs font-bold text-(--text-primary) transition hover:brightness-110"
             onClick={() =>
               context.onSetMatchState(match.id, isLive ? "pause" : "resume")
             }
@@ -624,22 +723,93 @@ export function LiveMatchPage({
             ) : (
               <Play aria-hidden="true" fill="currentColor" size={20} />
             )}
-            <span className="hidden sm:inline">
-              {isLive ? "Mettre en pause" : "Reprendre"}
-            </span>
+            <span>{isLive ? "Mettre en pause" : "Reprendre"}</span>
           </button>
           <button
             aria-label="Siffler la fin"
-            className="inline-flex min-h-11 w-11 cursor-pointer items-center justify-center gap-2 rounded-md border border-(--team-a-red)/40 bg-(--team-a-red)/10 px-0 text-xs font-bold text-(--team-a-red) transition hover:brightness-110 max-sm:h-14 max-sm:w-full max-sm:rounded-none max-sm:border-0 max-sm:border-l max-sm:border-l-(--line) max-sm:bg-transparent max-sm:px-0 sm:w-auto sm:px-4"
+            className="live-match-toolbar-button cursor-pointer rounded-md border border-(--team-a-red)/40 bg-(--team-a-red)/10 text-xs font-bold text-(--team-a-red) transition hover:brightness-110"
             onClick={() => setConfirmFinish(true)}
             ref={finishTriggerRef}
             type="button"
           >
             <Flag aria-hidden="true" size={20} />
-            <span className="hidden sm:inline">Siffler la fin</span>
+            <span>Siffler la fin</span>
           </button>
         </nav>
       )}
+
+      <Drawer
+        mounted={goalPicker.mounted}
+        open={goalPicker.open}
+        onClose={() => setGoalPickerOpen(false)}
+        labelledBy="goal-picker-title"
+        panelId="goal-picker-drawer"
+        panelRef={goalPickerDialogRef}
+        panelClassName="live-match-action-drawer live-match-action-drawer--wide"
+      >
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-(--line) pb-4">
+          <div>
+            <p className="drawer-eyebrow mb-1">BUT MARQUÉ</p>
+            <h2 className="drawer-title m-0" id="goal-picker-title">
+              {goalPickerTeam === null
+                ? "Qui a marqué ?"
+                : `Qui a marqué pour l’équipe ${goalPickerTeam === 0 ? "rouge" : "bleue"} ?`}
+            </h2>
+          </div>
+          <button
+            aria-label="Fermer le choix du buteur"
+            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-main) text-(--text-secondary)"
+            onClick={() => setGoalPickerOpen(false)}
+            type="button"
+          >
+            <X aria-hidden="true" size={16} />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {([1, 0] as const)
+            .filter(
+              (team) => goalPickerTeam === null || team === goalPickerTeam,
+            )
+            .map((team) => {
+              const isRedTeam = team === 0;
+              return (
+                <section
+                  aria-label={`Équipe ${isRedTeam ? "rouge" : "bleue"}`}
+                  className="min-w-0"
+                  key={team}
+                >
+                  <h3
+                    className={`mb-2 mt-0 text-xs font-bold uppercase ${isRedTeam ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
+                  >
+                    {isRedTeam ? "Rouge" : "Bleue"}
+                  </h3>
+                  <ul className="m-0 list-none space-y-2 p-0">
+                    {teams[team].map((playerId) => {
+                      const playerName =
+                        context.playerNames[playerId] ?? "Joueur";
+                      return (
+                        <li key={playerId}>
+                          <button
+                            aria-label={`But de ${playerName}`}
+                            className={`flex min-h-12 w-full cursor-pointer items-center justify-between gap-2 rounded-md border px-3 text-left text-xs font-semibold transition-colors ${isRedTeam ? "border-(--team-a-red)/35 bg-(--team-a-red)/5 text-(--team-a-red) hover:bg-(--team-a-red)/10" : "border-(--team-b-blue)/35 bg-(--team-b-blue)/5 text-(--team-b-blue) hover:bg-(--team-b-blue)/10"}`}
+                            onClick={() => {
+                              context.onRecordGoal(match.id, playerId);
+                              setGoalPickerOpen(false);
+                            }}
+                            type="button"
+                          >
+                            <span className="truncate">{playerName}</span>
+                            <Goal aria-hidden="true" size={17} />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              );
+            })}
+        </div>
+      </Drawer>
 
       {isFinished && (
         <h2 className="mb-0 mt-6 text-lg font-bold">Résumé du match</h2>
@@ -841,6 +1011,14 @@ export function LiveMatchPage({
           goals={goals}
           elapsedSeconds={elapsedSeconds}
           status={isLive ? "in_progress" : isPaused ? "paused" : "finished"}
+          onSelectTeam={
+            canRecordActions
+              ? (team) => {
+                  setGoalPickerTeam(team);
+                  setGoalPickerOpen(true);
+                }
+              : undefined
+          }
         />
       )}
 
@@ -869,10 +1047,10 @@ export function LiveMatchPage({
 
       {!isScheduled && (
         <div
-          className={`mt-3 grid items-start gap-4 lg:items-stretch ${isFinished ? "grid-cols-1" : "lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]"}`}
+          className={`live-match-panels mt-3 grid items-start gap-4 lg:items-stretch ${isFinished ? "grid-cols-1" : "lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]"}`}
         >
           <section
-            className="order-2 min-h-80 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-2 sm:p-6 lg:order-1"
+            className="live-match-events-panel order-2 min-h-80 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-2 sm:p-6 lg:order-1"
             aria-labelledby="match-events-title"
           >
             <div className="flex items-center justify-between border-b border-(--line) pb-4">
@@ -900,7 +1078,7 @@ export function LiveMatchPage({
           </section>
 
           {!isFinished && (
-            <aside className="order-1 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-1 sm:p-6 lg:order-2">
+            <aside className="live-match-actions-panel order-1 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-1 sm:p-6 lg:order-2">
               <div className="border-b border-(--line) pb-4">
                 <p className="mb-1 text-[9px] font-bold tracking-[1.4px] text-(--text-secondary)">
                   TABLE DE MARQUE
