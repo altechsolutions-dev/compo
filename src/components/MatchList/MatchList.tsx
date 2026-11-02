@@ -54,7 +54,7 @@ export function MatchList({
           />
         </div>
       )}
-      <div className="mb-4 flex items-end justify-between gap-4 max-[500px]:items-start">
+      <div className="mb-4 flex items-end justify-between gap-4 max-[500px]:flex-col max-[500px]:items-stretch">
         <div>
           <p className="mb-1.5 text-[9px] font-bold tracking-[1.5px] text-(--muted)">
             AVEC TON ÉQUIPE
@@ -67,12 +67,12 @@ export function MatchList({
           </h2>
         </div>
         <div
-          className="flex shrink-0 items-center gap-1 rounded-[7px] bg-(--bg-surface) p-1"
+          className="flex shrink-0 items-center gap-1 rounded-[7px] bg-(--bg-surface) p-1 max-[500px]:w-full"
           role="group"
           aria-label="Filtrer les matchs"
         >
           <button
-            className={`min-h-8 cursor-pointer rounded-[5px] border-0 px-3 text-[10px] font-semibold transition-colors ${filter === "all" ? "bg-(--bg-elevated) text-(--ink)" : "bg-transparent text-(--muted) hover:text-(--ink)"}`}
+            className={`min-h-8 cursor-pointer rounded-[5px] border-0 px-3 text-[10px] font-semibold transition-colors max-[500px]:min-h-10 max-[500px]:flex-1 max-[500px]:whitespace-nowrap max-[500px]:px-1.5 ${filter === "all" ? "bg-(--bg-elevated) text-(--ink)" : "bg-transparent text-(--muted) hover:text-(--ink)"}`}
             onClick={() => onFilterChange("all")}
             aria-pressed={filter === "all"}
             type="button"
@@ -80,7 +80,7 @@ export function MatchList({
             Tous
           </button>
           <button
-            className={`min-h-8 cursor-pointer rounded-[5px] border-0 px-3 text-[10px] font-semibold transition-colors ${filter === "available" ? "bg-(--bg-elevated) text-(--ink)" : "bg-transparent text-(--muted) hover:text-(--ink)"}`}
+            className={`min-h-8 cursor-pointer rounded-[5px] border-0 px-3 text-[10px] font-semibold transition-colors max-[500px]:min-h-10 max-[500px]:flex-1 max-[500px]:whitespace-nowrap max-[500px]:px-1.5 ${filter === "available" ? "bg-(--bg-elevated) text-(--ink)" : "bg-transparent text-(--muted) hover:text-(--ink)"}`}
             onClick={() => onFilterChange("available")}
             aria-pressed={filter === "available"}
             type="button"
@@ -88,7 +88,7 @@ export function MatchList({
             Places libres
           </button>
           <button
-            className={`min-h-8 cursor-pointer rounded-[5px] border-0 px-3 text-[10px] font-semibold transition-colors ${filter === "finished" ? "bg-(--bg-elevated) text-(--ink)" : "bg-transparent text-(--muted) hover:text-(--ink)"}`}
+            className={`min-h-8 cursor-pointer rounded-[5px] border-0 px-3 text-[10px] font-semibold transition-colors max-[500px]:min-h-10 max-[500px]:flex-1 max-[500px]:whitespace-nowrap max-[500px]:px-1.5 ${filter === "finished" ? "bg-(--bg-elevated) text-(--ink)" : "bg-transparent text-(--muted) hover:text-(--ink)"}`}
             onClick={() => onFilterChange("finished")}
             aria-pressed={filter === "finished"}
             type="button"

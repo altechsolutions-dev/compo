@@ -69,6 +69,24 @@ describe("DashboardHeader", () => {
     expect(callbacks.onInstall).toHaveBeenCalledOnce();
   });
 
+  it("ouvre les actions mobiles et se ferme après une action", () => {
+    const callbacks = renderHeader();
+    const toggle = screen.getByRole("button", {
+      name: "Ouvrir le menu d’actions",
+    });
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Partager le lien d’invitation" }),
+    );
+
+    expect(callbacks.onShareInvite).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole("button", { name: "Ouvrir le menu d’actions" }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("signale les discussions non lues par une puce", () => {
     renderHeader(2);
 

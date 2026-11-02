@@ -85,7 +85,7 @@ function GoalUndoButton({
   return (
     <button
       aria-label={`Annuler le dernier but de ${playerName}`}
-      className="relative isolate inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 overflow-hidden rounded-md border border-(--line) bg-(--bg-elevated) px-1.5 text-[9px] font-semibold text-(--text-secondary) transition-colors hover:border-(--team-a-red) hover:text-(--team-a-red) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-a-red) disabled:cursor-not-allowed disabled:opacity-40"
+      className="relative isolate inline-flex size-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md border border-(--line) bg-(--bg-elevated) text-(--text-secondary) transition-colors hover:border-(--team-a-red) hover:text-(--team-a-red) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-a-red) disabled:cursor-not-allowed disabled:opacity-40"
       disabled={disabled}
       onClick={() => onRemoveGoal(matchId, goal.id)}
       title={`Annuler le dernier but de ${playerName} (${remainingSeconds} s)`}
@@ -96,9 +96,8 @@ function GoalUndoButton({
         className="goal-undo-slider pointer-events-none absolute inset-y-0 left-0 -z-10 bg-(--team-a-red)/15"
         style={{ animationDelay: `-${elapsedAtMountMs}ms` }}
       />
-      <span className="relative inline-flex items-center gap-1">
-        <Undo2 aria-hidden="true" size={13} />
-        Annuler
+      <span className="relative inline-flex items-center">
+        <Undo2 aria-hidden="true" size={17} />
       </span>
     </button>
   );
@@ -543,7 +542,7 @@ export function LiveMatchPage({
     <section
       className={
         canRecordActions
-          ? "pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-10"
+          ? "pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-10"
           : "pb-10"
       }
     >
@@ -600,7 +599,7 @@ export function LiveMatchPage({
       {(isLive || isPaused) && (
         <nav
           aria-label="Actions du match"
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-(--line) bg-(--bg-surface) px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-[0_-12px_32px_#0008] sm:static sm:flex sm:shrink-0 sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none"
+          className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-40 grid grid-cols-3 border-t border-(--line) bg-(--bg-surface) px-4 py-2 shadow-[0_-12px_32px_#0008] sm:static sm:flex sm:shrink-0 sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none"
         >
           <button
             aria-label="Réinitialiser"
@@ -937,15 +936,12 @@ export function LiveMatchPage({
 
                           return (
                             <li
-                              className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-1 gap-y-1"
+                              className="flex min-w-0 items-center gap-1"
                               key={playerId}
                             >
-                              <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-(--text-primary)">
-                                {playerName}
-                              </span>
                               <button
                                 aria-label={`Ajouter un but pour ${playerName}`}
-                                className={`grid size-8 shrink-0 cursor-pointer place-items-center rounded-md border bg-(--bg-elevated) transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${isRedTeam ? "border-(--team-a-red)/35 text-(--team-a-red) hover:bg-(--team-a-red)/10" : "border-(--team-b-blue)/35 text-(--team-b-blue) hover:bg-(--team-b-blue)/10"}`}
+                                className={`flex min-h-11 min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-md border bg-(--bg-elevated) px-2.5 text-left text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${isRedTeam ? "border-(--team-a-red)/35 text-(--team-a-red) hover:bg-(--team-a-red)/10" : "border-(--team-b-blue)/35 text-(--team-b-blue) hover:bg-(--team-b-blue)/10"}`}
                                 disabled={!canRecordActions}
                                 onClick={() =>
                                   context.onRecordGoal(match.id, playerId)
@@ -953,21 +949,24 @@ export function LiveMatchPage({
                                 title={`Ajouter un but pour ${playerName}`}
                                 type="button"
                               >
-                                <Goal aria-hidden="true" size={15} />
+                                <span className="min-w-0 truncate">
+                                  {playerName}
+                                </span>
+                                <Goal aria-hidden="true" size={18} />
                               </button>
                               {latestGoal &&
-                                latestGoal.undoable !== false &&
-                                remainingUndoSeconds > 0 && (
-                                  <GoalUndoButton
-                                    goal={latestGoal}
-                                    key={latestGoal.id}
-                                    matchId={match.id}
-                                    onRemoveGoal={context.onRemoveGoal}
-                                    playerName={playerName}
-                                    remainingSeconds={remainingUndoSeconds}
-                                    disabled={!canRecordActions}
-                                  />
-                                )}
+                              latestGoal.undoable !== false &&
+                              remainingUndoSeconds > 0 ? (
+                                <GoalUndoButton
+                                  goal={latestGoal}
+                                  key={latestGoal.id}
+                                  matchId={match.id}
+                                  onRemoveGoal={context.onRemoveGoal}
+                                  playerName={playerName}
+                                  remainingSeconds={remainingUndoSeconds}
+                                  disabled={!canRecordActions}
+                                />
+                              ) : null}
                             </li>
                           );
                         })}

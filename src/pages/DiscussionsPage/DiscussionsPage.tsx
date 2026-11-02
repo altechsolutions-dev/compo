@@ -308,7 +308,7 @@ export function DiscussionsPage() {
 
   return (
     <section
-      className="py-8 pb-12 max-[700px]:pb-[calc(8rem+env(safe-area-inset-bottom))]"
+      className="py-8 pb-12 max-[700px]:pb-[calc(10rem+env(safe-area-inset-bottom))]"
       aria-labelledby="discussions-title"
     >
       <div className="mb-6 border-b border-(--line) pb-5">
@@ -591,7 +591,7 @@ export function DiscussionsPage() {
               </ol>
               {maySend ? (
                 <form
-                  className="fixed inset-x-0 bottom-0 z-30 flex items-end gap-2 border-t border-(--line) bg-(--bg-main) px-0 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] shadow-[0_-8px_24px_#0005] min-[701px]:static min-[701px]:shrink-0 min-[701px]:bg-transparent min-[701px]:p-3 min-[701px]:shadow-none"
+                  className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 flex items-end gap-2 border-t border-(--line) bg-(--bg-main) px-0 py-3 shadow-[0_-8px_24px_#0005] min-[681px]:static min-[681px]:shrink-0 min-[681px]:bg-transparent min-[681px]:p-3 min-[681px]:shadow-none"
                   onSubmit={(event) => void sendMessage(event)}
                 >
                   <div className="mx-auto flex w-[min(calc(100%-56px),1440px)] items-end gap-2 max-[680px]:w-[calc(100%-32px)] max-[380px]:w-[calc(100%-24px)] min-[701px]:w-full">
