@@ -36,6 +36,148 @@
     max-width: 100%;
   }
 
+  .live-match-page--active {
+    padding-bottom: calc(10rem + env(safe-area-inset-bottom));
+  }
+
+  .live-match-actions-toolbar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--line);
+    background: var(--bg-surface);
+    padding: 0.5rem;
+    box-shadow: 0 -12px 32px #0008;
+  }
+
+  .live-match-toolbar-button {
+    display: inline-flex;
+    min-width: 0;
+    min-height: 3.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding-inline: 0.25rem;
+  }
+
+  .live-match-toolbar-button > span {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .live-match-page--active {
+      padding-bottom: 2.5rem;
+    }
+
+    .live-match-actions-toolbar {
+      position: static;
+      display: flex;
+      width: fit-content;
+      max-width: 100%;
+      margin: 0 0 0 auto;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      border: 0;
+      background: transparent;
+      padding: 0;
+      box-shadow: none;
+    }
+
+    .live-match-toolbar-button {
+      min-height: 2.75rem;
+      padding-inline: 0.75rem;
+    }
+
+    .live-match-toolbar-button > span {
+      display: inline;
+    }
+  }
+
+  @media (orientation: landscape) and (max-height: 600px) {
+    .live-match-scoreboard {
+      min-height: 14rem;
+      grid-template-columns: minmax(0, 1fr) 10rem minmax(0, 1fr);
+    }
+
+    .live-match-score-value {
+      font-size: 4.5rem;
+    }
+
+    .live-match-score-clock {
+      font-size: 2.5rem;
+    }
+
+    .live-match-page--active {
+      padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    }
+
+    .live-match-actions-toolbar {
+      display: flex;
+      position: fixed;
+      inset-inline: 0;
+      bottom: 0;
+      z-index: 40;
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border-top: 1px solid var(--line);
+      background: var(--bg-surface);
+      padding: 0.375rem 0.75rem calc(0.375rem + env(safe-area-inset-bottom));
+      box-shadow: 0 -12px 32px #0008;
+    }
+
+    .live-match-toolbar-button {
+      flex: 1 1 0;
+      min-height: 3.125rem;
+      padding-inline: 0.5rem;
+    }
+
+    .live-match-toolbar-button--primary {
+      border: 0;
+      background: var(--team-b-blue);
+    }
+
+    .live-match-toolbar-button > span {
+      display: inline;
+    }
+
+    @media (max-width: 680px) {
+      .live-match-page--active {
+        padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+      }
+
+      .live-match-actions-toolbar {
+        bottom: calc(72px + env(safe-area-inset-bottom));
+      }
+    }
+
+    .live-match-panels {
+      grid-template-areas: "actions events";
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      align-items: start;
+    }
+
+    .live-match-actions-panel {
+      grid-area: actions;
+      order: initial;
+      padding: 1rem;
+    }
+
+    .live-match-events-panel {
+      grid-area: events;
+      order: initial;
+      min-height: 0;
+      padding: 1rem;
+    }
+  }
+
   @media (max-width: 600px) {
     .live-match-action-drawer {
       width: 100%;

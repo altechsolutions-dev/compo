@@ -109,6 +109,17 @@
       padding: 2px 0;
       font-size: 10px;
     }
+
+    @media (orientation: landscape) and (max-height: 600px) {
+      .main-nav {
+        min-height: calc(72px + env(safe-area-inset-bottom));
+        padding-block: 7px calc(7px + env(safe-area-inset-bottom));
+      }
+
+      .main-nav [role="tab"] {
+        height: 54px;
+      }
+    }
   }
 }
 
