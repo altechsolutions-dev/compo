@@ -17,7 +17,7 @@ export function DashboardHero({
   onCreateMatch,
 }: DashboardHeroProps) {
   return (
-    <section className="dashboard-hero relative flex min-h-82 items-center justify-between gap-8 border-b border-(--line) py-10 max-[680px]:min-h-0 max-[680px]:items-start max-[680px]:gap-4 max-[680px]:py-9">
+    <section className="dashboard-hero relative flex min-h-82 items-center justify-between gap-8 border-b border-(--line) py-10 max-[680px]:min-h-0 max-[680px]:items-start max-[680px]:gap-4 max-[680px]:py-6">
       <div>
         <p className="mb-4 flex items-center gap-2 text-[10px] font-bold tracking-[1.7px] text-(--muted) max-[680px]:text-[9px]">
           <span className="size-1.5 rounded-full bg-(--status-success)" />
@@ -25,7 +25,7 @@ export function DashboardHero({
           {matchCount === 1 ? "" : "S"} AU PROGRAMME
         </p>
         <h1
-          className="m-0 font-sans text-[64px] font-bold leading-[0.98] max-[900px]:text-[54px] max-[680px]:text-[42px] max-[380px]:text-[36px]"
+          className="m-0 font-sans text-[64px] font-bold leading-[0.98] max-[900px]:text-[54px] max-[680px]:text-[30px]"
           aria-label={
             activeView === "matches"
               ? "Ton équipe. Ton terrain."
@@ -60,7 +60,7 @@ export function DashboardHero({
             </>
           )}
         </h1>
-        <p className="mb-0 mt-5 max-w-120 text-sm leading-relaxed text-(--text-secondary) max-[680px]:mt-4 max-[680px]:text-xs">
+        <p className="mb-0 mt-5 max-w-120 text-sm leading-relaxed text-(--text-secondary) max-[680px]:hidden">
           Trouve un match près de chez toi, choisis ton équipe et viens jouer.
           Simplement.
         </p>

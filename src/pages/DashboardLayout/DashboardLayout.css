@@ -3,4 +3,10 @@
     min-height: 100svh;
     overflow-x: clip;
   }
+
+  @media (max-width: 680px) {
+    .dashboard-page {
+      padding-bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+  }
 }

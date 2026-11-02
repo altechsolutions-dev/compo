@@ -118,6 +118,7 @@ describe("LiveMatchPage", () => {
       name: "Actions du match",
     });
     expect(actionNavigation).toHaveClass(
+      "bottom-[calc(64px+env(safe-area-inset-bottom))]",
       "shadow-[0_-12px_32px_#0008]",
       "sm:shadow-none",
     );
@@ -155,9 +156,11 @@ describe("LiveMatchPage", () => {
     expect(
       screen.queryByRole("button", { name: "But !" }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Ajouter un but pour Lucas Martin" }),
-    ).toBeEnabled();
+    const addGoalButton = screen.getByRole("button", {
+      name: "Ajouter un but pour Lucas Martin",
+    });
+    expect(addGoalButton).toBeEnabled();
+    expect(addGoalButton).toHaveClass("min-h-11", "flex-1");
     expect(
       screen.getByRole("button", {
         name: "Annuler le dernier but de Lucas Martin",

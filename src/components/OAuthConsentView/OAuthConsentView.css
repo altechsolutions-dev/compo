@@ -27,4 +27,14 @@
   .oauth-consent-view__scopes li::marker {
     color: var(--team-b-blue);
   }
+
+  @media (max-width: 500px) {
+    .oauth-consent-view__panel > div:last-child {
+      grid-template-columns: 1fr;
+    }
+
+    .oauth-consent-view__button {
+      min-height: 48px;
+    }
+  }
 }

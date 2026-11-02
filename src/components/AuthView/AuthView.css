@@ -138,6 +138,18 @@
   }
 
   @media (max-width: 700px) {
+    .auth-view__panel {
+      justify-content: flex-start;
+      padding-top: max(6rem, calc(env(safe-area-inset-top) + 4.5rem));
+      padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+    }
+
+    .auth-view__panel h1 {
+      top: max(1.5rem, env(safe-area-inset-top));
+      left: 1.5rem;
+      right: 1.5rem;
+    }
+
     .landing-field-background {
       background-position: 60% 42%;
       background-size: min(118vw, 560px) auto;

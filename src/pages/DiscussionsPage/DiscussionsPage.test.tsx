@@ -93,7 +93,10 @@ describe("DiscussionsPage", () => {
     const composer = await screen.findByRole("textbox", {
       name: "Votre message",
     });
-    expect(composer.closest("form")).toHaveClass("fixed", "bottom-0");
+    expect(composer.closest("form")).toHaveClass(
+      "fixed",
+      "bottom-[calc(64px+env(safe-area-inset-bottom))]",
+    );
     fireEvent.change(composer, { target: { value: "Rendez-vous à 19 h !" } });
     fireEvent.keyDown(composer, { key: "Enter", code: "Enter" });
 
