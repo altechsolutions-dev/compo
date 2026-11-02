@@ -423,6 +423,57 @@ export function LiveMatchPage({
   }, [isLive, matchElapsedSeconds, match?.startedAt, match?.status]);
 
   useEffect(() => {
+    if (!canRecordActions || !("wakeLock" in navigator)) return;
+
+    let active = true;
+    let requestPending = false;
+    let wakeLock: WakeLockSentinel | null = null;
+
+    const requestWakeLock = async () => {
+      if (
+        !active ||
+        document.visibilityState !== "visible" ||
+        requestPending ||
+        (wakeLock && !wakeLock.released)
+      ) {
+        return;
+      }
+
+      requestPending = true;
+      try {
+        const sentinel = await navigator.wakeLock.request("screen");
+        if (!active || document.visibilityState !== "visible") {
+          await sentinel.release();
+        } else {
+          wakeLock = sentinel;
+        }
+      } catch {
+        // Wake Lock may be unavailable or denied; match actions remain usable.
+      } finally {
+        requestPending = false;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void requestWakeLock();
+      } else if (wakeLock) {
+        void wakeLock.release();
+        wakeLock = null;
+      }
+    };
+
+    void requestWakeLock();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (wakeLock) void wakeLock.release();
+    };
+  }, [canRecordActions]);
+
+  useEffect(() => {
     if (!canRecordActions) return;
     const timer = window.setInterval(() => setUndoClock(Date.now()), 1000);
     return () => window.clearInterval(timer);

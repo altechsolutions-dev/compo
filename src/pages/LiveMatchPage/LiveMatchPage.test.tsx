@@ -67,6 +67,33 @@ function renderLivePage(
 }
 
 describe("LiveMatchPage", () => {
+  it("maintient l’écran éveillé pendant le match et libère le verrou en quittant", async () => {
+    const release = vi.fn().mockResolvedValue(undefined);
+    const request = vi.fn().mockResolvedValue({ released: false, release });
+    const previousWakeLock = Object.getOwnPropertyDescriptor(
+      navigator,
+      "wakeLock",
+    );
+    Object.defineProperty(navigator, "wakeLock", {
+      configurable: true,
+      value: { request },
+    });
+
+    try {
+      const { unmount } = renderLivePage();
+      await waitFor(() => expect(request).toHaveBeenCalledWith("screen"));
+
+      unmount();
+      await waitFor(() => expect(release).toHaveBeenCalledTimes(1));
+    } finally {
+      if (previousWakeLock) {
+        Object.defineProperty(navigator, "wakeLock", previousWakeLock);
+      } else {
+        Reflect.deleteProperty(navigator, "wakeLock");
+      }
+    }
+  });
+
   it("allège l’en-tête du match actif et affiche score et historique", () => {
     const { context } = renderLivePage();
 
