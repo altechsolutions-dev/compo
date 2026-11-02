@@ -142,7 +142,7 @@ export function useOrganizationWorkflow({
   }, [authLoading, sessionUserId]);
 
   useEffect(() => {
-    if (!pendingInviteCode || authLoading) return;
+    if (!pendingInviteCode || authLoading || isLoadingOrganizations) return;
     if (!supabase || !sessionUserId) return;
     if (handledInviteCode.current === pendingInviteCode) return;
     handledInviteCode.current = pendingInviteCode;
@@ -162,12 +162,31 @@ export function useOrganizationWorkflow({
           setModal("code");
           return;
         }
+        if (
+          organizations.some(
+            (organization) =>
+              organization.organization_id === invite.organization_id,
+          )
+        ) {
+          setPendingInviteCode("");
+          navigate("/app/matches", { replace: true });
+          return;
+        }
         setJoinCode(pendingInviteCode.toUpperCase());
         setInviteOrganizationName(invite.organization_name);
         setFeatureNotice("");
         setModal("join");
       });
-  }, [authLoading, pendingInviteCode, sessionUserId, setModal]);
+  }, [
+    authLoading,
+    isLoadingOrganizations,
+    navigate,
+    organizations,
+    pendingInviteCode,
+    sessionUserId,
+    setModal,
+    setPendingInviteCode,
+  ]);
 
   async function selectOrganization(selected: OrganizationSummary) {
     if (!supabase) return;

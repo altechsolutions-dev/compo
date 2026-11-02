@@ -68,6 +68,64 @@ describe("useOrganizationWorkflow", () => {
     expect(result.current.organizationId).toBe(organization.organization_id);
   });
 
+  it("redirige vers Matchs si le lien invite vers un club déjà rejoint", async () => {
+    const organization: OrganizationSummary = {
+      organization_id: "organization-1",
+      organization_name: "Les Panthères",
+      invite_code: "A1B2C3D4",
+      role: "member",
+      member_count: 3,
+    };
+    supabaseRpc.mockImplementation((procedure: string) => {
+      if (procedure === "get_my_organizations") {
+        return Promise.resolve({ data: [organization], error: null });
+      }
+      if (procedure === "preview_organization_invite") {
+        return Promise.resolve({
+          data: [
+            {
+              organization_id: organization.organization_id,
+              organization_name: organization.organization_name,
+            },
+          ],
+          error: null,
+        });
+      }
+      if (procedure === "get_organization_members") {
+        return Promise.resolve({ data: [], error: null });
+      }
+      return Promise.resolve({ data: [], error: null });
+    });
+    const navigate = vi.fn();
+    const setModal = vi.fn();
+    const setPendingInviteCode = vi.fn();
+    const session = { user: { id: "user-1" } } as Session;
+
+    renderHook(() =>
+      useOrganizationWorkflow({
+        authLoading: false,
+        session,
+        pendingInviteCode: "A1B2C3D4",
+        setPendingInviteCode,
+        setPendingCreateOrganization: vi.fn(),
+        setAuthNotice: vi.fn(),
+        setAuthMode: vi.fn(),
+        navigate,
+        setModal,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith("/app/matches", { replace: true }),
+    );
+
+    expect(supabaseRpc).toHaveBeenCalledWith("preview_organization_invite", {
+      p_code: "A1B2C3D4",
+    });
+    expect(setPendingInviteCode).toHaveBeenCalledWith("");
+    expect(setModal).not.toHaveBeenCalledWith("join");
+  });
+
   it("refuse la création quand le nom du club est déjà utilisé", async () => {
     supabaseRpc.mockImplementation((procedure: string) => {
       if (procedure === "get_my_organizations") {
