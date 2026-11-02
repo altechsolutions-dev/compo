@@ -40,6 +40,22 @@
     padding-bottom: calc(10rem + env(safe-area-inset-bottom));
   }
 
+  .live-match-portrait-notice {
+    display: none;
+  }
+
+  @media (orientation: portrait) and (max-width: 680px) {
+    .live-match-portrait-notice {
+      display: block;
+      margin: 0 0 1rem;
+      border-left: 3px solid var(--team-b-blue);
+      background: var(--bg-surface);
+      padding: 0.75rem 1rem;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+    }
+  }
+
   .live-match-actions-toolbar {
     position: fixed;
     inset-inline: 0;

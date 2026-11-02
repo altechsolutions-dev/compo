@@ -631,6 +631,12 @@ export function LiveMatchPage({
     <section
       className={`live-match-page ${canRecordActions ? "live-match-page--active pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-10" : "pb-10"}`}
     >
+      {canRecordActions && (
+        <p className="live-match-portrait-notice" role="status">
+          Désactivez le verrouillage de rotation dans le Centre de contrôle,
+          puis tournez votre iPhone en paysage.
+        </p>
+      )}
       {!canRecordActions && (
         <header className="flex flex-wrap items-end justify-between gap-6 border-b border-(--line) py-8 sm:py-10">
           {!canRecordActions && (
