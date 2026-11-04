@@ -29,3 +29,54 @@
     }
   }
 }
+
+@media (min-width: 681px) and (max-width: 1024px),
+  (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) and (any-pointer: coarse) {
+  .dashboard-hero {
+    min-height: 250px;
+    gap: 2rem;
+    padding-block: 2.5rem;
+  }
+
+  .dashboard-hero h1 {
+    font-size: 46px;
+  }
+
+  .dashboard-hero p {
+    max-width: 32rem;
+  }
+}
+
+@media (orientation: landscape) and (max-width: 1024px) {
+  .dashboard-hero {
+    min-height: 0;
+    align-items: flex-start;
+    gap: 1rem;
+    padding-block: 1.5rem;
+  }
+
+  .dashboard-hero h1 {
+    font-size: 30px;
+  }
+
+  .dashboard-hero > div > p:last-child {
+    display: none;
+  }
+
+  .dashboard-hero > button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    align-self: flex-end;
+    padding: 0;
+  }
+
+  .dashboard-hero > button > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}

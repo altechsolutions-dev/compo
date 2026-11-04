@@ -1,0 +1,54 @@
+@media (orientation: landscape) and (max-width: 1024px) {
+  .discussion-page {
+    padding-bottom: calc(10rem + env(safe-area-inset-bottom));
+  }
+
+  .discussion-layout {
+    min-height: min(68svh, 720px);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .discussion-layout > button[aria-controls="discussion-list"] {
+    display: flex;
+    min-height: 56px;
+  }
+
+  .discussion-list {
+    display: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .discussion-layout
+    > button[aria-controls="discussion-list"][aria-expanded="true"]
+    + .discussion-list {
+    display: block;
+  }
+
+  .discussion-list ul {
+    max-height: 35svh;
+  }
+
+  .discussion-layout > div:last-child {
+    min-height: min(68svh, 720px);
+  }
+
+  .discussion-messages {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+
+  .discussion-composer {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    z-index: 30;
+    border-top: 1px solid var(--line);
+    background: var(--bg-main);
+    padding: 0.75rem 0;
+    box-shadow: 0 -8px 24px #0005;
+  }
+
+  .discussion-composer > div {
+    width: calc(100% - 32px);
+  }
+}

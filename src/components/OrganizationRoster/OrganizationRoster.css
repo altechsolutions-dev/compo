@@ -31,3 +31,15 @@
     outline: none;
   }
 }
+
+@media (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) and (any-pointer: coarse) {
+  .organization-roster__list {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-width: 1024px) {
+  .organization-roster__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

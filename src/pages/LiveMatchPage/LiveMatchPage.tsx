@@ -631,6 +631,12 @@ export function LiveMatchPage({
     <section
       className={`live-match-page ${canRecordActions ? "live-match-page--active pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-10" : "pb-10"}`}
     >
+      {canRecordActions && (
+        <p className="live-match-portrait-notice" role="status">
+          Désactivez le verrouillage de rotation dans le Centre de contrôle,
+          puis tournez votre iPhone en paysage.
+        </p>
+      )}
       {!canRecordActions && (
         <header className="flex flex-wrap items-end justify-between gap-6 border-b border-(--line) py-8 sm:py-10">
           {!canRecordActions && (
@@ -1047,7 +1053,7 @@ export function LiveMatchPage({
 
       {!isScheduled && (
         <div
-          className={`live-match-panels mt-3 grid items-start gap-4 lg:items-stretch ${isFinished ? "grid-cols-1" : "lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]"}`}
+          className={`live-match-panels mt-3 grid items-start gap-4 lg:items-stretch ${isFinished ? "live-match-panels--finished grid-cols-1" : "lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]"}`}
         >
           <section
             className="live-match-events-panel order-2 min-h-80 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-2 sm:p-6 lg:order-1"

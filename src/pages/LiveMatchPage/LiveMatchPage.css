@@ -40,6 +40,22 @@
     padding-bottom: calc(10rem + env(safe-area-inset-bottom));
   }
 
+  .live-match-portrait-notice {
+    display: none;
+  }
+
+  @media (orientation: portrait) and (max-width: 680px) {
+    .live-match-portrait-notice {
+      display: block;
+      margin: 0 0 1rem;
+      border-left: 3px solid var(--team-b-blue);
+      background: var(--bg-surface);
+      padding: 0.75rem 1rem;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+    }
+  }
+
   .live-match-actions-toolbar {
     position: fixed;
     inset-inline: 0;
@@ -183,5 +199,79 @@
       width: 100%;
       border-left: 0;
     }
+  }
+}
+
+@media (min-width: 850px) and (max-width: 1023px),
+  (orientation: landscape) and (min-width: 1024px) and (max-width: 1366px) and (any-pointer: coarse) {
+  .live-match-panels:not(.live-match-panels--finished) {
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
+    align-items: stretch;
+  }
+
+  .live-match-events-panel {
+    order: 1;
+  }
+
+  .live-match-actions-panel {
+    order: 2;
+  }
+}
+
+@media (orientation: landscape) and (max-width: 1024px) {
+  .live-match-page--active {
+    padding-bottom: calc(10rem + env(safe-area-inset-bottom));
+  }
+
+  .live-match-actions-toolbar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    z-index: 40;
+    display: grid;
+    width: 100%;
+    max-width: none;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    gap: 0;
+    border-top: 1px solid var(--line);
+    background: var(--bg-surface);
+    padding: 0.5rem;
+    box-shadow: 0 -12px 32px #0008;
+  }
+
+  .live-match-toolbar-button {
+    min-width: 0;
+    min-height: 3.5rem;
+    flex: initial;
+    padding-inline: 0.25rem;
+  }
+
+  .live-match-toolbar-button > span {
+    display: none;
+  }
+
+  .live-match-panels:not(.live-match-panels--finished) {
+    grid-template-areas: none;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .live-match-actions-panel,
+  .live-match-events-panel {
+    grid-area: auto;
+  }
+
+  .live-match-actions-panel {
+    order: 1;
+  }
+
+  .live-match-events-panel {
+    order: 2;
+  }
+
+  .live-match-action-drawer {
+    width: 100%;
+    border-left: 0;
   }
 }

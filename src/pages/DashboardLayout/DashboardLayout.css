@@ -10,3 +10,22 @@
     }
   }
 }
+
+@media (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) and (any-pointer: coarse) {
+  .dashboard-page {
+    width: calc(100% - 40px);
+  }
+}
+
+@media (orientation: landscape) and (max-width: 1024px) {
+  .dashboard-page {
+    width: calc(100% - 32px);
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .dashboard-footer {
+    min-height: 58px;
+    flex-direction: row;
+    align-items: center;
+  }
+}
