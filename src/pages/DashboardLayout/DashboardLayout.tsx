@@ -51,7 +51,7 @@ export function DashboardLayout({
           : "matches";
 
   return (
-    <main className="dashboard-page mx-auto flex min-h-svh w-[min(calc(100%-56px),1440px)] flex-col animate-[appear_500ms_ease-out_both] max-[680px]:w-[calc(100%-32px)] max-[380px]:w-[calc(100%-24px)]">
+    <main className="dashboard-page mx-auto flex min-h-svh w-[min(calc(100%-56px),1440px)] flex-col animate-[appear_500ms_ease-out_both] min-[681px]:max-[1024px]:w-[calc(100%-40px)] max-[680px]:w-[calc(100%-32px)] max-[380px]:w-[calc(100%-24px)]">
       <DashboardHeader
         organization={organization}
         organizationMemberCount={organizationMemberCount}

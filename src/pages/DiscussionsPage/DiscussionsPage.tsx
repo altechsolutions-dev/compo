@@ -14,6 +14,7 @@ import type { MatchSlot } from "../../types";
 import { notifyMatchEvent } from "../../lib/pushNotifications/notifyMatchEvent";
 import { supabase } from "../../lib/supabase/supabase";
 import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteContext";
+import "./DiscussionsPage.css";
 
 type DiscussionSummary = {
   match_id: string;
@@ -308,7 +309,7 @@ export function DiscussionsPage() {
 
   return (
     <section
-      className="py-8 pb-12 max-[700px]:pb-[calc(10rem+env(safe-area-inset-bottom))]"
+      className="discussion-page py-8 pb-12 max-[700px]:pb-[calc(10rem+env(safe-area-inset-bottom))]"
       aria-labelledby="discussions-title"
     >
       <div className="mb-6 border-b border-(--line) pb-5">
@@ -322,7 +323,7 @@ export function DiscussionsPage() {
           <MessageCircle aria-hidden="true" size={22} /> Discussions
         </h1>
       </div>
-      <div className="grid min-h-[min(68svh,720px)] grid-cols-[minmax(220px,0.8fr)_minmax(0,1.8fr)] max-[700px]:grid-cols-1">
+      <div className="discussion-layout grid min-h-[min(68svh,720px)] grid-cols-[minmax(220px,0.8fr)_minmax(0,1.8fr)] min-[701px]:max-[1024px]:grid-cols-[minmax(240px,0.9fr)_minmax(0,1.6fr)] max-[700px]:grid-cols-1">
         <button
           aria-controls="discussion-list"
           aria-expanded={discussionPickerOpen}
@@ -359,7 +360,7 @@ export function DiscussionsPage() {
           />
         </button>
         <nav
-          className={`min-w-0 border-r border-(--line) max-[700px]:border-r-0 max-[700px]:border-b ${discussionPickerOpen ? "max-[700px]:block" : "max-[700px]:hidden"}`}
+          className={`discussion-list min-w-0 border-r border-(--line) max-[700px]:border-r-0 max-[700px]:border-b ${discussionPickerOpen ? "max-[700px]:block" : "max-[700px]:hidden"}`}
           aria-label="Liste des discussions"
           id="discussion-list"
         >
@@ -443,7 +444,7 @@ export function DiscussionsPage() {
               <ol
                 aria-label="Messages"
                 aria-live="polite"
-                className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 max-[700px]:pb-[calc(6rem+env(safe-area-inset-bottom))]"
+                className="discussion-messages flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-4 max-[700px]:pb-[calc(6rem+env(safe-area-inset-bottom))]"
               >
                 {messages.length === 0 ? (
                   <li className="m-auto list-none text-center text-xs text-(--text-secondary)">
@@ -591,7 +592,7 @@ export function DiscussionsPage() {
               </ol>
               {maySend ? (
                 <form
-                  className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 flex items-end gap-2 border-t border-(--line) bg-(--bg-main) px-0 py-3 shadow-[0_-8px_24px_#0005] min-[681px]:static min-[681px]:shrink-0 min-[681px]:bg-transparent min-[681px]:p-3 min-[681px]:shadow-none"
+                  className="discussion-composer fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 flex items-end gap-2 border-t border-(--line) bg-(--bg-main) px-0 py-3 shadow-[0_-8px_24px_#0005] min-[681px]:static min-[681px]:shrink-0 min-[681px]:bg-transparent min-[681px]:p-3 min-[681px]:shadow-none"
                   onSubmit={(event) => void sendMessage(event)}
                 >
                   <div className="mx-auto flex w-[min(calc(100%-56px),1440px)] items-end gap-2 max-[680px]:w-[calc(100%-32px)] max-[380px]:w-[calc(100%-24px)] min-[701px]:w-full">

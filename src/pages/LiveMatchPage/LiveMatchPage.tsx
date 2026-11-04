@@ -1053,7 +1053,7 @@ export function LiveMatchPage({
 
       {!isScheduled && (
         <div
-          className={`live-match-panels mt-3 grid items-start gap-4 lg:items-stretch ${isFinished ? "grid-cols-1" : "lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]"}`}
+          className={`live-match-panels mt-3 grid items-start gap-4 lg:items-stretch ${isFinished ? "live-match-panels--finished grid-cols-1" : "lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,0.85fr)]"}`}
         >
           <section
             className="live-match-events-panel order-2 min-h-80 rounded-xl border border-(--line) bg-(--bg-surface) p-5 sm:order-2 sm:p-6 lg:order-1"

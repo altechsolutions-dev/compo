@@ -29,3 +29,15 @@
     background-size: 50% 100%;
   }
 }
+
+@media (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) and (any-pointer: coarse) {
+  .match-list__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-width: 1024px) {
+  .match-list__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

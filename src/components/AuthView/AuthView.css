@@ -162,3 +162,36 @@
     }
   }
 }
+
+@media (min-width: 701px) and (max-width: 900px) {
+  .auth-view__panel {
+    width: 100%;
+    padding-inline: 3.5rem;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1024px) {
+  .auth-view__panel {
+    padding-inline: 3rem;
+  }
+}
+
+@media (orientation: landscape) and (max-width: 1024px) {
+  .auth-view > section[aria-label="À propos de Compo"] {
+    display: none;
+  }
+
+  .auth-view__panel {
+    width: 100%;
+    min-height: 100svh;
+    justify-content: flex-start;
+    border-left: 0;
+    padding: 6rem 1.5rem 1.5rem;
+  }
+
+  .auth-view__panel h1 {
+    top: 1.25rem;
+    left: 1.5rem;
+    right: 1.5rem;
+  }
+}
