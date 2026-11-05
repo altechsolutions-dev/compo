@@ -1,6 +1,6 @@
 @layer components {
   .match-drawer-backdrop {
-    background: #11151fcc;
+    background: rgba(17, 21, 31, 0.8);
     opacity: 0;
     overflow-x: clip;
     overscroll-behavior: contain;

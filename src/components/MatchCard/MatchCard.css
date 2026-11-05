@@ -6,13 +6,12 @@
   @keyframes match-complete-glow {
     0%,
     100% {
-      box-shadow: 0 0 0 1px
-        color-mix(in srgb, var(--team-b-blue) 28%, transparent);
+      box-shadow: 0 0 0 1px rgba(0, 199, 213, 0.28);
     }
     50% {
       box-shadow:
-        0 0 0 1px color-mix(in srgb, var(--team-b-blue) 60%, transparent),
-        0 0 22px color-mix(in srgb, var(--team-b-blue) 16%, transparent);
+        0 0 0 1px rgba(0, 199, 213, 0.6),
+        0 0 22px rgba(0, 199, 213, 0.16);
     }
   }
 
@@ -23,8 +22,8 @@
 
   .match-full-label {
     width: fit-content;
-    border-block: 1px solid
-      color-mix(in srgb, var(--team-b-blue) 35%, transparent);
+    border-top: 1px solid rgba(0, 199, 213, 0.35);
+    border-bottom: 1px solid rgba(0, 199, 213, 0.35);
     padding-block: 0.25rem;
   }
 

@@ -1,4 +1,4 @@
-@media (orientation: landscape) and (max-width: 1024px) {
+@media (orientation: landscape) and (max-width: 1366px) {
   .discussion-page {
     padding-bottom: calc(10rem + env(safe-area-inset-bottom));
   }
@@ -45,7 +45,7 @@
     border-top: 1px solid var(--line);
     background: var(--bg-main);
     padding: 0.75rem 0;
-    box-shadow: 0 -8px 24px #0005;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.33);
   }
 
   .discussion-composer > div {

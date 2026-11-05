@@ -11,13 +11,17 @@
   }
 }
 
-@media (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) and (any-pointer: coarse) {
+.dashboard-page:has(.live-match-page--started) .dashboard-header .main-nav {
+  display: none;
+}
+
+@media (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) {
   .dashboard-page {
     width: calc(100% - 40px);
   }
 }
 
-@media (orientation: landscape) and (max-width: 1024px) {
+@media (orientation: landscape) and (max-width: 1366px) {
   .dashboard-page {
     width: calc(100% - 32px);
     padding-bottom: calc(72px + env(safe-area-inset-bottom));

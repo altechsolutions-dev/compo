@@ -16,7 +16,7 @@
     right: 8%;
     width: 280px;
     aspect-ratio: 1;
-    border: 1px solid color-mix(in srgb, var(--team-b-blue) 8%, transparent);
+    border: 1px solid rgba(0, 199, 213, 0.08);
     border-radius: 50%;
     content: "";
     pointer-events: none;
@@ -31,7 +31,7 @@
 }
 
 @media (min-width: 681px) and (max-width: 1024px),
-  (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) and (any-pointer: coarse) {
+  (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) {
   .dashboard-hero {
     min-height: 250px;
     gap: 2rem;
@@ -47,7 +47,7 @@
   }
 }
 
-@media (orientation: landscape) and (max-width: 1024px) {
+@media (orientation: landscape) and (max-width: 1366px) {
   .dashboard-hero {
     min-height: 0;
     align-items: flex-start;

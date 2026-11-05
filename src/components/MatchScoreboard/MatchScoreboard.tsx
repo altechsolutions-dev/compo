@@ -25,7 +25,7 @@ export function MatchScoreboard({
   return (
     <section
       aria-label="Score du match"
-      className="live-match-scoreboard mt-6 grid min-h-44 grid-cols-[minmax(0,1fr)_7.5rem_minmax(0,1fr)] overflow-hidden rounded-xl border border-(--line) bg-(--bg-surface) sm:min-h-47 sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]"
+      className="live-match-scoreboard mt-6 grid min-h-44 grid-cols-[minmax(0,1fr)_7.5rem_minmax(0,1fr)] overflow-hidden rounded-xl border border-(--line) bg-(--bg-surface) sm:min-h-54 sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]"
     >
       {onSelectTeam ? (
         <button
