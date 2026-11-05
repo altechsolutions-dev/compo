@@ -18,18 +18,50 @@
     background: var(--bg-surface);
     padding: 1.25rem;
     color: var(--text-primary);
-    box-shadow: -18px 0 50px #0006;
+    box-shadow: -18px 0 50px rgba(0, 0, 0, 0.4);
   }
 
   .live-match-action-drawer--confirm {
     padding: 1.5rem;
     background: var(--bg-elevated);
-    box-shadow: -18px 0 50px #17271f30;
+    box-shadow: -18px 0 50px rgba(23, 39, 31, 0.19);
   }
 
   .live-match-action-drawer--wide {
     width: min(100%, 36rem);
     padding: 1.5rem;
+  }
+
+  @media (max-width: 1023px) {
+    .live-match-action-drawer--goal-picker {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      border-left: 0;
+      padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem
+        max(1.25rem, env(safe-area-inset-bottom));
+    }
+
+    .live-match-goal-picker__header {
+      flex: 0 0 auto;
+    }
+
+    .live-match-goal-picker__teams {
+      flex: 1 1 auto;
+      grid-template-rows: minmax(0, 1fr);
+    }
+
+    .live-match-goal-picker__team {
+      min-height: 0;
+    }
+
+    .live-match-goal-picker__players {
+      min-height: 0;
+    }
+
+    .live-match-goal-player {
+      flex: 1 1 auto;
+    }
   }
 
   .live-match-action-drawer__content {
@@ -66,7 +98,7 @@
     border-top: 1px solid var(--line);
     background: var(--bg-surface);
     padding: 0.5rem;
-    box-shadow: 0 -12px 32px #0008;
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.53);
   }
 
   .live-match-toolbar-button {
@@ -146,7 +178,7 @@
       border-top: 1px solid var(--line);
       background: var(--bg-surface);
       padding: 0.375rem 0.75rem calc(0.375rem + env(safe-area-inset-bottom));
-      box-shadow: 0 -12px 32px #0008;
+      box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.53);
     }
 
     .live-match-toolbar-button {
@@ -203,7 +235,7 @@
 }
 
 @media (min-width: 850px) and (max-width: 1023px),
-  (orientation: landscape) and (min-width: 1024px) and (max-width: 1366px) and (any-pointer: coarse) {
+  (orientation: landscape) and (min-width: 1024px) and (max-width: 1366px) {
   .live-match-panels:not(.live-match-panels--finished) {
     grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.9fr);
     align-items: stretch;
@@ -218,7 +250,7 @@
   }
 }
 
-@media (orientation: landscape) and (max-width: 1024px) {
+@media (orientation: landscape) and (max-width: 1366px) {
   .live-match-page--active {
     padding-bottom: calc(10rem + env(safe-area-inset-bottom));
   }
@@ -233,11 +265,11 @@
     max-width: none;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     margin: 0;
-    gap: 0;
+    gap: 0.5rem;
     border-top: 1px solid var(--line);
     background: var(--bg-surface);
     padding: 0.5rem;
-    box-shadow: 0 -12px 32px #0008;
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.53);
   }
 
   .live-match-toolbar-button {
@@ -274,4 +306,80 @@
     width: 100%;
     border-left: 0;
   }
+}
+
+@media (max-width: 1366px) {
+  .live-match-page--started.live-match-page--active {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+
+  .live-match-page--started.live-match-page--active
+    .live-match-actions-toolbar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: env(safe-area-inset-bottom);
+    z-index: 40;
+    display: grid;
+    width: 100%;
+    max-width: none;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    gap: 0.5rem;
+    border-top: 1px solid var(--line);
+    background: var(--bg-surface);
+    padding: 0.5rem;
+    box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.53);
+  }
+}
+
+.live-match-goal-player--red,
+.live-match-player-action--red {
+  border-color: rgba(255, 59, 78, 0.35);
+  color: var(--team-a-red);
+}
+
+.live-match-goal-player--red {
+  background-color: rgba(255, 59, 78, 0.05);
+}
+
+.live-match-goal-player--red:hover,
+.live-match-player-action--red:hover {
+  background-color: rgba(255, 59, 78, 0.1);
+}
+
+.live-match-goal-player--blue,
+.live-match-player-action--blue {
+  border-color: rgba(0, 199, 213, 0.35);
+  color: var(--team-b-blue);
+}
+
+.live-match-goal-player--blue {
+  background-color: rgba(0, 199, 213, 0.05);
+}
+
+.live-match-goal-player--blue:hover,
+.live-match-player-action--blue:hover {
+  background-color: rgba(0, 199, 213, 0.1);
+}
+
+.live-match-composition-player--red {
+  border-color: rgba(255, 59, 78, 0.25);
+  background-color: rgba(255, 59, 78, 0.05);
+  color: var(--team-a-red);
+}
+
+.live-match-composition-player--red.is-selected {
+  border-color: var(--team-a-red);
+  background-color: rgba(255, 59, 78, 0.2);
+}
+
+.live-match-composition-player--blue {
+  border-color: rgba(0, 199, 213, 0.25);
+  background-color: rgba(0, 199, 213, 0.05);
+  color: var(--team-b-blue);
+}
+
+.live-match-composition-player--blue.is-selected {
+  border-color: var(--team-b-blue);
+  background-color: rgba(0, 199, 213, 0.2);
 }

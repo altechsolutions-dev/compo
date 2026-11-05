@@ -148,9 +148,6 @@ export function DashboardHeader({
         >
           <Users size={16} />
           <span>Club</span>
-          <span className="min-w-4.5 rounded-[9px] bg-(--bg-elevated) px-1.25 py-px text-center text-[10px] text-(--text-secondary) max-[680px]:hidden">
-            {organizationMemberCount}
-          </span>
         </button>
       </nav>
       <div

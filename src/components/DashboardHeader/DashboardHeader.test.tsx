@@ -38,7 +38,6 @@ describe("DashboardHeader", () => {
       "aria-selected",
       "true",
     );
-    expect(screen.getByText("8")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "En direct" }));
     expect(onNavigate).toHaveBeenCalledWith("live");
     fireEvent.click(screen.getByRole("tab", { name: "Discussions" }));

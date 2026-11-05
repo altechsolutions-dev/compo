@@ -128,6 +128,10 @@ describe("LiveMatchPage", () => {
   it("allège l’en-tête du match actif et affiche score et historique", () => {
     const { context } = renderLivePage();
 
+    expect(document.querySelector(".live-match-page")).toHaveClass(
+      "live-match-page--started",
+    );
+
     expect(
       screen.queryByRole("heading", { name: "Five du samedi" }),
     ).not.toBeInTheDocument();
@@ -879,6 +883,10 @@ describe("LiveMatchPage", () => {
       elapsedSeconds: 84,
     };
     const { context } = renderLivePage(pausedMatch);
+
+    expect(document.querySelector(".live-match-page")).toHaveClass(
+      "live-match-page--started",
+    );
 
     fireEvent.click(
       screen.getByRole("button", { name: "Ajouter un but pour Théo Bernard" }),

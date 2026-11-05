@@ -10,7 +10,7 @@
   .match-list__winner-gradient[data-winner="red"] {
     background-image: linear-gradient(
       to left,
-      color-mix(in srgb, var(--team-a-red) 15%, transparent),
+      rgba(255, 59, 78, 0.15),
       transparent
     );
     background-position: right;
@@ -21,7 +21,7 @@
   .match-list__winner-gradient[data-winner="blue"] {
     background-image: linear-gradient(
       to right,
-      color-mix(in srgb, var(--team-b-blue) 15%, transparent),
+      rgba(0, 199, 213, 0.15),
       transparent
     );
     background-position: left;
@@ -30,13 +30,13 @@
   }
 }
 
-@media (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) and (any-pointer: coarse) {
+@media (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) {
   .match-list__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (orientation: landscape) and (max-width: 1024px) {
+@media (orientation: landscape) and (max-width: 1366px) {
   .match-list__grid {
     grid-template-columns: minmax(0, 1fr);
   }

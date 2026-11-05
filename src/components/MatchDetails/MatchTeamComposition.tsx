@@ -108,7 +108,7 @@ export function MatchTeamComposition({
 
                 return (
                   <div
-                    className={`mb-1.5 flex min-h-9 w-full items-center overflow-hidden rounded-sm border px-2 py-1.5 text-xs font-semibold ${teamColorClass} ${isEditing && !selected ? "hover:brightness-110" : ""}`}
+                    className={`match-team-player mb-1.5 flex min-h-9 w-full items-center overflow-hidden rounded-sm border px-2 py-1.5 text-xs font-semibold ${teamColorClass} ${teamIndex === 0 ? "match-team-player--red" : "match-team-player--blue"} ${selected ? "is-selected" : ""} ${isEditing && !selected ? "hover:brightness-110" : ""}`}
                     key={id}
                   >
                     {isEditing ? (

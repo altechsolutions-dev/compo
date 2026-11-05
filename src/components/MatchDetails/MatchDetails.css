@@ -1,5 +1,27 @@
 @layer components {
   .match-drawer-line {
-    border-color: color-mix(in srgb, var(--text-primary) 15%, transparent);
+    border-color: rgba(255, 255, 255, 0.15);
   }
+}
+
+.match-team-player--red {
+  border-color: rgba(255, 59, 78, 0.25);
+  background-color: rgba(255, 59, 78, 0.05);
+  color: var(--team-a-red);
+}
+
+.match-team-player--red.is-selected {
+  border-color: var(--team-a-red);
+  background-color: rgba(255, 59, 78, 0.2);
+}
+
+.match-team-player--blue {
+  border-color: rgba(0, 199, 213, 0.25);
+  background-color: rgba(0, 199, 213, 0.05);
+  color: var(--team-b-blue);
+}
+
+.match-team-player--blue.is-selected {
+  border-color: var(--team-b-blue);
+  background-color: rgba(0, 199, 213, 0.2);
 }

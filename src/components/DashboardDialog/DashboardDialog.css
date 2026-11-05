@@ -7,7 +7,7 @@
     border-left: 1px solid var(--border-neutral);
     background: var(--bg-elevated);
     color: var(--text-primary);
-    box-shadow: -18px 0 50px #17271f30;
+    box-shadow: -18px 0 50px rgba(23, 39, 31, 0.19);
   }
 
   .dashboard-dialog__panel--match {
