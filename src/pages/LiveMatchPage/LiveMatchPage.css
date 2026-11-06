@@ -69,13 +69,13 @@
   }
 
   .live-match-page--active {
-    padding-bottom: calc(10rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
   }
 
   .live-match-actions-toolbar {
     position: fixed;
     inset-inline: 0;
-    bottom: calc(64px + env(safe-area-inset-bottom));
+    bottom: env(safe-area-inset-bottom);
     z-index: 40;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -235,6 +235,22 @@
 }
 
 @media (orientation: landscape) and (max-width: 1366px) {
+  .live-match-score-team--blue {
+    background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--team-b-blue) 6%, transparent),
+      transparent
+    );
+  }
+
+  .live-match-score-team--red {
+    background-image: linear-gradient(
+      to left,
+      color-mix(in srgb, var(--team-a-red) 6%, transparent),
+      transparent
+    );
+  }
+
   .live-match-page--active {
     padding-bottom: calc(10rem + env(safe-area-inset-bottom));
   }
@@ -313,6 +329,12 @@
     background: var(--bg-surface);
     padding: 0.5rem;
     box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.53);
+  }
+
+  @media (min-width: 681px) {
+    .live-match-toolbar-button > span {
+      display: inline;
+    }
   }
 }
 

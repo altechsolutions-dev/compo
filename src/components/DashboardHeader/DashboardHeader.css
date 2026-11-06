@@ -176,6 +176,37 @@
   }
 }
 
+@media (min-width: 681px) and (max-width: 1024px) {
+  .dashboard-header .main-nav {
+    position: fixed;
+    z-index: 50;
+    inset-inline: 0;
+    bottom: 0;
+    display: flex;
+    width: 100%;
+    min-height: calc(64px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    justify-content: space-around;
+    gap: 0;
+    padding: 5px 8px calc(5px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: rgba(35, 37, 47, 0.96);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.27);
+    backdrop-filter: blur(16px);
+  }
+
+  .dashboard-header .main-nav [role="tab"] {
+    height: 48px;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 2px 0;
+    font-size: 12px;
+  }
+}
+
 @media (orientation: landscape) and (max-width: 1366px) {
   .dashboard-header {
     grid-template-columns: minmax(0, 1fr) auto;

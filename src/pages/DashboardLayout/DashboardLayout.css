@@ -4,15 +4,11 @@
     overflow-x: clip;
   }
 
-  @media (max-width: 680px) {
+  @media (max-width: 1024px) {
     .dashboard-page {
       padding-bottom: calc(72px + env(safe-area-inset-bottom));
     }
   }
-}
-
-.dashboard-page:has(.live-match-page--started) .dashboard-header .main-nav {
-  display: none;
 }
 
 @media (orientation: landscape) and (min-width: 1025px) and (max-width: 1366px) {
@@ -25,6 +21,14 @@
   .dashboard-page {
     width: calc(100% - 32px);
     padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .dashboard-page:has(.live-match-page--started) {
+    padding-bottom: 0;
+  }
+
+  .dashboard-page:has(.live-match-page--started) .dashboard-header .main-nav {
+    display: none;
   }
 
   .dashboard-footer {
