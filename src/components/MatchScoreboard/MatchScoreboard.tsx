@@ -32,7 +32,7 @@ export function MatchScoreboard({
       {onSelectTeam ? (
         <button
           aria-label="Ajouter un but à l’équipe bleue"
-          className="flex min-w-0 cursor-pointer flex-col justify-center border-0 bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-5 py-5 text-left text-inherit transition hover:brightness-125 focus-visible:z-10 max-[380px]:px-3"
+          className="live-match-score-team--blue flex min-w-0 cursor-pointer flex-col justify-center border-0 bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-10 py-5 text-left text-inherit transition hover:brightness-125 focus-visible:z-10 max-[380px]:px-3"
           onClick={() => onSelectTeam(1)}
           type="button"
         >
@@ -47,7 +47,7 @@ export function MatchScoreboard({
           </strong>
         </button>
       ) : (
-        <div className="flex min-w-0 flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-5 py-5 max-[380px]:px-3">
+        <div className="live-match-score-team--blue flex min-w-0 flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-10 py-5 max-[380px]:px-3">
           <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
             <span className="size-1.5 rounded-full bg-(--team-b-blue)" /> ÉQUIPE
             BLEUE
@@ -83,7 +83,7 @@ export function MatchScoreboard({
       {onSelectTeam ? (
         <button
           aria-label="Ajouter un but à l’équipe rouge"
-          className="flex min-w-0 cursor-pointer flex-col items-end justify-center border-0 bg-linear-to-l from-(--team-a-red)/15 to-transparent px-5 py-5 text-right text-inherit transition hover:brightness-125 focus-visible:z-10 max-[380px]:px-3"
+          className="live-match-score-team--red flex min-w-0 cursor-pointer flex-col items-end justify-center border-0 bg-linear-to-l from-(--team-a-red)/15 to-transparent px-10 py-5 text-right text-inherit transition hover:brightness-125 focus-visible:z-10 max-[380px]:px-3"
           onClick={() => onSelectTeam(0)}
           type="button"
         >
@@ -98,7 +98,7 @@ export function MatchScoreboard({
           </strong>
         </button>
       ) : (
-        <div className="flex min-w-0 flex-col items-end justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-5 py-5 text-right max-[380px]:px-3">
+        <div className="live-match-score-team--red flex min-w-0 flex-col items-end justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-10 py-5 text-right max-[380px]:px-3">
           <p className="mb-3 flex items-center gap-2 text-[9px] font-bold tracking-[1px] text-(--text-secondary)">
             ÉQUIPE ROUGE{" "}
             <span className="size-1.5 rounded-full bg-(--team-a-red)" />
