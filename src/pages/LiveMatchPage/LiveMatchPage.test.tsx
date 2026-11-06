@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -67,33 +68,47 @@ function renderLivePage(
 }
 
 describe("LiveMatchPage", () => {
-  it("verrouille le paysage pendant le match puis libère l’orientation en quittant", async () => {
-    const lock = vi.fn().mockResolvedValue(undefined);
-    const unlock = vi.fn();
-    const previousOrientation = Object.getOwnPropertyDescriptor(
-      window.screen,
-      "orientation",
+  it("adapte la disposition lorsque l’orientation change", () => {
+    let isLandscape = false;
+    const orientationQuery = new EventTarget();
+    Object.defineProperty(orientationQuery, "matches", {
+      get: () => isLandscape,
+    });
+    const previousMatchMedia = Object.getOwnPropertyDescriptor(
+      window,
+      "matchMedia",
     );
-    Object.defineProperty(window.screen, "orientation", {
+    Object.defineProperty(window, "matchMedia", {
       configurable: true,
-      value: { lock, unlock },
+      value: vi.fn(() => orientationQuery as MediaQueryList),
     });
 
     try {
       const { unmount } = renderLivePage();
-      await waitFor(() => expect(lock).toHaveBeenCalledWith("landscape"));
+      const livePage = document.querySelector(".live-match-page");
+      const scoreboard = screen.getByRole("region", { name: "Score du match" });
+      expect(livePage).not.toHaveClass("live-match-page--landscape");
+      expect(scoreboard).toHaveClass("live-match-scoreboard--compact");
 
+      act(() => {
+        isLandscape = true;
+        orientationQuery.dispatchEvent(new Event("change"));
+      });
+      expect(livePage).toHaveClass("live-match-page--landscape");
+      expect(scoreboard).not.toHaveClass("live-match-scoreboard--compact");
+
+      act(() => {
+        isLandscape = false;
+        orientationQuery.dispatchEvent(new Event("change"));
+      });
+      expect(livePage).not.toHaveClass("live-match-page--landscape");
+      expect(scoreboard).toHaveClass("live-match-scoreboard--compact");
       unmount();
-      expect(unlock).toHaveBeenCalledOnce();
     } finally {
-      if (previousOrientation) {
-        Object.defineProperty(
-          window.screen,
-          "orientation",
-          previousOrientation,
-        );
+      if (previousMatchMedia) {
+        Object.defineProperty(window, "matchMedia", previousMatchMedia);
       } else {
-        Reflect.deleteProperty(window.screen, "orientation");
+        Reflect.deleteProperty(window, "matchMedia");
       }
     }
   });
@@ -229,6 +244,30 @@ describe("LiveMatchPage", () => {
 
     fireEvent.click(
       within(picker).getByRole("button", { name: "But de Théo Bernard" }),
+    );
+    expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
+  });
+
+  it("affiche la vue compacte par défaut et permet de marquer depuis le score", async () => {
+    const { context } = renderLivePage();
+    expect(document.querySelector(".live-match-page")).toHaveClass(
+      "live-match-page--adaptive",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Buts & événements" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Disposition de l’écran live" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Score du match" })).toHaveClass(
+      "live-match-scoreboard--compact",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ajouter un but à l’équipe bleue" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "But de Théo Bernard" }),
     );
     expect(context.onRecordGoal).toHaveBeenCalledWith("match-live", "theo");
   });
