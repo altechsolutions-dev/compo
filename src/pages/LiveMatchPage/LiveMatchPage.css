@@ -72,22 +72,6 @@
     padding-bottom: calc(10rem + env(safe-area-inset-bottom));
   }
 
-  .live-match-portrait-notice {
-    display: none;
-  }
-
-  @media (orientation: portrait) and (max-width: 680px) {
-    .live-match-portrait-notice {
-      display: block;
-      margin: 0 0 1rem;
-      border-left: 3px solid var(--team-b-blue);
-      background: var(--bg-surface);
-      padding: 0.75rem 1rem;
-      color: var(--text-secondary);
-      font-size: 0.75rem;
-    }
-  }
-
   .live-match-actions-toolbar {
     position: fixed;
     inset-inline: 0;
@@ -382,4 +366,79 @@
 .live-match-composition-player--blue.is-selected {
   border-color: var(--team-b-blue);
   background-color: rgba(0, 199, 213, 0.2);
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+  .live-match-action-drawer--goal-picker {
+    padding: max(0.5rem, env(safe-area-inset-top)) 1rem
+      max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .live-match-goal-picker__header {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .live-match-goal-picker__teams {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .live-match-goal-picker__team:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .live-match-goal-picker__team > h3 {
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .live-match-goal-picker__players {
+    gap: 0.25rem;
+  }
+
+  .live-match-goal-player {
+    min-height: 2.25rem;
+    padding-block: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+}
+
+.live-match-page--adaptive.live-match-page--landscape {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--bg-main);
+  padding: max(1rem, env(safe-area-inset-top)) 1rem
+    calc(5rem + env(safe-area-inset-bottom));
+}
+
+.live-match-page--adaptive.live-match-page--landscape .live-match-scoreboard {
+  flex: 1 0 auto;
+  min-height: max(14rem, calc(100dvh - 13rem));
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.45fr) minmax(0, 1fr);
+  margin-top: 0;
+}
+
+.live-match-page--adaptive.live-match-page--landscape .live-match-score-value {
+  font-size: 120px;
+}
+
+.live-match-page--adaptive.live-match-page--landscape .live-match-score-clock {
+  font-size: clamp(2.5rem, 6vh, 5rem);
+}
+
+.live-match-page--adaptive.live-match-page--landscape .live-match-panels {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .live-match-page--adaptive.live-match-page--landscape .live-match-scoreboard {
+    grid-template-columns: minmax(0, 1fr) 5.5rem minmax(0, 1fr);
+  }
 }

@@ -4,6 +4,7 @@ type MatchScoreboardProps = {
   goals: MatchGoal[];
   elapsedSeconds: number;
   status: "in_progress" | "paused" | "finished";
+  compact?: boolean;
   onSelectTeam?: (team: 0 | 1) => void;
 };
 
@@ -17,6 +18,7 @@ export function MatchScoreboard({
   goals,
   elapsedSeconds,
   status,
+  compact = false,
   onSelectTeam,
 }: MatchScoreboardProps) {
   const blueScore = goals.filter((goal) => goal.team === 1).length;
@@ -25,7 +27,7 @@ export function MatchScoreboard({
   return (
     <section
       aria-label="Score du match"
-      className="live-match-scoreboard mt-6 grid min-h-44 grid-cols-[minmax(0,1fr)_7.5rem_minmax(0,1fr)] overflow-hidden rounded-xl border border-(--line) bg-(--bg-surface) sm:min-h-54 sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]"
+      className={`live-match-scoreboard mt-3 grid overflow-hidden rounded-xl border border-(--line) bg-(--bg-surface) ${compact ? "live-match-scoreboard--compact min-h-32 grid-cols-[minmax(0,1fr)_6rem_minmax(0,1fr)] sm:min-h-36 sm:grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)]" : "mt-6 min-h-44 grid-cols-[minmax(0,1fr)_7.5rem_minmax(0,1fr)] sm:min-h-54 sm:grid-cols-[minmax(0,1fr)_9rem_minmax(0,1fr)]"}`}
     >
       {onSelectTeam ? (
         <button
@@ -38,7 +40,9 @@ export function MatchScoreboard({
             <span className="size-1.5 rounded-full bg-(--team-b-blue)" /> ÉQUIPE
             BLEUE
           </p>
-          <strong className="live-match-score-value text-5xl font-bold leading-none tabular-nums text-(--team-b-blue) sm:text-6xl">
+          <strong
+            className={`live-match-score-value font-bold leading-none tabular-nums text-(--team-b-blue) ${compact ? "text-5xl sm:text-6xl" : "text-6xl sm:text-7xl"}`}
+          >
             {blueScore}
           </strong>
         </button>
@@ -48,7 +52,9 @@ export function MatchScoreboard({
             <span className="size-1.5 rounded-full bg-(--team-b-blue)" /> ÉQUIPE
             BLEUE
           </p>
-          <strong className="live-match-score-value text-5xl font-bold leading-none tabular-nums text-(--team-b-blue) sm:text-6xl">
+          <strong
+            className={`live-match-score-value font-bold leading-none tabular-nums text-(--team-b-blue) ${compact ? "text-5xl sm:text-6xl" : "text-6xl sm:text-7xl"}`}
+          >
             {blueScore}
           </strong>
         </div>
@@ -59,7 +65,7 @@ export function MatchScoreboard({
         </p>
         <time
           aria-label="Temps de jeu"
-          className="live-match-score-clock inline-block w-[6ch] text-center font-sans text-3xl font-bold tabular-nums text-(--text-primary) sm:text-4xl"
+          className={`live-match-score-clock inline-block w-[6ch] text-center font-sans font-bold tabular-nums text-(--text-primary) ${compact ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl"}`}
           role="timer"
         >
           {formatClock(elapsedSeconds)}
@@ -85,7 +91,9 @@ export function MatchScoreboard({
             ÉQUIPE ROUGE{" "}
             <span className="size-1.5 rounded-full bg-(--team-a-red)" />
           </p>
-          <strong className="live-match-score-value text-5xl font-bold leading-none tabular-nums text-(--team-a-red) sm:text-6xl">
+          <strong
+            className={`live-match-score-value font-bold leading-none tabular-nums text-(--team-a-red) ${compact ? "text-5xl sm:text-6xl" : "text-6xl sm:text-7xl"}`}
+          >
             {redScore}
           </strong>
         </button>
@@ -95,7 +103,9 @@ export function MatchScoreboard({
             ÉQUIPE ROUGE{" "}
             <span className="size-1.5 rounded-full bg-(--team-a-red)" />
           </p>
-          <strong className="live-match-score-value text-5xl font-bold leading-none tabular-nums text-(--team-a-red) sm:text-6xl">
+          <strong
+            className={`live-match-score-value font-bold leading-none tabular-nums text-(--team-a-red) ${compact ? "text-5xl sm:text-6xl" : "text-6xl sm:text-7xl"}`}
+          >
             {redScore}
           </strong>
         </div>

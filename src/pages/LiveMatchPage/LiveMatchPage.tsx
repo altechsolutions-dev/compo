@@ -63,48 +63,6 @@ function getRemainingGoalUndoSeconds(goal: MatchGoal, now: number) {
   );
 }
 
-type LandscapeLockState = {
-  requested: boolean;
-  active: boolean;
-  pending: Promise<boolean> | null;
-};
-
-function requestLandscapeLock(state: LandscapeLockState) {
-  const orientation = window.screen?.orientation;
-  if (!orientation || typeof orientation.lock !== "function") {
-    return Promise.resolve(false);
-  }
-
-  state.requested = true;
-  if (state.active) return Promise.resolve(true);
-  if (state.pending) return state.pending;
-
-  const request = orientation
-    .lock("landscape")
-    .then(() => {
-      if (!state.requested) {
-        orientation.unlock();
-        return false;
-      }
-      state.active = true;
-      return true;
-    })
-    .catch(() => false)
-    .finally(() => {
-      state.pending = null;
-      if (!state.active) state.requested = false;
-    });
-  state.pending = request;
-  return request;
-}
-
-function releaseLandscapeLock(state: LandscapeLockState) {
-  state.requested = false;
-  if (!state.active) return;
-  window.screen?.orientation?.unlock();
-  state.active = false;
-}
-
 function GoalUndoButton({
   goal,
   matchId,
@@ -402,6 +360,9 @@ export function LiveMatchPage({
       match?.startedAt,
     ),
   );
+  const [isLandscape, setIsLandscape] = useState(
+    () => window.matchMedia?.("(orientation: landscape)").matches ?? false,
+  );
   const [undoClock, setUndoClock] = useState(() => Date.now());
   const [goalPickerOpen, setGoalPickerOpen] = useState(false);
   const [goalPickerTeam, setGoalPickerTeam] = useState<0 | 1 | null>(null);
@@ -413,11 +374,6 @@ export function LiveMatchPage({
   const [confirmFinish, setConfirmFinish] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [isResettingMatch, setIsResettingMatch] = useState(false);
-  const landscapeLockStateRef = useRef<LandscapeLockState>({
-    requested: false,
-    active: false,
-    pending: null,
-  });
   const goalPicker = useDrawerTransition(goalPickerOpen);
   const swapDrawer = useDrawerTransition(swapPickerOpen);
   const finishDrawer = useDrawerTransition(confirmFinish);
@@ -434,18 +390,8 @@ export function LiveMatchPage({
   const resetTriggerRef = useRef<HTMLButtonElement | null>(null);
   const compositionCloseTimerRef = useRef<number | null>(null);
 
-  async function startMatchInLandscape(
-    matchId: string,
-    matchTeams: [string[], string[]],
-  ) {
-    void requestLandscapeLock(landscapeLockStateRef.current);
-    if (!context) {
-      releaseLandscapeLock(landscapeLockStateRef.current);
-      return false;
-    }
-    const started = await context.onStartMatch(matchId, matchTeams);
-    if (!started) releaseLandscapeLock(landscapeLockStateRef.current);
-    return started;
+  async function startMatch(matchId: string, matchTeams: [string[], string[]]) {
+    return context ? context.onStartMatch(matchId, matchTeams) : false;
   }
 
   const openComposition = useCallback(() => {
@@ -496,6 +442,22 @@ export function LiveMatchPage({
     const timer = window.setInterval(updateClock, 1000);
     return () => window.clearInterval(timer);
   }, [isLive, matchElapsedSeconds, match?.startedAt, match?.status]);
+
+  useEffect(() => {
+    const landscapeQuery = window.matchMedia?.("(orientation: landscape)");
+    if (!landscapeQuery) return;
+
+    const updateOrientation = () => setIsLandscape(landscapeQuery.matches);
+    landscapeQuery.addEventListener("change", updateOrientation);
+    window.addEventListener("resize", updateOrientation);
+    window.addEventListener("orientationchange", updateOrientation);
+
+    return () => {
+      landscapeQuery.removeEventListener("change", updateOrientation);
+      window.removeEventListener("resize", updateOrientation);
+      window.removeEventListener("orientationchange", updateOrientation);
+    };
+  }, []);
 
   useEffect(() => {
     if (!canRecordActions || !("wakeLock" in navigator)) return;
@@ -550,13 +512,6 @@ export function LiveMatchPage({
 
   useEffect(() => {
     if (!canRecordActions) return;
-    const landscapeLockState = landscapeLockStateRef.current;
-    void requestLandscapeLock(landscapeLockState);
-    return () => releaseLandscapeLock(landscapeLockState);
-  }, [canRecordActions]);
-
-  useEffect(() => {
-    if (!canRecordActions) return;
     const timer = window.setInterval(() => setUndoClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [canRecordActions]);
@@ -592,7 +547,7 @@ export function LiveMatchPage({
       <MatchLaunchList
         matches={liveCandidates}
         context={context}
-        onStartMatch={startMatchInLandscape}
+        onStartMatch={startMatch}
       />
     );
   }
@@ -629,14 +584,8 @@ export function LiveMatchPage({
 
   return (
     <section
-      className={`live-match-page ${canRecordActions ? "live-match-page--active pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-10 live-match-page--started" : "pb-10"}`}
+      className={`live-match-page ${canRecordActions ? `live-match-page--active pb-[calc(10rem+env(safe-area-inset-bottom))] sm:pb-10 live-match-page--started live-match-page--adaptive${isLandscape ? " live-match-page--landscape" : ""}` : "pb-10"}`}
     >
-      {canRecordActions && (
-        <p className="live-match-portrait-notice" role="status">
-          Désactivez le verrouillage de rotation dans le Centre de contrôle,
-          puis tournez votre iPhone en paysage.
-        </p>
-      )}
       {!canRecordActions && (
         <header className="flex flex-wrap items-end justify-between gap-6 border-b border-(--line) py-8 sm:py-10">
           {!canRecordActions && (
@@ -676,7 +625,7 @@ export function LiveMatchPage({
               </button>
               <button
                 className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border-0 bg-(--team-b-blue) px-4 text-xs font-bold text-(--bg-main) transition hover:brightness-110"
-                onClick={() => void startMatchInLandscape(match.id, teams)}
+                onClick={() => void startMatch(match.id, teams)}
                 type="button"
               >
                 <Play aria-hidden="true" fill="currentColor" size={14} />
@@ -799,7 +748,7 @@ export function LiveMatchPage({
                         <li className="flex min-h-0 flex-1" key={playerId}>
                           <button
                             aria-label={`But de ${playerName}`}
-                            className={`live-match-goal-player flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 rounded-md border px-3 text-left text-xs font-semibold transition-colors max-[1023px]:h-full max-[1023px]:min-h-60 max-[1023px]:px-6 max-[1023px]:text-5xl ${isRedTeam ? "live-match-goal-player--red border-(--team-a-red)/35 bg-(--team-a-red)/5 text-(--team-a-red) hover:bg-(--team-a-red)/10" : "live-match-goal-player--blue border-(--team-b-blue)/35 bg-(--team-b-blue)/5 text-(--team-b-blue) hover:bg-(--team-b-blue)/10"}`}
+                            className={`live-match-goal-player flex min-h-12 w-full cursor-pointer items-center justify-between gap-4 rounded-md border px-3 text-left text-sm font-semibold transition-colors ${isRedTeam ? "live-match-goal-player--red border-(--team-a-red)/35 bg-(--team-a-red)/5 text-(--team-a-red) hover:bg-(--team-a-red)/10" : "live-match-goal-player--blue border-(--team-b-blue)/35 bg-(--team-b-blue)/5 text-(--team-b-blue) hover:bg-(--team-b-blue)/10"}`}
                             onClick={() => {
                               context.onRecordGoal(match.id, playerId);
                               setGoalPickerOpen(false);
@@ -811,7 +760,7 @@ export function LiveMatchPage({
                             </span>
                             <Goal
                               aria-hidden="true"
-                              className="max-[1023px]:size-12"
+                              className="shrink-0"
                               size={17}
                             />
                           </button>
@@ -1022,6 +971,7 @@ export function LiveMatchPage({
 
       {!isScheduled && (
         <MatchScoreboard
+          compact={canRecordActions && !isLandscape}
           goals={goals}
           elapsedSeconds={elapsedSeconds}
           status={isLive ? "in_progress" : isPaused ? "paused" : "finished"}
