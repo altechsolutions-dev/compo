@@ -448,6 +448,61 @@ describe("MatchDetailsContent", () => {
     expect(bestScorers).toHaveTextContent("avec 1 but chacun");
   });
 
+  it("permet de voter pour un invité comme homme du match", () => {
+    const finishedMatch: MatchSlot = {
+      ...match,
+      attendees: [...match.attendees, "guest-1"],
+      status: "finished",
+      attendeeNames: { "guest-1": "Invité Lucas" },
+      goals: [],
+    };
+    const onVote = vi.fn();
+    render(
+      renderMatchDetailsContent({
+        match: finishedMatch,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        teams: [
+          ["alex", "guest-1"],
+          ["malik", "ines"],
+        ],
+        playerNames: { ...playerNames, "guest-1": "Invité Lucas" },
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+        manOfTheMatchPoll: {
+          myVote: null,
+          voteTotals: [],
+          voteCount: 0,
+          eligibleVoterCount: 5,
+          isComplete: false,
+          winnerIds: [],
+        },
+        onVoteForManOfTheMatch: onVote,
+        canManageGuestVoteLinks: true,
+        guestVoteLinks: [
+          {
+            attendeeId: "match-1",
+            guestName: "Tous les invités",
+            token: "shared-token",
+          },
+        ],
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Invité Lucas/ }));
+
+    expect(onVote).toHaveBeenCalledWith("guest-1");
+    const motmHeading = screen.getByRole("heading", { name: "Homme du match" });
+    const header = motmHeading.parentElement?.parentElement;
+    expect(header).toContainElement(
+      screen.getByRole("button", { name: "Copier le lien de vote invité" }),
+    );
+    expect(header).not.toContainElement(
+      screen.queryByRole("link", { name: /\/vote\?token=shared-token/ }),
+    );
+  });
+
   it("réserve un emplacement fixe au message d'enregistrement du vote", () => {
     const finishedMatch: MatchSlot = {
       ...match,

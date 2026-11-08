@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ModalManager } from "../../components/ModalManager/ModalManager";
 import { useMatchActions } from "../../hooks/useMatchActions/useMatchActions";
@@ -17,6 +17,7 @@ import type {
   DialogKind,
   MatchSlot,
   MatchManOfTheMatchPoll,
+  GuestMatchVoteLink,
   OrganizationPlayerStats,
 } from "../../types";
 
@@ -31,6 +32,21 @@ function minimumMatchTime() {
     now.setMinutes(now.getMinutes() + 1);
   }
   return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
+function describeError(error: unknown) {
+  if (typeof error === "string") return error;
+  if (typeof error !== "object" || error === null) return String(error);
+
+  const detail = error as Record<string, unknown>;
+  const parts = [
+    typeof detail.message === "string" ? detail.message : "",
+    typeof detail.details === "string" ? `Détails : ${detail.details}` : "",
+    typeof detail.hint === "string" ? `Indication : ${detail.hint}` : "",
+    typeof detail.code === "string" ? `Code : ${detail.code}` : "",
+  ].filter(Boolean);
+
+  return parts.join(" · ") || JSON.stringify(error);
 }
 
 export function WorkspaceLayout() {
@@ -54,6 +70,12 @@ export function WorkspaceLayout() {
     useState(false);
   const [manOfTheMatchVoteSaving, setManOfTheMatchVoteSaving] = useState(false);
   const [manOfTheMatchVoteError, setManOfTheMatchVoteError] = useState("");
+  const [guestVoteLinks, setGuestVoteLinks] = useState<GuestMatchVoteLink[]>(
+    [],
+  );
+  const [guestVoteLinksMatchId, setGuestVoteLinksMatchId] = useState("");
+  const [guestVoteLinksError, setGuestVoteLinksError] = useState("");
+  const guestVoteLinkGenerations = useRef(new Set<string>());
   const {
     session,
     authLoading,
@@ -342,12 +364,65 @@ export function WorkspaceLayout() {
     } catch (error) {
       if (previousPoll) setManOfTheMatchPoll(previousPoll);
       setManOfTheMatchVoteError(
-        `Impossible d’enregistrer votre vote : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+        `Impossible d’enregistrer votre vote : ${describeError(error)}`,
       );
     } finally {
       setManOfTheMatchVoteSaving(false);
     }
   }
+
+  const generateGuestVoteLinks = useCallback(
+    async (matchId: string) => {
+      const match = matchState.allMatches.find((item) => item.id === matchId);
+      if (!supabase || !session || !match) return;
+      if (!Object.keys(match.attendeeNames ?? {}).length) return;
+      if (guestVoteLinksMatchId === matchId) return;
+      if (guestVoteLinkGenerations.current.has(matchId)) return;
+
+      guestVoteLinkGenerations.current.add(matchId);
+      try {
+        const storageKey = `compo-guest-motm-link:${matchId}`;
+        let token = window.localStorage.getItem(storageKey) ?? "";
+        if (token) {
+          const { data, error } = await supabase.rpc(
+            "get_guest_match_motm_vote",
+            { p_token: token, p_voter_id: null },
+          );
+          if (error || !data?.length) {
+            window.localStorage.removeItem(storageKey);
+            token = "";
+          }
+        }
+        if (!token) {
+          const randomBytes = window.crypto.getRandomValues(new Uint8Array(32));
+          token = Array.from(randomBytes, (byte) =>
+            byte.toString(16).padStart(2, "0"),
+          ).join("");
+          const { data, error } = await supabase.rpc(
+            "create_guest_match_motm_vote_link",
+            { p_match_id: matchId, p_token: token },
+          );
+          if (error) throw error;
+          if (data !== token)
+            throw new Error("Le serveur n’a pas confirmé le lien partagé.");
+          window.localStorage.setItem(storageKey, token);
+        }
+        setGuestVoteLinks([
+          { attendeeId: matchId, guestName: "Tous les invités", token },
+        ]);
+        setGuestVoteLinksMatchId(matchId);
+        setGuestVoteLinksError("");
+      } catch (error) {
+        setGuestVoteLinksError(
+          `Impossible de créer les liens : ${describeError(error)}`,
+        );
+      } finally {
+        guestVoteLinkGenerations.current.delete(matchId);
+      }
+    },
+    [guestVoteLinksMatchId, matchState.allMatches, session],
+  );
+
   const [venue, setVenue] = useState("");
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [matchDate, setMatchDate] = useState(dateAfter(3));
@@ -536,6 +611,15 @@ export function WorkspaceLayout() {
         navigate(`/app/live?match=${encodeURIComponent(matchId)}`);
         return;
       }
+      if (
+        match?.status === "finished" &&
+        session &&
+        (match.createdBy === session.user.id ||
+          organizations.find((item) => item.organization_id === organizationId)
+            ?.role === "owner")
+      ) {
+        void generateGuestVoteLinks(match.id);
+      }
       openMatchDrawer(matchId);
     },
     onOpenDiscussion: (matchId: string) =>
@@ -605,6 +689,10 @@ export function WorkspaceLayout() {
     manOfTheMatchVoteError,
     onVoteForManOfTheMatch: (candidateId) =>
       void voteForManOfTheMatch(candidateId),
+    guestVoteLinks:
+      guestVoteLinksMatchId === selectedMatch?.id ? guestVoteLinks : [],
+    guestVoteLinksError,
+    onGenerateGuestVoteLinks: (matchId) => void generateGuestVoteLinks(matchId),
     onSwapPlayers: (matchId, redPlayerId, bluePlayerId) =>
       void swapPlayers(matchId, redPlayerId, bluePlayerId),
     drawerMatch: selectedMatch,

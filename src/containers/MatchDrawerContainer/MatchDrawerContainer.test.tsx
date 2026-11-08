@@ -35,6 +35,10 @@ describe("MatchDrawerContainer", () => {
         manOfTheMatchVoteSaving={false}
         manOfTheMatchVoteError=""
         onVoteForManOfTheMatch={vi.fn()}
+        guestVoteLinks={[]}
+        guestVoteLinksError=""
+        canManageGuestVoteLinks={false}
+        onGenerateGuestVoteLinks={vi.fn()}
       />,
     );
 
@@ -67,6 +71,10 @@ describe("MatchDrawerContainer", () => {
         manOfTheMatchVoteSaving={false}
         manOfTheMatchVoteError=""
         onVoteForManOfTheMatch={vi.fn()}
+        guestVoteLinks={[]}
+        guestVoteLinksError=""
+        canManageGuestVoteLinks={false}
+        onGenerateGuestVoteLinks={vi.fn()}
       />,
     );
     expect(container).toBeEmptyDOMElement();

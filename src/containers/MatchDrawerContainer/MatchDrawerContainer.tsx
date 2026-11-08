@@ -1,6 +1,10 @@
 import { Drawer } from "../../components/Drawer/Drawer";
 import { renderMatchDetailsContent } from "../../components/MatchDetails/matchDetailsContent";
-import type { MatchManOfTheMatchPoll, MatchSlot } from "../../types";
+import type {
+  GuestMatchVoteLink,
+  MatchManOfTheMatchPoll,
+  MatchSlot,
+} from "../../types";
 import "./MatchDrawerContainer.css";
 
 export type MatchDrawerContainerProps = {
@@ -25,6 +29,10 @@ export type MatchDrawerContainerProps = {
   manOfTheMatchVoteSaving: boolean;
   manOfTheMatchVoteError: string;
   onVoteForManOfTheMatch: (candidateId: string) => void;
+  guestVoteLinks: GuestMatchVoteLink[];
+  guestVoteLinksError: string;
+  canManageGuestVoteLinks: boolean;
+  onGenerateGuestVoteLinks: (matchId: string) => void;
 };
 
 export function MatchDrawerContainer({
@@ -46,6 +54,10 @@ export function MatchDrawerContainer({
   manOfTheMatchVoteSaving,
   manOfTheMatchVoteError,
   onVoteForManOfTheMatch,
+  guestVoteLinks,
+  guestVoteLinksError,
+  canManageGuestVoteLinks,
+  onGenerateGuestVoteLinks,
 }: MatchDrawerContainerProps) {
   if (!match) return null;
 
@@ -85,6 +97,10 @@ export function MatchDrawerContainer({
           manOfTheMatchVoteSaving,
           manOfTheMatchVoteError,
           onVoteForManOfTheMatch,
+          guestVoteLinks,
+          guestVoteLinksError,
+          canManageGuestVoteLinks,
+          onGenerateGuestVoteLinks: () => onGenerateGuestVoteLinks(match.id),
         })}
       </Drawer>
     </div>

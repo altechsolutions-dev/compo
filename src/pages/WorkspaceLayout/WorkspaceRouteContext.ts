@@ -1,6 +1,7 @@
 import type {
   MatchSlot,
   MatchManOfTheMatchPoll,
+  GuestMatchVoteLink,
   OrganizationMember,
   OrganizationPlayerStats,
   Player,
@@ -46,6 +47,9 @@ export type WorkspaceRouteContext = {
   manOfTheMatchVoteSaving: boolean;
   manOfTheMatchVoteError: string;
   onVoteForManOfTheMatch: (candidateId: string) => void;
+  guestVoteLinks: GuestMatchVoteLink[];
+  guestVoteLinksError: string;
+  onGenerateGuestVoteLinks: (matchId: string) => void;
   onSwapPlayers: (
     matchId: string,
     redPlayerId: string,
