@@ -1,12 +1,25 @@
 import { Fragment, type ReactNode } from "react";
-import { ArrowRight, Check, Goal, MapPin, Trophy, X } from "lucide-react";
-import type { MatchManOfTheMatchPoll, MatchSlot } from "../../types";
+import {
+  ArrowRight,
+  Check,
+  Goal,
+  Link2,
+  MapPin,
+  Trophy,
+  X,
+} from "lucide-react";
+import type {
+  GuestMatchVoteLink,
+  MatchManOfTheMatchPoll,
+  MatchSlot,
+} from "../../types";
 import { formatMatchDate } from "../../helpers/formatMatchDate/formatMatchDate";
 import { LiveMatchPanel } from "../LiveMatchPanel/LiveMatchPanel";
 import { MatchGoalTimeline } from "../MatchGoalTimeline/MatchGoalTimeline";
 import { MatchScoreboard } from "../MatchScoreboard/MatchScoreboard";
 import { MatchTeamComposition } from "./MatchTeamComposition";
 import { MatchShareButton } from "./MatchShareButton";
+import { GuestVoteLinksList } from "./GuestVoteLinksList";
 import "./MatchDetails.css";
 
 export type MatchDetailsContentOptions = {
@@ -28,6 +41,10 @@ export type MatchDetailsContentOptions = {
   manOfTheMatchVoteSaving?: boolean;
   manOfTheMatchVoteError?: string;
   onVoteForManOfTheMatch?: (candidateId: string) => void;
+  guestVoteLinks?: GuestMatchVoteLink[];
+  guestVoteLinksError?: string;
+  canManageGuestVoteLinks?: boolean;
+  onGenerateGuestVoteLinks?: () => void;
 };
 
 export function renderMatchDetailsContent({
@@ -49,6 +66,10 @@ export function renderMatchDetailsContent({
   manOfTheMatchVoteSaving = false,
   manOfTheMatchVoteError = "",
   onVoteForManOfTheMatch,
+  guestVoteLinks = [],
+  guestVoteLinksError = "",
+  canManageGuestVoteLinks = false,
+  onGenerateGuestVoteLinks,
 }: MatchDetailsContentOptions): ReactNode {
   const spotsRemaining = match.maxPlayers - match.attendees.length;
 
@@ -66,9 +87,7 @@ export function renderMatchDetailsContent({
       .filter(([, count]) => count === bestScorerCount && count > 0)
       .map(([id]) => id);
     const matchTeams = teams ?? match.teams ?? [[], []];
-    const votingCandidates = match.attendees.filter(
-      (candidateId) => !(candidateId in (match.attendeeNames ?? {})),
-    );
+    const votingCandidates = match.attendees;
     const renderCandidateButton = (candidateId: string): ReactNode => {
       const candidateVotes =
         manOfTheMatchPoll?.voteTotals.find(
@@ -174,13 +193,40 @@ export function renderMatchDetailsContent({
           >
             Distinctions du match
           </h2>
-          <div className="mb-5 flex items-center gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-(--team-b-blue)/15 text-(--team-b-blue)">
-              <Trophy aria-hidden="true" size={21} />
-            </span>
-            <h3 className="m-0 text-lg font-bold text-(--text-primary)">
-              Homme du match
-            </h3>
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-(--team-b-blue)/15 text-(--team-b-blue)">
+                <Trophy aria-hidden="true" size={21} />
+              </span>
+              <h3 className="m-0 text-lg font-bold text-(--text-primary)">
+                Homme du match
+              </h3>
+            </div>
+            {canManageGuestVoteLinks &&
+              Object.keys(match.attendeeNames ?? {}).length > 0 && (
+                <div className="flex min-w-0 shrink items-center justify-end">
+                  {guestVoteLinks.length > 0 ? (
+                    <GuestVoteLinksList links={guestVoteLinks} />
+                  ) : !guestVoteLinksError ? (
+                    <span
+                      className="text-xs text-(--text-secondary)"
+                      role="status"
+                    >
+                      Préparation du lien…
+                    </span>
+                  ) : guestVoteLinksError ? (
+                    <button
+                      aria-label="Réessayer la création du lien invité"
+                      className="grid size-8 cursor-pointer place-items-center border border-(--line) bg-(--bg-surface) text-(--text-secondary) hover:bg-(--bg-elevated)"
+                      onClick={onGenerateGuestVoteLinks}
+                      title="Réessayer"
+                      type="button"
+                    >
+                      <Link2 aria-hidden="true" size={15} />
+                    </button>
+                  ) : null}
+                </div>
+              )}
           </div>
 
           <section aria-label="Vote homme du match">
@@ -298,7 +344,7 @@ export function renderMatchDetailsContent({
                       className="min-w-0 sm:col-span-2"
                     >
                       <h4 className="mb-2 text-xs font-bold text-(--text-secondary)">
-                        Autres joueurs
+                        Autres participants
                       </h4>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {unassignedCandidates.map(renderCandidateButton)}
@@ -330,6 +376,23 @@ export function renderMatchDetailsContent({
               </p>
             )}
           </section>
+
+          {canManageGuestVoteLinks &&
+            Object.keys(match.attendeeNames ?? {}).length > 0 && (
+              <section
+                aria-label="Vote des invités"
+                className="mt-6 border-t border-(--line) pt-5"
+              >
+                {guestVoteLinksError && (
+                  <p
+                    className="mb-0 mt-3 text-xs text-(--team-a-red)"
+                    role="alert"
+                  >
+                    {guestVoteLinksError}
+                  </p>
+                )}
+              </section>
+            )}
 
           <section
             aria-labelledby="best-scorer-title"

@@ -38,6 +38,11 @@ export function MatchesPage() {
     manOfTheMatchVoteSaving,
     manOfTheMatchVoteError,
     onVoteForManOfTheMatch,
+    guestVoteLinks,
+    guestVoteLinksError,
+    onGenerateGuestVoteLinks,
+    currentUserId,
+    isOrganizationOwner,
     drawerMatch,
     drawerMounted,
     drawerOpen,
@@ -132,6 +137,12 @@ export function MatchesPage() {
           manOfTheMatchVoteSaving={manOfTheMatchVoteSaving}
           manOfTheMatchVoteError={manOfTheMatchVoteError}
           onVoteForManOfTheMatch={onVoteForManOfTheMatch}
+          guestVoteLinks={guestVoteLinks}
+          guestVoteLinksError={guestVoteLinksError}
+          canManageGuestVoteLinks={
+            isOrganizationOwner || drawerMatch?.createdBy === currentUserId
+          }
+          onGenerateGuestVoteLinks={onGenerateGuestVoteLinks}
         />
       </div>
     </>

@@ -34,6 +34,12 @@ export type MatchManOfTheMatchPoll = {
   winnerIds: string[];
 };
 
+export type GuestMatchVoteLink = {
+  attendeeId: string;
+  guestName: string;
+  token: string;
+};
+
 export type Player = {
   id: string;
   name: string;

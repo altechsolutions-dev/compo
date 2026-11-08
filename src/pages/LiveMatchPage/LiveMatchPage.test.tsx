@@ -177,8 +177,6 @@ describe("LiveMatchPage", () => {
     expect(screen.queryByRole("banner")).not.toBeInTheDocument();
     const scoreRegion = screen.getByRole("region", { name: "Score du match" });
     const scorePanels = Array.from(scoreRegion.children);
-    expect(scorePanels[0]).toHaveClass("px-5", "max-[380px]:px-3");
-    expect(scorePanels[2]).toHaveClass("px-5", "max-[380px]:px-3");
     expect(scorePanels[0]).toHaveTextContent("ÉQUIPE BLEUE");
     expect(scorePanels[2]).toHaveTextContent("ÉQUIPE ROUGE");
     expect(

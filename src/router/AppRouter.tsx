@@ -5,6 +5,7 @@ import { MatchesPage } from "../pages/MatchesPage/MatchesPage";
 import { OrganizationPage } from "../pages/OrganizationPage/OrganizationPage";
 import { LiveMatchPage } from "../pages/LiveMatchPage/LiveMatchPage";
 import { DiscussionsPage } from "../pages/DiscussionsPage/DiscussionsPage";
+import { GuestMatchVotePage } from "../pages/GuestMatchVotePage/GuestMatchVotePage";
 
 type AppRouterProps = {
   authLoading: boolean;
@@ -41,6 +42,7 @@ export function AppRouter({
 
   return (
     <Routes>
+      <Route path="/vote" element={<GuestMatchVotePage />} />
       <Route
         path="/"
         element={
