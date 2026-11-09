@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { ArrowRight, Goal, Trophy } from "lucide-react";
+import { ArrowRight, Goal, Shirt, Trophy } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { formatMatchDate } from "../../helpers/formatMatchDate/formatMatchDate";
 import { supabase } from "../../lib/supabase/supabase";
@@ -293,32 +293,103 @@ export function GuestMatchVotePage() {
                 Choisis ton nom pour afficher le résumé du match et voter.
               </p>
               <p className="mb-2 text-sm font-semibold">Je suis</p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {poll.guest_voters.map((guest) => {
-                  const team = poll.candidates.find(
-                    (candidate) => candidate.id === guest.id,
-                  )?.team;
-                  const teamClass =
-                    team === 0
-                      ? "border-(--team-a-red)/35 bg-(--team-a-red)/5 text-(--team-a-red) hover:border-(--team-a-red) hover:bg-(--team-a-red)/10"
-                      : team === 1
-                        ? "border-(--team-b-blue)/35 bg-(--team-b-blue)/5 text-(--team-b-blue) hover:border-(--team-b-blue) hover:bg-(--team-b-blue)/10"
-                        : "border-(--line) bg-(--bg-surface) text-(--text-primary) hover:border-(--team-b-blue) hover:bg-(--bg-elevated)";
+              <div className="grid grid-cols-2 gap-3.5">
+                {([1, 0] as const).map((teamIndex) => {
+                  const teamGuests = poll.guest_voters.filter((guest) =>
+                    poll.candidates.some(
+                      (candidate) =>
+                        candidate.id === guest.id &&
+                        candidate.team === teamIndex,
+                    ),
+                  );
+                  const teamName = teamIndex === 1 ? "Bleue" : "Rouge";
+                  const teamColorClass =
+                    teamIndex === 1
+                      ? "text-(--team-b-blue)"
+                      : "text-(--team-a-red)";
 
                   return (
-                    <button
-                      aria-label={`Choisir ${guest.name}`}
-                      className={`flex min-h-12 cursor-pointer items-center justify-between gap-3 border px-4 py-3 text-left text-sm font-semibold disabled:cursor-wait disabled:opacity-60 ${teamClass}`}
-                      disabled={loading}
-                      key={guest.id}
-                      onClick={() => void chooseGuest(guest.id)}
-                      type="button"
+                    <section
+                      aria-label={`Équipe ${teamName}`}
+                      className="min-w-0"
+                      key={teamIndex}
                     >
-                      <span>{guest.name}</span>
-                      <ArrowRight aria-hidden="true" size={16} />
-                    </button>
+                      <h4
+                        className={`mb-2.5 flex items-center gap-1.5 text-xs font-semibold ${teamColorClass}`}
+                      >
+                        <Shirt
+                          aria-hidden="true"
+                          color={
+                            teamIndex === 1
+                              ? "var(--team-b-blue)"
+                              : "var(--team-a-red)"
+                          }
+                          size={14}
+                        />
+                        Équipe {teamName}
+                      </h4>
+                      <div className="grid gap-2">
+                        {teamGuests.map((guest) => (
+                          <button
+                            aria-label={`Choisir ${guest.name}`}
+                            className={`flex min-h-12 cursor-pointer items-center justify-between gap-3 border px-3 py-3 text-left text-sm font-semibold disabled:cursor-wait disabled:opacity-60 ${
+                              teamIndex === 1
+                                ? "border-(--team-b-blue)/35 bg-(--team-b-blue)/5 text-(--team-b-blue) hover:border-(--team-b-blue) hover:bg-(--team-b-blue)/10"
+                                : "border-(--team-a-red)/35 bg-(--team-a-red)/5 text-(--team-a-red) hover:border-(--team-a-red) hover:bg-(--team-a-red)/10"
+                            }`}
+                            disabled={loading}
+                            key={guest.id}
+                            onClick={() => void chooseGuest(guest.id)}
+                            type="button"
+                          >
+                            <span>{guest.name}</span>
+                            <ArrowRight aria-hidden="true" size={16} />
+                          </button>
+                        ))}
+                      </div>
+                    </section>
                   );
                 })}
+                {poll.guest_voters.some(
+                  (guest) =>
+                    !poll.candidates.some(
+                      (candidate) =>
+                        candidate.id === guest.id && candidate.team !== null,
+                    ),
+                ) && (
+                  <section
+                    aria-label="Autres participants"
+                    className="col-span-2 min-w-0"
+                  >
+                    <h4 className="mb-2.5 text-xs font-semibold text-(--text-secondary)">
+                      Autres participants
+                    </h4>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {poll.guest_voters
+                        .filter(
+                          (guest) =>
+                            !poll.candidates.some(
+                              (candidate) =>
+                                candidate.id === guest.id &&
+                                candidate.team !== null,
+                            ),
+                        )
+                        .map((guest) => (
+                          <button
+                            aria-label={`Choisir ${guest.name}`}
+                            className="flex min-h-12 cursor-pointer items-center justify-between gap-3 border border-(--line) bg-(--bg-surface) px-3 py-3 text-left text-sm font-semibold text-(--text-primary) hover:border-(--team-b-blue) hover:bg-(--bg-elevated) disabled:cursor-wait disabled:opacity-60"
+                            disabled={loading}
+                            key={guest.id}
+                            onClick={() => void chooseGuest(guest.id)}
+                            type="button"
+                          >
+                            <span>{guest.name}</span>
+                            <ArrowRight aria-hidden="true" size={16} />
+                          </button>
+                        ))}
+                    </div>
+                  </section>
+                )}
               </div>
               {error && (
                 <p
