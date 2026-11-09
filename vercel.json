@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/vote",
+      "destination": "/index.html"
+    },
+    {
       "source": "/app/:path*",
       "destination": "/index.html"
     },

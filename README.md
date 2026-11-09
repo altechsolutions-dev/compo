@@ -66,4 +66,6 @@ npm run build
 npm run preview
 ```
 
+Sur Vercel, [`vercel.json`](vercel.json) réécrit `/vote`, `/app/:path*` et `/oauth/:path*` vers `/index.html`. Le lien de vote invité `/vote?token=…` doit fonctionner dès la première visite, sans connexion ni service worker déjà installé. Toute nouvelle route accessible directement doit également être couverte par une réécriture. Redéployez l’application après une modification de cette configuration.
+
 `vite-plugin-pwa` génère le manifeste et le service worker à la compilation. L’installation en production nécessite HTTPS. - Répartition de dix joueurs en deux équipes équilibrées selon leur niveau, leurs postes et leurs statistiques.
