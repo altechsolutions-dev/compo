@@ -103,7 +103,7 @@ describe("GuestMatchVotePage", () => {
     );
   });
 
-  it("colore la liste des invités selon leur équipe", async () => {
+  it("affiche les identités dans deux colonnes par équipe", async () => {
     render(
       <MemoryRouter initialEntries={["/vote?token=private-token"]}>
         <GuestMatchVotePage />
@@ -116,6 +116,19 @@ describe("GuestMatchVotePage", () => {
     const blueGuest = screen.getByRole("button", {
       name: "Choisir Invité Marc",
     });
+    const blueTeam = screen.getByRole("region", { name: "Équipe Bleue" });
+    const redTeam = screen.getByRole("region", { name: "Équipe Rouge" });
+    const teamsGrid = blueTeam.parentElement;
+    expect(teamsGrid).toHaveClass("grid-cols-2");
+    expect(
+      Array.from(teamsGrid!.children).map((team) =>
+        team.getAttribute("aria-label"),
+      ),
+    ).toEqual(["Équipe Bleue", "Équipe Rouge"]);
+    expect(within(blueTeam).getByRole("button", { name: "Choisir Invité Marc" }))
+      .toBeInTheDocument();
+    expect(within(redTeam).getByRole("button", { name: "Choisir Invité Paul" }))
+      .toBeInTheDocument();
     expect(redGuest).toHaveClass(
       "border-(--team-a-red)/35",
       "text-(--team-a-red)",
