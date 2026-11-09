@@ -87,6 +87,13 @@ describe("GuestMatchVotePage", () => {
       </MemoryRouter>,
     );
 
+    expect(
+      await screen.findByRole("heading", { name: "Choisis ton nom" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Sélectionne le nom sous lequel tu as été inscrit/))
+      .toBeInTheDocument();
+    expect(screen.getByText("ÉTAPE 1 · IDENTITÉ")).toBeInTheDocument();
+
     fireEvent.click(
       await screen.findByRole("button", { name: "Choisir Invité Paul" }),
     );

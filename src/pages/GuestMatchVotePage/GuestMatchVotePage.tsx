@@ -280,17 +280,18 @@ export function GuestMatchVotePage() {
           <>
             <p className="mb-3 flex items-center gap-2 text-[10px] font-bold tracking-[1.7px] text-(--text-secondary)">
               <span className="size-1.5 rounded-full bg-(--status-success)" />
-              VOTE INVITÉ
+              ÉTAPE 1 · IDENTITÉ
             </p>
             <section
               aria-label="Choisir son identité d’invité"
               className="max-w-xl border-t border-(--line) pt-6"
             >
               <h1 className="mb-4 mt-0 font-sans text-3xl font-bold leading-tight sm:text-4xl">
-                Homme du match
+                Choisis ton nom
               </h1>
               <p className="mb-5 text-sm text-(--text-secondary)">
-                Choisis ton nom pour afficher le résumé du match et voter.
+                Sélectionne le nom sous lequel tu as été inscrit. Tu pourras
+                ensuite voter pour l’homme du match.
               </p>
               <p className="mb-2 text-sm font-semibold">Je suis</p>
               <div className="grid grid-cols-2 gap-3.5">
