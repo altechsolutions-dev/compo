@@ -81,21 +81,24 @@ describe("AppRouter", () => {
     expect(screen.getByText("Discussions du match")).toBeInTheDocument();
   });
 
-  it("ouvre le vote invité sans connexion", () => {
-    render(
-      <MemoryRouter initialEntries={["/vote?token=secret"]}>
-        <AppRouter
-          authLoading={false}
-          isConnected={false}
-          hasSupabase
-          loginPage={null}
-          consentPage={null}
-        />
-      </MemoryRouter>,
-    );
+  it.each([false, true])(
+    "ouvre le vote invité sans connexion (authLoading=%s)",
+    (authLoading) => {
+      render(
+        <MemoryRouter initialEntries={["/vote?token=secret"]}>
+          <AppRouter
+            authLoading={authLoading}
+            isConnected={false}
+            hasSupabase
+            loginPage={null}
+            consentPage={null}
+          />
+        </MemoryRouter>,
+      );
 
-    expect(screen.getByText("Vote invité")).toBeInTheDocument();
-  });
+      expect(screen.getByText("Vote invité")).toBeInTheDocument();
+    },
+  );
 
   it("conserve le code d’invitation lors de la redirection d’une session active", async () => {
     render(
