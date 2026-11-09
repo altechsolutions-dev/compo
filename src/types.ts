@@ -12,6 +12,13 @@ export type MatchSlot = {
   startedAt?: string;
   elapsedSeconds?: number;
   goals?: MatchGoal[];
+  goalkeeperRotation?: GoalkeeperRotation;
+};
+
+export type GoalkeeperRotation = {
+  intervalSeconds: number;
+  anchorElapsedSeconds: number;
+  anchorTurn: number;
 };
 
 export type MatchStateAction = "pause" | "resume" | "finish";

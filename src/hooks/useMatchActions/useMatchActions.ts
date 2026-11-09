@@ -4,6 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import type { MatchGoal, MatchSlot, MatchStateAction } from "../../types";
 import { supabase } from "../../lib/supabase/supabase";
 import { notifyMatchEvent } from "../../lib/pushNotifications/notifyMatchEvent";
+import { changeGoalkeeperInterval } from "../../lib/goalkeeperRotation/goalkeeperRotation";
 
 type MatchSlotRow = {
   id: string;
@@ -631,6 +632,11 @@ export function useMatchActions({
                 startedAt: undefined,
                 elapsedSeconds: 0,
                 goals: [],
+                goalkeeperRotation: {
+                  intervalSeconds: item.goalkeeperRotation?.intervalSeconds ?? 300,
+                  anchorElapsedSeconds: 0,
+                  anchorTurn: 0,
+                },
               }
             : item,
         ),
@@ -641,6 +647,50 @@ export function useMatchActions({
       setMatchNotice(
         `Impossible de réinitialiser le match : ${error instanceof Error ? error.message : "erreur inconnue"}`,
       );
+      return false;
+    }
+  }
+
+  async function setGoalkeeperInterval(matchId: string, minutes: number): Promise<boolean> {
+    const match = matches.find((item) => item.id === matchId);
+    if (!match || !["in_progress", "paused"].includes(match.status ?? "")) {
+      setMatchNotice("Le délai des gardiens ne peut être modifié que pendant un match actif.");
+      return false;
+    }
+    if (!Number.isSafeInteger(minutes) || minutes < 1 || minutes * 60 > 2147483647) {
+      setMatchNotice("Choisissez un délai entier positif, inférieur à 35 791 395 minutes.");
+      return false;
+    }
+    try {
+      let rotation = changeGoalkeeperInterval(
+        match.goalkeeperRotation, getCurrentElapsedSeconds(match), minutes * 60,
+      );
+      if (supabase) {
+        if (!session) throw new Error("Votre session a expiré.");
+        const { data, error } = await supabase.rpc("set_match_goalkeeper_interval", {
+          p_match_id: matchId,
+          p_interval_seconds: minutes * 60,
+        });
+        if (error) throw error;
+        const row = (data as {
+          goalkeeper_interval_seconds: number;
+          goalkeeper_anchor_elapsed_seconds: number;
+          goalkeeper_anchor_turn: number;
+        }[] | null)?.[0];
+        if (!row) throw new Error("Supabase n’a renvoyé aucun délai enregistré.");
+        rotation = {
+          intervalSeconds: row.goalkeeper_interval_seconds,
+          anchorElapsedSeconds: row.goalkeeper_anchor_elapsed_seconds,
+          anchorTurn: row.goalkeeper_anchor_turn,
+        };
+      }
+      setMatches((current) => current.map((item) =>
+        item.id === matchId ? { ...item, goalkeeperRotation: rotation } : item,
+      ));
+      setMatchNotice("");
+      return true;
+    } catch (error) {
+      setMatchNotice(`Impossible de modifier le délai des gardiens : ${error instanceof Error ? error.message : "erreur inconnue"}`);
       return false;
     }
   }
@@ -813,5 +863,6 @@ export function useMatchActions({
     recordGoal,
     removeGoal,
     swapPlayers,
+    setGoalkeeperInterval,
   };
 }

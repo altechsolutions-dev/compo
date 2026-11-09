@@ -40,6 +40,7 @@ export type WorkspaceRouteContext = {
   ) => Promise<boolean>;
   onSetMatchState: (matchId: string, action: MatchStateAction) => void;
   onResetMatch: (matchId: string) => Promise<boolean>;
+  onSetGoalkeeperInterval: (matchId: string, minutes: number) => Promise<boolean>;
   onRecordGoal: (matchId: string, scorerId: string) => void;
   onRemoveGoal: (matchId: string, goalId: string) => void;
   manOfTheMatchPoll: MatchManOfTheMatchPoll | null;

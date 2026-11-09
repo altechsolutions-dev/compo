@@ -447,6 +447,7 @@ export function WorkspaceLayout() {
     recordGoal,
     removeGoal,
     swapPlayers,
+    setGoalkeeperInterval,
   } = useMatchActions({
     matches,
     setMatches,
@@ -681,6 +682,7 @@ export function WorkspaceLayout() {
       })();
     },
     onResetMatch: (matchId) => resetMatch(matchId),
+    onSetGoalkeeperInterval: (matchId, minutes) => setGoalkeeperInterval(matchId, minutes),
     onRecordGoal: (matchId, scorerId) => void recordGoal(matchId, scorerId),
     onRemoveGoal: (matchId, goalId) => void removeGoal(matchId, goalId),
     manOfTheMatchPoll,

@@ -55,6 +55,18 @@ Les créneaux créés par un utilisateur connecté sont enregistrés dans Supaba
 
 ## Stats des joueurs
 
+## Rotation des gardiens
+
+Dans le direct, le premier joueur de chaque équipe est gardien dès le coup d’envoi (🧤). Les deux équipes tournent simultanément dans l’ordre de leur composition, toutes les **5 minutes** par défaut. En cas d’échange de joueurs, le rôle reste attaché à la place dans la composition.
+
+Le délai est modifiable pendant le match, y compris en pause, en minutes entières positives. Le nouveau délai s’applique depuis le dernier changement : s’il est déjà écoulé, la rotation est immédiatement rattrapée. Seul le temps de jeu compte ; les pauses arrêtent le compte à rebours. Le réglage est conservé après rechargement et partagé via Supabase. La réinitialisation du match remet les gardiens au premier joueur en conservant le délai.
+
+Activez et testez l’alarme avec le bouton dans le direct (une interaction sur cette page permet aussi d’activer le son). Le direct doit rester ouvert ; les navigateurs peuvent suspendre le son et les minuteries en arrière-plan ou écran verrouillé. Au retour, les gardiens sont recalculés selon le chronomètre, sans rejouer toutes les alarmes manquées. Un avertissement visible signale un son bloqué.
+
+Pour Supabase, appliquez [`20261109000100_goalkeeper_rotation.sql`](supabase/migrations/20261109000100_goalkeeper_rotation.sql) avant d’utiliser ce réglage sur un projet existant. Le schéma initial inclut cette évolution.
+
+## Stats des joueurs
+
 Chaque joueur possède une fiche distincte par organisation. Elle est créée automatiquement lorsque l’adhésion est marquée comme joueur. Les fiches existantes sont créées lors de l’application de la migration `20261023000700_create_players.sql`.
 
 Le roster affiche la note globale (initialisée à 50) et les compteurs de matchs joués, victoires, nuls, défaites, homme du match, titres de meilleur buteur et buts (initialisés à 0). À la fin d’un match, les compteurs de matchs joués, victoire/nul/défaite, buts marqués et titres de meilleur buteur sont actualisés; tous les meilleurs buteurs ex æquo obtiennent un titre, sauf si le match n’a aucun but. Les participants votent ensuite pour l’homme du match; le vote est modifiable jusqu’au dernier participant, puis le ou les joueurs ayant le plus de voix sont récompensés, égalités comprises. Si tous les joueurs n’ont pas voté après 48 heures, le sondage se clôt dès qu’au moins trois votes ont été enregistrés. La note globale reste inchangée.
