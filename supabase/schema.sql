@@ -2916,11 +2916,6 @@ begin
     where membership.organization_id = match_organization_id
       and membership.user_id = auth.uid()
   ) then raise exception 'Organization membership required'; end if;
-  if not exists (
-    select 1 from public.match_slot_attendees as attendee
-    where attendee.match_slot_id = p_match_id and attendee.user_id = auth.uid()
-  ) then raise exception 'Match attendee required'; end if;
-
   select count(*)::integer into attendee_count
   from public.match_slot_attendees as attendee
   where attendee.match_slot_id = p_match_id;

@@ -71,14 +71,14 @@ describe("MatchDetailsContent", () => {
     expect(screen.queryByText("COMPLET", { selector: "span" })).toBeNull();
   });
 
-  it("enregistre les joueurs échangés avant de lancer le match", async () => {
+  it("permet à un joueur non inscrit de modifier la composition", async () => {
     const onStartMatch = vi.fn();
     const onSaveTeams = vi.fn().mockResolvedValue(true);
     render(
       renderMatchDetailsContent({
         match,
         isFull: true,
-        isRegistered: true,
+        isRegistered: false,
         isRegistering: false,
         teams: [
           ["alex", "sarah"],

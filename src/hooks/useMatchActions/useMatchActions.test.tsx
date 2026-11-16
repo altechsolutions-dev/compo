@@ -532,6 +532,42 @@ describe("useMatchActions", () => {
     expect(props.setMatchNotice).toHaveBeenCalledWith("");
   });
 
+  it("permet à un membre non inscrit d’enregistrer la composition", async () => {
+    const match: MatchSlot = {
+      id: "match-scheduled-teams",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 4,
+      attendees: ["alex", "ava", "sam", "sasha"],
+    };
+    const teams: [string[], string[]] = [
+      ["sam", "ava"],
+      ["alex", "sasha"],
+    ];
+    rpc.mockResolvedValueOnce({
+      data: [{ team_a: teams[0], team_b: teams[1] }],
+      error: null,
+    });
+    supabaseState.current = { rpc };
+    const { result, getMatches } = setup([match], {
+      session: {} as Session,
+    });
+
+    let saved = false;
+    await act(async () => {
+      saved = await result.current.saveScheduledMatchTeams(match.id, teams);
+    });
+
+    expect(saved).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("save_scheduled_match_teams", {
+      p_match_id: match.id,
+      p_team_a: teams[0],
+      p_team_b: teams[1],
+    });
+    expect(getMatches()[0].teams).toEqual(teams);
+  });
+
   it("échange un joueur de chaque équipe en conservant les effectifs", async () => {
     const match: MatchSlot = {
       id: "match-live",
