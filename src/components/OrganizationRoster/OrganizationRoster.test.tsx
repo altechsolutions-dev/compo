@@ -18,6 +18,8 @@ const playerStats: OrganizationPlayerStats[] = [
     losses: 2,
     man_of_the_match_count: 3,
     best_scorer_count: 2,
+    best_defender_count: 1,
+    best_goalkeeper_count: 0,
     goals: 5,
   },
 ];

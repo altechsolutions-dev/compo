@@ -212,6 +212,8 @@ export function OrganizationRoster({
                   ["Défaites", selectedStats?.losses],
                   ["Homme du match", selectedStats?.man_of_the_match_count],
                   ["Meilleur buteur", selectedStats?.best_scorer_count],
+                  ["Meilleur défenseur", selectedStats?.best_defender_count],
+                  ["Meilleur gardien", selectedStats?.best_goalkeeper_count],
                   ["Buts", selectedStats?.goals],
                 ].map(([label, value]) => (
                   <div className="bg-(--bg-main) p-3.5" key={label}>

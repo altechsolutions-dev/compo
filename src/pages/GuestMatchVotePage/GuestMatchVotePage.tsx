@@ -3,11 +3,13 @@ import { ArrowRight, Shirt, Trophy } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { formatMatchDate } from "../../helpers/formatMatchDate/formatMatchDate";
 import { supabase } from "../../lib/supabase/supabase";
+import { matchVoteLeader } from "../../lib/matchVoteLeader/matchVoteLeader";
 import logo from "../../assets/logo.png";
 import type { MatchGoal, MatchSlot } from "../../types";
 import { MatchGoalTimeline } from "../../components/MatchGoalTimeline/MatchGoalTimeline";
 import { MatchGoalTotals } from "../../components/MatchGoalTotals/MatchGoalTotals";
 import { MatchScoreboard } from "../../components/MatchScoreboard/MatchScoreboard";
+import { MatchAwardVotes } from "../../components/MatchAwardVotes/MatchAwardVotes";
 import { BestScorerIcons } from "../../components/MatchDetails/BestScorerIcons";
 import "../../components/MatchDetails/MatchDetails.css";
 
@@ -197,6 +199,12 @@ export function GuestMatchVotePage() {
   const playerNames = Object.fromEntries(
     (poll?.candidates ?? []).map((candidate) => [candidate.id, candidate.name]),
   );
+  const provisionalLeader = poll && !poll.is_complete
+    ? matchVoteLeader(poll.vote_totals.map((vote) => ({
+        candidateId: vote.candidate_id,
+        voteCount: vote.vote_count,
+      })))
+    : null;
   const scorerTotals = (summary?.goals ?? []).reduce<Record<string, number>>(
     (totals, goal) => {
       totals[goal.scorerId] = (totals[goal.scorerId] ?? 0) + 1;
@@ -292,7 +300,7 @@ export function GuestMatchVotePage() {
               </h1>
               <p className="mb-5 text-sm text-(--text-secondary)">
                 Sélectionne le nom sous lequel tu as été inscrit. Tu pourras
-                ensuite voter pour l’homme du match.
+                ensuite voter pour les distinctions du match.
               </p>
               <p className="mb-2 text-sm font-semibold">Je suis</p>
               <div className="grid grid-cols-2 gap-3.5">
@@ -451,6 +459,15 @@ export function GuestMatchVotePage() {
               >
                 Distinctions du match
               </h2>
+              <MatchAwardVotes
+                key={`${poll.match_id}:${representedGuestId}`}
+                matchId={poll.match_id}
+                candidates={summaryMatch.attendees}
+                teams={summaryMatch.teams ?? [[], []]}
+                playerNames={playerNames}
+                token={token}
+                voterId={representedGuestId}
+              >
               <div className="mb-5 flex items-center gap-3">
                 <span className="grid size-11 shrink-0 place-items-center rounded-full bg-(--team-b-blue)/15 text-(--team-b-blue)">
                   <Trophy aria-hidden="true" size={21} />
@@ -510,6 +527,11 @@ export function GuestMatchVotePage() {
                         Cliquez pour voter ou changer votre choix.
                       </p>
                     </div>
+                    {provisionalLeader && (
+                      <p className="mb-4 text-sm font-semibold">
+                        En tête provisoirement : {playerNames[provisionalLeader] ?? "Joueur"}
+                      </p>
+                    )}
                     <div
                       aria-label="Participation au vote"
                       aria-valuemax={poll.eligible_voter_count}
@@ -602,6 +624,7 @@ export function GuestMatchVotePage() {
                   </>
                 )}
               </section>
+              </MatchAwardVotes>
 
               <section
                 aria-labelledby="best-scorer-title"

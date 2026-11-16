@@ -110,6 +110,56 @@ describe("GuestMatchVotePage", () => {
     );
   });
 
+  it("affiche les distinctions par équipe après le meilleur buteur et permet le vote invité", async () => {
+    const awardPolls = ["defender", "goalkeeper", "butcher", "missed_chances"].map((category) => ({
+      category,
+      my_vote: null,
+      vote_totals: [],
+      vote_count: 0,
+      eligible_voter_count: 4,
+      is_complete: false,
+      winner_ids: [],
+    }));
+    rpc.mockImplementation(async (name: string, args: { p_voter_id?: string | null }) => {
+      if (name === "get_guest_match_summary") {
+        return { data: [{ elapsed_seconds: 900, goals: [] }], error: null };
+      }
+      if (name === "get_match_award_polls" || name === "vote_match_award") {
+        return { data: awardPolls, error: null };
+      }
+      return {
+        data: [{ ...poll, guest_name: args.p_voter_id ? "Invité Paul" : null }],
+        error: null,
+      };
+    });
+    render(
+      <MemoryRouter initialEntries={["/vote?token=private-token"]}>
+        <GuestMatchVotePage />
+      </MemoryRouter>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Choisir Invité Paul" }));
+    const selector = await screen.findByRole("group", { name: "Choisir une distinction" });
+    expect(within(selector).getByRole("button", { name: "Homme du match" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(selector).getByRole("button", { name: "Meilleur défenseur" }));
+    const defender = await screen.findByRole("region", { name: "Vote Meilleur défenseur" });
+    const redTeam = within(defender).getByRole("region", { name: "Équipe Rouge" });
+    fireEvent.click(within(redTeam).getByRole("button", { name: /Alex Martin/ }));
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("vote_match_award", {
+      p_match_id: "match-1",
+      p_category: "defender",
+      p_candidate_id: "player-1",
+      p_token: "private-token",
+      p_voter_id: "guest-2",
+    }));
+    expect(within(selector).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Homme du match", "Meilleur défenseur", "Meilleur gardien",
+      "Plus gros boucher", "Plus d’occasions ratées",
+    ]);
+    fireEvent.click(within(selector).getByRole("button", { name: "Homme du match" }));
+    expect(screen.getByRole("region", { name: "Vote homme du match" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Vote Meilleur défenseur" })).not.toBeInTheDocument();
+  });
+
   it("affiche les identités dans deux colonnes par équipe", async () => {
     render(
       <MemoryRouter initialEntries={["/vote?token=private-token"]}>
