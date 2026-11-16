@@ -146,6 +146,58 @@ describe("MatchDetailsContent", () => {
     expect(onRegister).toHaveBeenCalledOnce();
   });
 
+  it("permet au joueur inscrit de se désister même lorsque la composition est prête", () => {
+    const onRemoveAttendee = vi.fn();
+    render(
+      renderMatchDetailsContent({
+        match,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        currentAttendeeId: "alex",
+        teams: [
+          ["alex", "sarah"],
+          ["malik", "ines"],
+        ],
+        playerNames,
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+        onRemoveAttendee,
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Me désister" }));
+
+    expect(onRemoveAttendee).toHaveBeenCalledWith("alex");
+  });
+
+  it("permet au propriétaire de retirer un inscrit", () => {
+    const onRemoveAttendee = vi.fn();
+    render(
+      renderMatchDetailsContent({
+        match,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        canManageAttendees: true,
+        teams: [
+          ["alex", "sarah"],
+          ["malik", "ines"],
+        ],
+        playerNames,
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+        onRemoveAttendee,
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Retirer Sarah Benali du match" }),
+    );
+
+    expect(onRemoveAttendee).toHaveBeenCalledWith("sarah");
+  });
+
   it("affiche le fil chronologique et la composition standard pour un match terminé", () => {
     const finishedMatch: MatchSlot = {
       ...match,

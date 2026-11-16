@@ -47,6 +47,11 @@ type MatchTeamsRow = {
   team_b: string[];
 };
 
+type MatchAttendeesRow = {
+  attendees: string[];
+  attendee_names: Record<string, string>;
+};
+
 function getCurrentElapsedSeconds(match: MatchSlot) {
   const elapsedSeconds = match.elapsedSeconds ?? 0;
   if (match.status !== "in_progress" || !match.startedAt) return elapsedSeconds;
@@ -166,6 +171,73 @@ export function useMatchActions({
           : match,
       ),
     );
+  }
+
+  async function removeAttendeeFromMatch(
+    matchId: string,
+    attendeeId: string,
+  ): Promise<boolean> {
+    const match = matches.find((item) => item.id === matchId);
+    if (
+      !match ||
+      (match.status && match.status !== "scheduled") ||
+      !match.attendees.includes(attendeeId)
+    ) {
+      return false;
+    }
+
+    const canRemoveLocally =
+      attendeeId === currentAttendeeId ||
+      match.createdBy === currentAttendeeId;
+    if (!supabase && !canRemoveLocally) return false;
+
+    try {
+      let attendees: string[];
+      let attendeeNames: Record<string, string>;
+      if (supabase) {
+        if (!session) throw new Error("Votre session a expiré.");
+        setMatchRegistering(true);
+        setMatchNotice("");
+        const { data, error } = await supabase.rpc(
+          "remove_match_attendee",
+          {
+            p_match_id: matchId,
+            p_attendee_id: attendeeId,
+          },
+        );
+        if (error) throw error;
+        const row = ((data ?? []) as MatchAttendeesRow[])[0];
+        if (!row) throw new Error("Supabase n’a renvoyé aucun inscrit.");
+        attendees = row.attendees;
+        attendeeNames = row.attendee_names;
+      } else {
+        attendees = match.attendees.filter((id) => id !== attendeeId);
+        attendeeNames = { ...(match.attendeeNames ?? {}) };
+        delete attendeeNames[attendeeId];
+      }
+
+      setMatches((current) =>
+        current.map((item) =>
+          item.id === matchId
+            ? {
+                ...item,
+                attendees,
+                attendeeNames,
+                teams: undefined,
+              }
+            : item,
+        ),
+      );
+      setMatchNotice("");
+      return true;
+    } catch (error) {
+      setMatchNotice(
+        `Impossible de retirer ce joueur : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+      return false;
+    } finally {
+      if (supabase) setMatchRegistering(false);
+    }
   }
 
   async function addGuestToMatch(matchId: string, guestName: string) {
@@ -806,6 +878,7 @@ export function useMatchActions({
     createMatch,
     updateMatch,
     cancelMatch,
+    removeAttendeeFromMatch,
     startMatch,
     saveScheduledMatchTeams,
     setMatchState,

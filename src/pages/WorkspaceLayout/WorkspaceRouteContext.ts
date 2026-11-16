@@ -27,6 +27,10 @@ export type WorkspaceRouteContext = {
   onOpenDiscussion: (matchId: string) => void;
   onDiscussionRead?: () => void;
   onRegisterForMatch: (matchId: string) => void;
+  onRemoveAttendeeFromMatch: (
+    matchId: string,
+    attendeeId: string,
+  ) => Promise<boolean>;
   onAddGuestToMatch: (matchId: string, guestName: string) => void;
   onEditMatch: (match: MatchSlot) => void;
   onCancelMatch: (matchId: string) => void;

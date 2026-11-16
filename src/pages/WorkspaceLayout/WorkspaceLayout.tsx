@@ -436,6 +436,7 @@ export function WorkspaceLayout() {
   );
   const {
     registerForMatch,
+    removeAttendeeFromMatch,
     addGuestToMatch,
     createMatch,
     updateMatch,
@@ -626,6 +627,7 @@ export function WorkspaceLayout() {
       navigate(`/app/discussions?match=${encodeURIComponent(matchId)}`),
     onDiscussionRead,
     onRegisterForMatch: (matchId: string) => void registerForMatch(matchId),
+    onRemoveAttendeeFromMatch: removeAttendeeFromMatch,
     onAddGuestToMatch: (matchId: string, guestName: string) =>
       void addGuestToMatch(matchId, guestName),
     onEditMatch: (match: MatchSlot) => {

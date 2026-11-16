@@ -166,17 +166,17 @@ describe("MatchCard", () => {
     expect(onOpen).not.toHaveBeenCalled();
   });
 
-  it("met en évidence l’inscription et verrouille le bouton", () => {
+  it("ouvre les détails du match pour le joueur inscrit", () => {
     const signedMatch = {
       ...baseMatch,
       attendees: [...baseMatch.attendees, "current-player"],
     };
-    const { onRegister } = renderCard(signedMatch);
+    const { onOpen, onRegister } = renderCard(signedMatch);
     const signedButton = screen.getByRole("button", {
       name: "Vous êtes inscrit",
     });
 
-    expect(signedButton).toBeDisabled();
+    expect(signedButton).toBeEnabled();
     expect(signedButton).toHaveClass(
       "bg-(--team-b-blue)/15",
       "text-(--team-b-blue)",
@@ -185,7 +185,21 @@ describe("MatchCard", () => {
     expect(signedButton.querySelector("svg")).toHaveClass("lucide-check");
 
     fireEvent.click(signedButton);
+    expect(onOpen).toHaveBeenCalledOnce();
     expect(onRegister).not.toHaveBeenCalled();
+  });
+
+  it("permet au propriétaire d’ouvrir les détails d’un match encore ouvert", () => {
+    const { onOpen } = renderCard({
+      ...baseMatch,
+      createdBy: "current-player",
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Voir les détails du match" }),
+    );
+
+    expect(onOpen).toHaveBeenCalledOnce();
   });
 
   it("affiche le score du direct et ouvre les détails du match en cours", () => {

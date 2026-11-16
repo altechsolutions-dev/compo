@@ -27,6 +27,7 @@ export function MatchesPage() {
     onOpenMatch,
     onOpenDiscussion,
     onRegisterForMatch,
+    onRemoveAttendeeFromMatch,
     onAddGuestToMatch,
     onEditMatch,
     onCancelMatch,
@@ -106,6 +107,7 @@ export function MatchesPage() {
           }
           selectedMatchId={selectedMatchId}
           currentAttendeeId={currentAttendeeId}
+          canManageAttendees={isOrganizationOwner}
           matchRegistering={matchRegistering}
           playerNames={playerNames}
           filter={matchFilter}
@@ -128,6 +130,10 @@ export function MatchesPage() {
           composeTeams={composeTeams}
           onClose={onCloseDrawer}
           onRegister={onRegisterForMatch}
+          canManageAttendees={
+            isOrganizationOwner || drawerMatch?.createdBy === currentUserId
+          }
+          onRemoveAttendee={onRemoveAttendeeFromMatch}
           onCancelMatch={onCancelMatch}
           onStartMatch={onStartMatch}
           onSaveScheduledMatchTeams={onSaveScheduledMatchTeams}

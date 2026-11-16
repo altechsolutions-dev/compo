@@ -18,6 +18,7 @@ export type MatchCardProps = {
   match: MatchSlot;
   isSelected: boolean;
   currentAttendeeId: string;
+  canManageAttendees?: boolean;
   matchRegistering: boolean;
   playerNames?: Record<string, string>;
   onOpen: () => void;
@@ -31,6 +32,7 @@ export function MatchCard({
   match,
   isSelected,
   currentAttendeeId,
+  canManageAttendees = false,
   matchRegistering,
   playerNames = {},
   onOpen,
@@ -45,7 +47,12 @@ export function MatchCard({
   const isLive = match.status === "in_progress";
   const isRegistrationOpen =
     !isFull && (!match.status || match.status === "scheduled");
-  const showAttendees = isRegistrationOpen;
+  const canOpenDetails =
+    isSignedUp ||
+    canManageAttendees ||
+    match.createdBy === currentAttendeeId ||
+    !isRegistrationOpen;
+  const showAttendees = isRegistrationOpen && !canOpenDetails;
   const liveScore = [
     match.goals?.filter((goal) => goal.team === 0).length ?? 0,
     match.goals?.filter((goal) => goal.team === 1).length ?? 0,
@@ -53,7 +60,7 @@ export function MatchCard({
   const date = new Date(`${match.date}T12:00:00`);
 
   function handleMatchAction() {
-    if (isRegistrationOpen) {
+    if (isRegistrationOpen && !canOpenDetails) {
       return;
     }
     onOpen();
@@ -98,7 +105,7 @@ export function MatchCard({
           aria-controls={`match-attendees-${match.id}`}
           aria-expanded={showAttendees}
           aria-pressed={isRegistrationOpen ? showAttendees : isSelected}
-          aria-label={`${isRegistrationOpen ? "Afficher les inscrits" : "Afficher les détails"} du match du ${date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${match.time}`}
+          aria-label={`${showAttendees ? "Afficher les inscrits" : "Afficher les détails"} du match du ${date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })} à ${match.time}`}
         >
           <span className="pt-0.5 text-[9px] font-bold uppercase tracking-[0.7px] text-(--team-b-blue)">
             {new Intl.DateTimeFormat("fr-FR", {
@@ -114,7 +121,7 @@ export function MatchCard({
           </span>
         </button>
         <div className="ml-auto flex shrink-0 items-center gap-1.5">
-          {!isRegistrationOpen && (
+          {canOpenDetails && (
             <div className="group relative">
               <button
                 aria-label="Voir les détails du match"
@@ -303,13 +310,15 @@ export function MatchCard({
           </div>
         )}
         <button
-          className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-md border text-[11px] font-bold transition-colors ${isSignedUp ? "cursor-default border-(--team-b-blue)/35 bg-(--team-b-blue)/15 text-(--team-b-blue) disabled:opacity-100" : "cursor-pointer border-(--line) bg-(--bg-elevated) text-(--ink) hover:border-(--team-b-blue) hover:text-(--team-b-blue) disabled:cursor-default disabled:opacity-55"}`}
+          className={`flex min-h-10 w-full items-center justify-center gap-2 rounded-md border text-[11px] font-bold transition-colors ${isSignedUp ? "cursor-pointer border-(--team-b-blue)/35 bg-(--team-b-blue)/15 text-(--team-b-blue) disabled:opacity-100" : "cursor-pointer border-(--line) bg-(--bg-elevated) text-(--ink) hover:border-(--team-b-blue) hover:text-(--team-b-blue) disabled:cursor-default disabled:opacity-55"}`}
           onClick={(event) => {
             event.stopPropagation();
-            if (isLive) onOpen();
+            if (isLive || isSignedUp) onOpen();
             else onRegister();
           }}
-          disabled={isLive ? false : isSignedUp || isFull || matchRegistering}
+          disabled={
+            isLive ? false : !isSignedUp && (isFull || matchRegistering)
+          }
           type="button"
         >
           {isLive ? (
