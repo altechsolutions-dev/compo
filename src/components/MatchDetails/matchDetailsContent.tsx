@@ -2,7 +2,6 @@ import { Fragment, type ReactNode } from "react";
 import {
   ArrowRight,
   Check,
-  Goal,
   Link2,
   MapPin,
   Trophy,
@@ -16,8 +15,10 @@ import type {
 import { formatMatchDate } from "../../helpers/formatMatchDate/formatMatchDate";
 import { LiveMatchPanel } from "../LiveMatchPanel/LiveMatchPanel";
 import { MatchGoalTimeline } from "../MatchGoalTimeline/MatchGoalTimeline";
+import { MatchGoalTotals } from "../MatchGoalTotals/MatchGoalTotals";
 import { MatchScoreboard } from "../MatchScoreboard/MatchScoreboard";
 import { MatchTeamComposition } from "./MatchTeamComposition";
+import { BestScorerIcons } from "./BestScorerIcons";
 import { MatchShareButton } from "./MatchShareButton";
 import { GuestVoteLinksList } from "./GuestVoteLinksList";
 import "./MatchDetails.css";
@@ -404,9 +405,7 @@ export function renderMatchDetailsContent({
             aria-labelledby="best-scorer-title"
             className="mt-6 flex items-start gap-3"
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-(--team-a-red)/10 text-(--team-a-red)">
-              <Goal aria-hidden="true" size={19} />
-            </span>
+            <BestScorerIcons scorerIds={bestScorerIds} teams={matchTeams} />
             <div className="min-w-0">
               <h3
                 className="m-0 text-lg font-bold text-(--text-primary)"
@@ -447,7 +446,18 @@ export function renderMatchDetailsContent({
         </section>
 
         <div className="mt-6 grid gap-x-8 gap-y-5 lg:grid-cols-2">
-          <section className="pt-1" aria-labelledby="finished-scorers-title">
+          <MatchGoalTotals
+            className="mt-0 pt-1 lg:order-2"
+            goals={goals}
+            playerIds={match.attendees}
+            playerNames={playerNames}
+            teams={matchTeams}
+          />
+
+          <section
+            className="pt-1 lg:order-1"
+            aria-labelledby="finished-scorers-title"
+          >
             <h3
               className="mb-4 text-sm font-bold text-(--text-primary)"
               id="finished-scorers-title"
@@ -456,14 +466,6 @@ export function renderMatchDetailsContent({
             </h3>
             <MatchGoalTimeline goals={goals} playerNames={playerNames} />
           </section>
-
-          <MatchTeamComposition
-            className="mt-0 pt-1"
-            isFull={match.attendees.length >= match.maxPlayers}
-            match={match}
-            playerNames={playerNames}
-            teams={matchTeams}
-          />
         </div>
       </>
     );

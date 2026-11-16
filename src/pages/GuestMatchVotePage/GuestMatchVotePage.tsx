@@ -1,13 +1,14 @@
 import { Fragment, useEffect, useState } from "react";
-import { ArrowRight, Goal, Shirt, Trophy } from "lucide-react";
+import { ArrowRight, Shirt, Trophy } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { formatMatchDate } from "../../helpers/formatMatchDate/formatMatchDate";
 import { supabase } from "../../lib/supabase/supabase";
 import logo from "../../assets/logo.png";
 import type { MatchGoal, MatchSlot } from "../../types";
 import { MatchGoalTimeline } from "../../components/MatchGoalTimeline/MatchGoalTimeline";
+import { MatchGoalTotals } from "../../components/MatchGoalTotals/MatchGoalTotals";
 import { MatchScoreboard } from "../../components/MatchScoreboard/MatchScoreboard";
-import { MatchTeamComposition } from "../../components/MatchDetails/MatchTeamComposition";
+import { BestScorerIcons } from "../../components/MatchDetails/BestScorerIcons";
 import "../../components/MatchDetails/MatchDetails.css";
 
 type GuestCandidate = {
@@ -606,9 +607,10 @@ export function GuestMatchVotePage() {
                 aria-labelledby="best-scorer-title"
                 className="mt-6 flex items-start gap-3"
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-(--team-a-red)/10 text-(--team-a-red)">
-                  <Goal aria-hidden="true" size={19} />
-                </span>
+                <BestScorerIcons
+                  scorerIds={bestScorerIds}
+                  teams={summaryMatch.teams ?? [[], []]}
+                />
                 <div className="min-w-0">
                   <h3 className="m-0 text-lg font-bold" id="best-scorer-title">
                     {bestScorerIds.length > 1
@@ -654,8 +656,15 @@ export function GuestMatchVotePage() {
             </section>
 
             <div className="mt-6 grid gap-x-8 gap-y-5 lg:grid-cols-2">
+              <MatchGoalTotals
+                className="mt-0 pt-1 lg:order-2"
+                goals={summaryMatch.goals ?? []}
+                playerIds={summaryMatch.attendees}
+                playerNames={playerNames}
+                teams={summaryMatch.teams ?? [[], []]}
+              />
               <section
-                className="pt-1"
+                className="pt-1 lg:order-1"
                 aria-labelledby="finished-scorers-title"
               >
                 <h2
@@ -669,13 +678,6 @@ export function GuestMatchVotePage() {
                   playerNames={playerNames}
                 />
               </section>
-              <MatchTeamComposition
-                className="mt-0 pt-1"
-                isFull
-                match={summaryMatch}
-                playerNames={playerNames}
-                teams={summaryMatch.teams ?? [[], []]}
-              />
             </div>
           </>
         )}

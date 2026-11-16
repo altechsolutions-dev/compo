@@ -198,7 +198,7 @@ describe("MatchDetailsContent", () => {
     expect(onRemoveAttendee).toHaveBeenCalledWith("sarah");
   });
 
-  it("affiche le fil chronologique et la composition standard pour un match terminé", () => {
+  it("affiche le fil chronologique et les buts dans la composition pour un match terminé", () => {
     const finishedMatch: MatchSlot = {
       ...match,
       status: "finished",
@@ -258,8 +258,26 @@ describe("MatchDetailsContent", () => {
     const goalTimeline = screen.getByRole("list", {
       name: "Événements du match",
     });
+    expect(goalTimeline).toHaveClass(
+      "relative",
+      "h-80",
+      "content-start",
+      "gap-2",
+      "overflow-y-auto",
+    );
+    expect(goalTimeline).toHaveAttribute("tabindex", "0");
+    expect(within(goalTimeline).getAllByRole("listitem")[0]).not.toHaveClass(
+      "border-b",
+    );
     expect(within(goalTimeline).getAllByRole("listitem")[0]).toHaveTextContent(
       "Malik Diallo",
+    );
+    expect(within(goalTimeline).getByText("Équipe bleue")).toHaveClass("sr-only");
+    expect(within(goalTimeline).getByText("Équipe rouge")).toHaveClass("sr-only");
+    expect(within(goalTimeline).getAllByRole("listitem")[0]).toHaveClass(
+      "bg-linear-to-r",
+      "from-(--team-b-blue)/10",
+      "to-transparent",
     );
     expect(within(goalTimeline).getAllByRole("listitem")[0]).toHaveTextContent(
       "04:05",
@@ -267,18 +285,29 @@ describe("MatchDetailsContent", () => {
     expect(within(goalTimeline).getAllByRole("listitem")[1]).toHaveTextContent(
       "Alex Martin",
     );
+    expect(within(goalTimeline).getAllByRole("listitem")[1]).toHaveClass(
+      "bg-linear-to-r",
+      "from-(--team-a-red)/10",
+      "to-transparent",
+    );
     expect(within(goalTimeline).getAllByRole("listitem")[1]).toHaveTextContent(
       "02:05",
     );
     expect(
-      screen.getByRole("heading", { name: "Composition du match" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Composition du match" })
-        .parentElement?.parentElement,
-    ).toHaveClass("mt-0", "pt-1");
-    expect(screen.getByText("Sarah Benali")).toBeInTheDocument();
-    expect(screen.getByText("Inès Laurent")).toBeInTheDocument();
+      screen.queryByRole("heading", { name: "Composition du match" }),
+    ).not.toBeInTheDocument();
+    const totals = screen.getByRole("region", { name: "Buts par joueur" });
+    const timelineSection = goalTimeline.closest("section")!;
+    expect(totals.parentElement?.children[0]).toBe(totals);
+    expect(totals.parentElement?.children[1]).toBe(timelineSection);
+    expect(totals).toHaveClass("mt-0", "pt-1", "lg:order-2");
+    expect(timelineSection).toHaveClass("lg:order-1");
+    expect(within(totals).getByText("Sarah Benali")).toBeInTheDocument();
+    expect(within(totals).getByText("Inès Laurent")).toBeInTheDocument();
+    expect(within(totals).getByText("Sarah Benali").parentElement)
+      .toHaveClass("match-team-player", "match-team-player--red");
+    expect(within(totals).getByText("Inès Laurent").parentElement)
+      .toHaveClass("match-team-player", "match-team-player--blue");
   });
 
   it("copie le lien du résumé terminé avec l’identifiant du match", async () => {
@@ -370,6 +399,69 @@ describe("MatchDetailsContent", () => {
         screen.getByRole("list", { name: "Événements du match" }),
       ).getByText("Pote de Sam"),
     ).toBeInTheDocument();
+  });
+
+  it("affiche les buts de chaque joueur, y compris les invités et les joueurs sans but", () => {
+    const finishedMatch: MatchSlot = {
+      ...match,
+      status: "finished",
+      attendees: ["guest-id", ...match.attendees, "unassigned"],
+      teams: [["alex", "guest-id", "extra"], ["sarah", "malik", "ines"]],
+      goals: [
+        { id: "1", scorerId: "alex", team: 0, elapsedSeconds: 1, createdAt: "" },
+        {
+          id: "2",
+          scorerId: "guest-id",
+          team: 0,
+          elapsedSeconds: 2,
+          createdAt: "",
+        },
+        { id: "3", scorerId: "alex", team: 0, elapsedSeconds: 3, createdAt: "" },
+      ],
+    };
+
+    render(
+      renderMatchDetailsContent({
+        match: finishedMatch,
+        isFull: true,
+        isRegistered: true,
+        isRegistering: false,
+        playerNames: {
+          ...playerNames,
+          "guest-id": "Invité",
+          unassigned: "Sans équipe",
+          extra: "Joueur supplémentaire",
+        },
+        onClose: vi.fn(),
+        onRegister: vi.fn(),
+      }),
+    );
+
+    expect(
+      screen.getByRole("region", { name: "Meilleur buteur" }),
+    ).toHaveTextContent("Alex Martin avec 2 buts");
+    const totals = screen.getByRole("region", { name: "Buts par joueur" });
+    const blueTeam = within(totals).getByRole("region", { name: "Équipe Bleue" });
+    const redTeam = within(totals).getByRole("region", { name: "Équipe Rouge" });
+    expect(
+      Array.from(blueTeam.parentElement!.children).map((team) =>
+        team.getAttribute("aria-label"),
+      ),
+    ).toEqual(["Équipe Bleue", "Équipe Rouge", "Autres joueurs"]);
+    expect(
+      within(blueTeam).getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual(["Sarah Benali0", "Malik Diallo0", "Inès Laurent0"]);
+    expect(
+      within(redTeam).getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual([
+      "Alex Martin2",
+      "Invité1",
+      "Joueur supplémentaire0",
+    ]);
+    expect(
+      within(within(totals).getByRole("region", { name: "Autres joueurs" }))
+        .getByRole("listitem"),
+    ).toHaveTextContent("Sans équipe0");
   });
 
   it("affiche les meilleurs buteurs ex æquo et permet de voter pour l'homme du match", () => {
@@ -491,6 +583,10 @@ describe("MatchDetailsContent", () => {
     expect(bestScorers).toHaveTextContent(
       "Meilleurs buteursAlex Martin et Malik Diallo avec 1 but chacun",
     );
+    const scorerIcons = bestScorers.querySelectorAll("svg.lucide-goal");
+    expect(scorerIcons).toHaveLength(2);
+    expect(scorerIcons[0].parentElement).toHaveClass("text-(--team-b-blue)");
+    expect(scorerIcons[1].parentElement).toHaveClass("text-(--team-a-red)");
     expect(within(bestScorers).getByText("Alex Martin")).toHaveClass(
       "text-(--team-a-red)",
     );

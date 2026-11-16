@@ -176,8 +176,14 @@ describe("GuestMatchVotePage", () => {
       screen.getByRole("heading", { name: "Fil du match" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Composition du match" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("heading", { name: "Composition du match" }),
+    ).not.toBeInTheDocument();
+    const totals = screen.getByRole("region", { name: "Buts par joueur" });
+    const timeline = screen.getByRole("region", { name: "Fil du match" });
+    expect(totals.parentElement?.children[0]).toBe(totals);
+    expect(totals.parentElement?.children[1]).toBe(timeline);
+    expect(totals).toHaveClass("lg:order-2");
+    expect(timeline).toHaveClass("lg:order-1");
     expect(screen.getAllByText("Alex Martin")).toHaveLength(4);
     const bestScorerSection = screen.getByRole("region", {
       name: "Meilleur buteur",
@@ -185,6 +191,118 @@ describe("GuestMatchVotePage", () => {
     expect(within(bestScorerSection).getByText("Alex Martin")).toHaveClass(
       "text-(--team-a-red)",
     );
+    expect(bestScorerSection.querySelector("svg.lucide-goal")?.parentElement)
+      .toHaveClass("text-(--team-a-red)");
+  });
+
+  it("affiche les buts de tous les joueurs dans le résumé invité", async () => {
+    rpc.mockImplementation(
+      async (name: string, args: { p_voter_id?: string | null }) => {
+        if (name === "get_guest_match_summary") {
+          return {
+            data: [
+              {
+                elapsed_seconds: 900,
+                goals: [
+                  {
+                    id: "1",
+                    scorer_id: "player-1",
+                    team: 0,
+                    elapsed_seconds: 100,
+                    created_at: "",
+                  },
+                  {
+                    id: "2",
+                    scorer_id: "guest-1",
+                    team: 1,
+                    elapsed_seconds: 200,
+                    created_at: "",
+                  },
+                  {
+                    id: "3",
+                    scorer_id: "player-1",
+                    team: 0,
+                    elapsed_seconds: 300,
+                    created_at: "",
+                  },
+                ],
+              },
+            ],
+            error: null,
+          };
+        }
+        return {
+          data: [{ ...poll, guest_name: args.p_voter_id ? "Invité Paul" : null }],
+          error: null,
+        };
+      },
+    );
+
+    render(
+      <MemoryRouter initialEntries={["/vote?token=private-token"]}>
+        <GuestMatchVotePage />
+      </MemoryRouter>,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Choisir Invité Paul" }),
+    );
+
+    const totals = await screen.findByRole("region", { name: "Buts par joueur" });
+    expect(
+      within(within(totals).getByRole("region", { name: "Équipe Bleue" }))
+        .getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual(["Inès Laurent1", "Invité Marc0"]);
+    expect(
+      within(within(totals).getByRole("region", { name: "Équipe Rouge" }))
+        .getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual(["Alex Martin2", "Invité Paul0"]);
+    expect(within(totals).getByText("Inès Laurent").parentElement)
+      .toHaveClass("match-team-player", "match-team-player--blue");
+    expect(within(totals).getByText("Alex Martin").parentElement)
+      .toHaveClass("match-team-player", "match-team-player--red");
+    expect(
+      screen.getByRole("region", { name: "Meilleur buteur" }),
+    ).toHaveTextContent("Alex Martin avec 2 buts");
+  });
+
+  it("colore l’icône du meilleur buteur en bleu dans le résumé invité", async () => {
+    rpc.mockImplementation(
+      async (name: string, args: { p_voter_id?: string | null }) => {
+        if (name === "get_guest_match_summary") {
+          return {
+            data: [{
+              elapsed_seconds: 900,
+              goals: [{
+                id: "goal-blue",
+                scorer_id: "guest-1",
+                team: 1,
+                elapsed_seconds: 300,
+                created_at: "",
+              }],
+            }],
+            error: null,
+          };
+        }
+        return {
+          data: [{ ...poll, guest_name: args.p_voter_id ? "Invité Paul" : null }],
+          error: null,
+        };
+      },
+    );
+    render(
+      <MemoryRouter initialEntries={["/vote?token=private-token"]}>
+        <GuestMatchVotePage />
+      </MemoryRouter>,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Choisir Invité Paul" }),
+    );
+
+    const bestScorer = await screen.findByRole("region", {
+      name: "Meilleur buteur",
+    });
+    expect(bestScorer.querySelector("svg.lucide-goal")?.parentElement)
+      .toHaveClass("text-(--team-b-blue)");
   });
 
   it("colore l’homme du match selon son équipe après clôture", async () => {
@@ -222,6 +340,16 @@ describe("GuestMatchVotePage", () => {
     const voteSection = await screen.findByRole("region", {
       name: "Vote homme du match",
     });
+    expect(screen.getByRole("region", { name: "Meilleur buteur" }))
+      .toHaveTextContent("Aucun buteur");
+    expect(
+      within(screen.getByRole("region", { name: "Buts par joueur" }))
+        .getAllByRole("listitem"),
+    ).toHaveLength(4);
+    expect(
+      within(screen.getByRole("region", { name: "Buts par joueur" }))
+        .getAllByText("0"),
+    ).toHaveLength(4);
     expect(
       within(voteSection).getByText("Inès Laurent").closest("li"),
     ).toHaveClass(

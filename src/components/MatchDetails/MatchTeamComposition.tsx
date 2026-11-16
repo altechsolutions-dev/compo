@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ArrowLeftRight, Check, CircleDot, Pencil, Shirt } from "lucide-react";
+import { ArrowLeftRight, Check, CircleDot, Pencil } from "lucide-react";
 import type { MatchSlot } from "../../types";
+import { MatchTeamHeading, MatchTeamPlayer } from "./MatchTeamDisplay";
 
 type MatchTeamCompositionProps = {
   className?: string;
@@ -83,33 +84,15 @@ export function MatchTeamComposition({
           const team = teams[teamIndex];
           return (
             <div className="min-w-0" key={teamIndex}>
-              <h4
-                className={`mb-2.5 flex items-center gap-1.5 text-xs font-semibold ${teamIndex === 0 ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}
-              >
-                <Shirt
-                  size={14}
-                  color={
-                    teamIndex === 0 ? "var(--team-a-red)" : "var(--team-b-blue)"
-                  }
-                  aria-hidden="true"
-                />
-                Équipe {teamIndex === 0 ? "Rouge" : "Bleue"}
-              </h4>
+              <MatchTeamHeading teamIndex={teamIndex} />
               {team.map((id, playerIndex) => {
                 const selected = selectedPlayers[teamIndex] === id;
-                const teamColorClass =
-                  teamIndex === 0
-                    ? selected
-                      ? "border-(--team-a-red) bg-(--team-a-red)/20 text-(--team-a-red)"
-                      : "border-(--team-a-red)/25 bg-(--team-a-red)/5 text-(--team-a-red)"
-                    : selected
-                      ? "border-(--team-b-blue) bg-(--team-b-blue)/20 text-(--team-b-blue)"
-                      : "border-(--team-b-blue)/25 bg-(--team-b-blue)/5 text-(--team-b-blue)";
-
                 return (
-                  <div
-                    className={`match-team-player mb-1.5 flex min-h-9 w-full items-center overflow-hidden rounded-sm border px-2 py-1.5 text-xs font-semibold ${teamColorClass} ${teamIndex === 0 ? "match-team-player--red" : "match-team-player--blue"} ${selected ? "is-selected" : ""} ${isEditing && !selected ? "hover:brightness-110" : ""}`}
+                  <MatchTeamPlayer
+                    isEditing={isEditing}
                     key={id}
+                    selected={selected}
+                    teamIndex={teamIndex}
                   >
                     {isEditing ? (
                       <button
@@ -134,7 +117,7 @@ export function MatchTeamComposition({
                         {playerNames[id] ?? `Joueur ${playerIndex + 1}`}
                       </span>
                     )}
-                  </div>
+                  </MatchTeamPlayer>
                 );
               })}
             </div>
