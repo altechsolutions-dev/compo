@@ -64,6 +64,8 @@ export type OrganizationPlayerStats = {
   losses: number;
   man_of_the_match_count: number;
   best_scorer_count: number;
+  best_defender_count: number;
+  best_goalkeeper_count: number;
   goals: number;
 };
 

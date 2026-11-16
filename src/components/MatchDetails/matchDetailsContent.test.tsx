@@ -543,6 +543,7 @@ describe("MatchDetailsContent", () => {
     const motmSection = screen.getByRole("region", {
       name: "Vote homme du match",
     });
+    expect(within(motmSection).getByText("En tête provisoirement : Alex Martin")).toBeInTheDocument();
     expect(
       within(
         within(motmSection).getByRole("region", { name: "Équipe Bleue" }),
@@ -641,12 +642,18 @@ describe("MatchDetailsContent", () => {
     fireEvent.click(screen.getByRole("button", { name: /Invité Lucas/ }));
 
     expect(onVote).toHaveBeenCalledWith("guest-1");
-    const motmHeading = screen.getByRole("heading", { name: "Homme du match" });
-    const header = motmHeading.parentElement?.parentElement;
-    expect(header).toContainElement(
+    const distinctions = screen.getByRole("region", { name: "Distinctions du match" });
+    expect(distinctions).toContainElement(
       screen.getByRole("button", { name: "Copier le lien de vote invité" }),
     );
-    expect(header).not.toContainElement(
+    fireEvent.click(screen.getByRole("button", { name: "Meilleur défenseur" }));
+    expect(screen.queryByRole("region", { name: "Vote homme du match" })).not.toBeInTheDocument();
+    expect(distinctions).toContainElement(
+      screen.getByRole("button", { name: "Copier le lien de vote invité" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Homme du match" }));
+    expect(screen.getByRole("region", { name: "Vote homme du match" })).toBeInTheDocument();
+    expect(distinctions).not.toContainElement(
       screen.queryByRole("link", { name: /\/vote\?token=shared-token/ }),
     );
   });

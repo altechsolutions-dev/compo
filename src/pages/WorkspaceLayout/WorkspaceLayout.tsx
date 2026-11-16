@@ -51,6 +51,7 @@ function describeError(error: unknown) {
 
 export function WorkspaceLayout() {
   const location = useLocation();
+  const isOrganizationView = location.pathname.endsWith("/organizations");
   const navigate = useNavigate();
   const auth = useAuthContext();
   const [playerStats, setPlayerStats] = useState<OrganizationPlayerStats[]>([]);
@@ -191,7 +192,7 @@ export function WorkspaceLayout() {
     void client
       .from("players")
       .select(
-        "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, goals",
+        "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, best_defender_count, best_goalkeeper_count, goals",
       )
       .eq("organization_id", organizationId)
       .then(({ data, error }) => {
@@ -208,7 +209,7 @@ export function WorkspaceLayout() {
     return () => {
       cancelled = true;
     };
-  }, [organizationId]);
+  }, [organizationId, isOrganizationView]);
 
   const matchState = useMatches({
     session,
@@ -308,7 +309,7 @@ export function WorkspaceLayout() {
     void supabase
       .from("players")
       .select(
-        "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, goals",
+        "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, best_defender_count, best_goalkeeper_count, goals",
       )
       .eq("organization_id", organizationId)
       .then(({ data, error }) => {
@@ -669,7 +670,7 @@ export function WorkspaceLayout() {
         const { data, error } = await supabase
           .from("players")
           .select(
-            "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, goals",
+            "user_id, overall_rating, matches_played, wins, draws, losses, man_of_the_match_count, best_scorer_count, best_defender_count, best_goalkeeper_count, goals",
           )
           .eq("organization_id", organizationId);
         if (error) {

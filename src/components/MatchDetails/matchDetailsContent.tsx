@@ -13,10 +13,13 @@ import type {
   MatchSlot,
 } from "../../types";
 import { formatMatchDate } from "../../helpers/formatMatchDate/formatMatchDate";
+import { matchVoteLeader } from "../../lib/matchVoteLeader/matchVoteLeader";
 import { LiveMatchPanel } from "../LiveMatchPanel/LiveMatchPanel";
 import { MatchGoalTimeline } from "../MatchGoalTimeline/MatchGoalTimeline";
 import { MatchGoalTotals } from "../MatchGoalTotals/MatchGoalTotals";
 import { MatchScoreboard } from "../MatchScoreboard/MatchScoreboard";
+import { MatchAwardVotes } from "../MatchAwardVotes/MatchAwardVotes";
+import { MatchVoteCandidates, MatchVoteWinners } from "./MatchVoteCandidates";
 import { MatchTeamComposition } from "./MatchTeamComposition";
 import { BestScorerIcons } from "./BestScorerIcons";
 import { MatchShareButton } from "./MatchShareButton";
@@ -95,71 +98,9 @@ export function renderMatchDetailsContent({
       .map(([id]) => id);
     const matchTeams = teams ?? match.teams ?? [[], []];
     const votingCandidates = match.attendees;
-    const renderCandidateButton = (candidateId: string): ReactNode => {
-      const candidateVotes =
-        manOfTheMatchPoll?.voteTotals.find(
-          (vote) => vote.candidateId === candidateId,
-        )?.voteCount ?? 0;
-      const isSelected = manOfTheMatchPoll?.myVote === candidateId;
-      const candidateTeam = matchTeams.findIndex((players) =>
-        players.includes(candidateId),
-      );
-      const teamColorClass =
-        candidateTeam === 0
-          ? "text-(--team-a-red)"
-          : candidateTeam === 1
-            ? "text-(--team-b-blue)"
-            : "text-(--text-primary)";
-      const teamBorderClass =
-        candidateTeam === 0
-          ? "border-l-(--team-a-red)"
-          : candidateTeam === 1
-            ? "border-l-(--team-b-blue)"
-            : "";
-      const selectedTeamClass =
-        candidateTeam === 0
-          ? "border-(--team-a-red) bg-(--team-a-red)/15 text-(--team-a-red) ring-1 ring-(--team-a-red) enabled:hover:bg-(--team-a-red)/25"
-          : "border-(--team-b-blue) bg-(--team-b-blue)/15 text-(--team-b-blue) ring-1 ring-(--team-b-blue) enabled:hover:bg-(--team-b-blue)/25";
-      const teamHoverClass =
-        candidateTeam === 0
-          ? "enabled:hover:border-(--team-a-red) enabled:hover:bg-(--team-a-red)/10 enabled:hover:text-(--team-a-red)"
-          : "enabled:hover:border-(--team-b-blue) enabled:hover:bg-(--team-b-blue)/10 enabled:hover:text-(--team-b-blue)";
-
-      return (
-        <button
-          aria-pressed={isSelected}
-          aria-disabled={manOfTheMatchVoteSaving || !onVoteForManOfTheMatch}
-          className={`flex min-h-16 cursor-pointer items-center justify-between gap-3 border border-l-4 px-4 py-3 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-b-blue) disabled:cursor-not-allowed disabled:opacity-50 ${teamBorderClass} ${isSelected ? selectedTeamClass : `border-(--line) bg-(--bg-surface) text-(--text-primary) ${teamHoverClass}`}`}
-          disabled={!onVoteForManOfTheMatch}
-          key={candidateId}
-          onClick={() => {
-            if (!manOfTheMatchVoteSaving) onVoteForManOfTheMatch?.(candidateId);
-          }}
-          type="button"
-        >
-          <span className="min-w-0">
-            <span
-              className={`block truncate text-sm font-bold ${teamColorClass}`}
-            >
-              {playerNames[candidateId] ?? "Joueur"}
-            </span>
-            {isSelected && (
-              <span className="mt-1 block text-[9px] font-bold uppercase tracking-[0.8px]">
-                Votre choix
-              </span>
-            )}
-          </span>
-          <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold tabular-nums">
-            {candidateVotes}
-            {isSelected && <Check aria-hidden="true" size={15} />}
-          </span>
-        </button>
-      );
-    };
-    const unassignedCandidates = votingCandidates.filter(
-      (candidateId) =>
-        !matchTeams.some((players) => players.includes(candidateId)),
-    );
+    const provisionalLeader = manOfTheMatchPoll && !manOfTheMatchPoll.isComplete
+      ? matchVoteLeader(manOfTheMatchPoll.voteTotals)
+      : null;
 
     return (
       <>
@@ -200,16 +141,14 @@ export function renderMatchDetailsContent({
           >
             Distinctions du match
           </h2>
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-(--team-b-blue)/15 text-(--team-b-blue)">
-                <Trophy aria-hidden="true" size={21} />
-              </span>
-              <h3 className="m-0 text-lg font-bold text-(--text-primary)">
-                Homme du match
-              </h3>
-            </div>
-            {canManageGuestVoteLinks &&
+          <MatchAwardVotes
+            key={match.id}
+            matchId={match.id}
+            candidates={votingCandidates}
+            teams={matchTeams}
+            playerNames={playerNames}
+            enabled={isRegistered}
+            actions={canManageGuestVoteLinks &&
               Object.keys(match.attendeeNames ?? {}).length > 0 && (
                 <div className="flex min-w-0 shrink items-center justify-end">
                   {guestVoteLinks.length > 0 ? (
@@ -221,7 +160,7 @@ export function renderMatchDetailsContent({
                     >
                       Préparation du lien…
                     </span>
-                  ) : guestVoteLinksError ? (
+                  ) : (
                     <button
                       aria-label="Réessayer la création du lien invité"
                       className="grid size-8 cursor-pointer place-items-center border border-(--line) bg-(--bg-surface) text-(--text-secondary) hover:bg-(--bg-elevated)"
@@ -231,9 +170,19 @@ export function renderMatchDetailsContent({
                     >
                       <Link2 aria-hidden="true" size={15} />
                     </button>
-                  ) : null}
+                  )}
                 </div>
               )}
+          >
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-(--team-b-blue)/15 text-(--team-b-blue)">
+                <Trophy aria-hidden="true" size={21} />
+              </span>
+              <h3 className="m-0 text-lg font-bold text-(--text-primary)">
+                Homme du match
+              </h3>
+            </div>
           </div>
 
           <section aria-label="Vote homme du match">
@@ -250,35 +199,11 @@ export function renderMatchDetailsContent({
                   Vote clôturé · {manOfTheMatchPoll.voteCount} /{" "}
                   {manOfTheMatchPoll.eligibleVoterCount} votes exprimés
                 </p>
-                {manOfTheMatchPoll.winnerIds.length ? (
-                  <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
-                    {manOfTheMatchPoll.winnerIds.map((id) => {
-                      const winnerTeam = matchTeams.findIndex((players) =>
-                        players.includes(id),
-                      );
-                      const winnerTeamClass =
-                        winnerTeam === 0
-                          ? "border-(--team-a-red)/35 bg-(--team-a-red)/10 text-(--team-a-red)"
-                          : winnerTeam === 1
-                            ? "border-(--team-b-blue)/35 bg-(--team-b-blue)/10 text-(--team-b-blue)"
-                            : "border-(--line) bg-(--bg-surface) text-(--text-primary)";
-
-                      return (
-                        <li
-                          className={`flex min-h-14 items-center gap-3 border px-4 py-3 text-sm font-bold ${winnerTeamClass}`}
-                          key={id}
-                        >
-                          <Trophy aria-hidden="true" size={17} />
-                          {playerNames[id] ?? "Joueur"}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="m-0 text-sm font-semibold text-(--text-secondary)">
-                    Aucun vote enregistré
-                  </p>
-                )}
+                <MatchVoteWinners
+                  winnerIds={manOfTheMatchPoll.winnerIds}
+                  teams={matchTeams}
+                  playerNames={playerNames}
+                />
               </div>
             ) : manOfTheMatchPoll ? (
               <>
@@ -294,6 +219,11 @@ export function renderMatchDetailsContent({
                     Cliquez pour voter ou changer votre choix.
                   </p>
                 </div>
+                {provisionalLeader && (
+                  <p className="mb-4 text-sm font-semibold text-(--text-primary)">
+                    En tête provisoirement : {playerNames[provisionalLeader] ?? "Joueur"}
+                  </p>
+                )}
                 <div
                   aria-label="Participation au vote"
                   aria-valuemax={manOfTheMatchPoll.eligibleVoterCount}
@@ -309,56 +239,15 @@ export function renderMatchDetailsContent({
                     }}
                   />
                 </div>
-                <div className="grid gap-5 sm:grid-cols-2">
-                  {(
-                    [
-                      { index: 1, name: "Équipe Bleue" },
-                      { index: 0, name: "Équipe Rouge" },
-                    ] as const
-                  ).map(({ index, name }) => {
-                    const teamColorClass =
-                      index === 1
-                        ? "text-(--team-b-blue)"
-                        : "text-(--team-a-red)";
-                    const teamCandidates = votingCandidates.filter(
-                      (candidateId) => matchTeams[index].includes(candidateId),
-                    );
-
-                    return (
-                      <section
-                        aria-label={name}
-                        className="min-w-0"
-                        key={index}
-                      >
-                        <h4
-                          className={`mb-2 flex items-center gap-2 text-xs font-bold ${teamColorClass}`}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`size-2 rounded-full ${index === 1 ? "bg-(--team-b-blue)" : "bg-(--team-a-red)"}`}
-                          />
-                          {name}
-                        </h4>
-                        <div className="grid gap-2">
-                          {teamCandidates.map(renderCandidateButton)}
-                        </div>
-                      </section>
-                    );
-                  })}
-                  {unassignedCandidates.length > 0 && (
-                    <section
-                      aria-label="Autres joueurs"
-                      className="min-w-0 sm:col-span-2"
-                    >
-                      <h4 className="mb-2 text-xs font-bold text-(--text-secondary)">
-                        Autres participants
-                      </h4>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {unassignedCandidates.map(renderCandidateButton)}
-                      </div>
-                    </section>
-                  )}
-                </div>
+                <MatchVoteCandidates
+                  candidates={votingCandidates}
+                  teams={matchTeams}
+                  playerNames={playerNames}
+                  voteTotals={manOfTheMatchPoll.voteTotals}
+                  myVote={manOfTheMatchPoll.myVote}
+                  saving={manOfTheMatchVoteSaving}
+                  onVote={onVoteForManOfTheMatch}
+                />
                 <div className="mt-2 min-h-3">
                   {manOfTheMatchVoteError ? (
                     <p
@@ -383,6 +272,7 @@ export function renderMatchDetailsContent({
               </p>
             )}
           </section>
+          </MatchAwardVotes>
 
           {canManageGuestVoteLinks &&
             Object.keys(match.attendeeNames ?? {}).length > 0 && (
@@ -443,6 +333,7 @@ export function renderMatchDetailsContent({
               )}
             </div>
           </section>
+
         </section>
 
         <div className="mt-6 grid gap-x-8 gap-y-5 lg:grid-cols-2">
