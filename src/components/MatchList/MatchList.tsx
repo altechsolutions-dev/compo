@@ -10,6 +10,7 @@ export type MatchListProps = {
   totalMatchCount: number;
   selectedMatchId?: string;
   currentAttendeeId: string;
+  canManageAttendees?: boolean;
   matchRegistering: boolean;
   playerNames?: Record<string, string>;
   filter: MatchFilter;
@@ -28,6 +29,7 @@ export function MatchList({
   totalMatchCount,
   selectedMatchId,
   currentAttendeeId,
+  canManageAttendees = false,
   matchRegistering,
   playerNames = {},
   filter,
@@ -131,6 +133,10 @@ export function MatchList({
                 match={match}
                 isSelected={selectedMatchId === match.id}
                 currentAttendeeId={currentAttendeeId}
+                canManageAttendees={
+                  canManageAttendees ||
+                  match.createdBy === currentAttendeeId
+                }
                 matchRegistering={matchRegistering}
                 playerNames={playerNames}
                 onOpen={() => onOpenMatch(match.id)}

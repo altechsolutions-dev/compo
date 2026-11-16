@@ -27,10 +27,13 @@ export type MatchDetailsContentOptions = {
   isFull: boolean;
   isRegistered: boolean;
   isRegistering: boolean;
+  currentAttendeeId?: string;
   teams?: [string[], string[]];
   playerNames: Record<string, string>;
   onClose: () => void;
   onRegister: () => void;
+  canManageAttendees?: boolean;
+  onRemoveAttendee?: (attendeeId: string) => void;
   canCancel?: boolean;
   onCancelMatch?: () => void;
   onSaveTeams?: (teams: [string[], string[]]) => Promise<boolean>;
@@ -52,10 +55,13 @@ export function renderMatchDetailsContent({
   isFull,
   isRegistered,
   isRegistering,
+  currentAttendeeId,
   teams,
   playerNames,
   onClose,
   onRegister,
+  canManageAttendees = false,
+  onRemoveAttendee,
   canCancel = false,
   onCancelMatch,
   onSaveTeams,
@@ -544,6 +550,41 @@ export function renderMatchDetailsContent({
         </div>
       </div>
 
+      {canManageAttendees &&
+        onRemoveAttendee &&
+        (!match.status || match.status === "scheduled") && (
+          <section
+            aria-label="Gestion des joueurs inscrits"
+            className="mt-4 border-t border-(--line) pt-3"
+          >
+            <ul className="m-0 grid list-none gap-1 p-0">
+              {match.attendees.map((attendeeId) => {
+                const name =
+                  match.attendeeNames?.[attendeeId] ??
+                  playerNames[attendeeId] ??
+                  "Joueur";
+                return (
+                  <li
+                    className="flex min-h-9 items-center justify-between gap-2 border-b border-(--line) py-1.5 text-xs text-(--text-primary) last:border-b-0"
+                    key={attendeeId}
+                  >
+                    <span className="min-w-0 max-w-[75%] truncate">{name}</span>
+                    <button
+                      aria-label={`Retirer ${name} du match`}
+                      className="shrink-0 cursor-pointer border border-(--team-a-red)/30 bg-transparent px-2 py-1 text-[10px] font-semibold text-(--team-a-red) hover:bg-(--team-a-red)/5 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={isRegistering}
+                      onClick={() => onRemoveAttendee(attendeeId)}
+                      type="button"
+                    >
+                      Retirer
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
       {match.status === "in_progress" && match.startedAt && teams ? (
         <LiveMatchPanel
           startedAt={match.startedAt}
@@ -587,6 +628,24 @@ export function renderMatchDetailsContent({
           </button>
         </>
       )}
+      {isRegistered &&
+        !canManageAttendees &&
+        onRemoveAttendee &&
+        (!match.status || match.status === "scheduled") && (
+          <button
+            className="mt-2 flex min-h-9 w-full cursor-pointer items-center justify-center rounded-[3px] border border-(--line) bg-transparent text-xs font-semibold text-(--text-secondary) hover:border-(--team-a-red) hover:text-(--team-a-red) disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isRegistering}
+            onClick={() => {
+              const attendeeId = match.attendees.find(
+                (id) => id === currentAttendeeId,
+              );
+              if (attendeeId) onRemoveAttendee(attendeeId);
+            }}
+            type="button"
+          >
+            Me désister
+          </button>
+        )}
       <p className="mt-2.5 text-center text-[10px] text-(--text-secondary)">
         {isFull
           ? `Les ${match.maxPlayers} places sont prises.`

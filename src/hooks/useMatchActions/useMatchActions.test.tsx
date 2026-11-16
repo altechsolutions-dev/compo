@@ -92,6 +92,101 @@ describe("useMatchActions", () => {
     expect(getMatches()[0].attendees).toEqual(["player-1", currentPlayerId]);
   });
 
+  it("permet au joueur de se désister et réinitialise la composition du match prêt", async () => {
+    const match: MatchSlot = {
+      id: "match-withdraw",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 2,
+      attendees: [currentPlayerId, "player-2"],
+      teams: [[currentPlayerId], ["player-2"]],
+    };
+    const { result, getMatches } = setup([match]);
+
+    let removed = false;
+    await act(async () => {
+      removed = await result.current.removeAttendeeFromMatch(
+        "match-withdraw",
+        currentPlayerId,
+      );
+    });
+
+    expect(removed).toBe(true);
+    expect(getMatches()[0]).toMatchObject({
+      attendees: ["player-2"],
+      teams: undefined,
+    });
+  });
+
+  it("permet au créateur de retirer un autre joueur", async () => {
+    const match: MatchSlot = {
+      id: "match-remove-player",
+      createdBy: currentPlayerId,
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 3,
+      attendees: [currentPlayerId, "player-2", "guest-1"],
+      attendeeNames: { "guest-1": "Alex" },
+      teams: [[currentPlayerId, "player-2"], ["guest-1"]],
+    };
+    const { result, getMatches } = setup([match]);
+
+    let removed = false;
+    await act(async () => {
+      removed = await result.current.removeAttendeeFromMatch(
+        "match-remove-player",
+        "guest-1",
+      );
+    });
+
+    expect(removed).toBe(true);
+    expect(getMatches()[0]).toMatchObject({
+      attendees: [currentPlayerId, "player-2"],
+      attendeeNames: {},
+      teams: undefined,
+    });
+  });
+
+  it("retire un joueur via Supabase et utilise la liste d’inscrits renvoyée", async () => {
+    const match: MatchSlot = {
+      id: "match-remove-rpc",
+      date: "2030-06-15",
+      time: "19:30",
+      venue: "Stade municipal",
+      maxPlayers: 2,
+      attendees: [currentPlayerId, "player-2"],
+      teams: [[currentPlayerId], ["player-2"]],
+    };
+    rpc.mockResolvedValueOnce({
+      data: [{ attendees: ["player-2"], attendee_names: {} }],
+      error: null,
+    });
+    supabaseState.current = { rpc };
+    const { result, getMatches } = setup([match], {
+      session: {} as Session,
+    });
+
+    let removed = false;
+    await act(async () => {
+      removed = await result.current.removeAttendeeFromMatch(
+        "match-remove-rpc",
+        currentPlayerId,
+      );
+    });
+
+    expect(removed).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("remove_match_attendee", {
+      p_match_id: "match-remove-rpc",
+      p_attendee_id: currentPlayerId,
+    });
+    expect(getMatches()[0]).toMatchObject({
+      attendees: ["player-2"],
+      teams: undefined,
+    });
+  });
+
   it("notifie les joueurs quand une inscription rend le match complet", async () => {
     const match: MatchSlot = {
       id: "match-full",

@@ -17,6 +17,8 @@ export type MatchDrawerContainerProps = {
   composeTeams: (attendeeIds: string[]) => [string[], string[]];
   onClose: () => void;
   onRegister: (matchId: string) => void;
+  canManageAttendees?: boolean;
+  onRemoveAttendee?: (matchId: string, attendeeId: string) => void;
   onCancelMatch?: (matchId: string) => void;
   onStartMatch: (matchId: string, teams: [string[], string[]]) => void;
   onSaveScheduledMatchTeams?: (
@@ -45,6 +47,8 @@ export function MatchDrawerContainer({
   composeTeams,
   onClose,
   onRegister,
+  canManageAttendees = false,
+  onRemoveAttendee,
   onCancelMatch,
   onStartMatch,
   onSaveScheduledMatchTeams,
@@ -79,10 +83,15 @@ export function MatchDrawerContainer({
           isFull,
           isRegistered: match.attendees.includes(currentAttendeeId),
           isRegistering,
+          currentAttendeeId,
           teams,
           playerNames,
           onClose,
           onRegister: () => onRegister(match.id),
+          canManageAttendees,
+          onRemoveAttendee: onRemoveAttendee
+            ? (attendeeId) => onRemoveAttendee(match.id, attendeeId)
+            : undefined,
           canCancel: match.createdBy === currentAttendeeId,
           onCancelMatch: onCancelMatch
             ? () => onCancelMatch(match.id)
