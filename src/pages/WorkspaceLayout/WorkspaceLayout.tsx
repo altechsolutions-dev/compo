@@ -438,6 +438,7 @@ export function WorkspaceLayout() {
   const {
     registerForMatch,
     removeAttendeeFromMatch,
+    addPlayerToMatch,
     addGuestToMatch,
     createMatch,
     updateMatch,
@@ -454,6 +455,7 @@ export function WorkspaceLayout() {
     setMatches,
     session,
     organizationId,
+    organizationMembers,
     currentAttendeeId,
     matchRegistering,
     setMatchRegistering,
@@ -629,6 +631,7 @@ export function WorkspaceLayout() {
     onDiscussionRead,
     onRegisterForMatch: (matchId: string) => void registerForMatch(matchId),
     onRemoveAttendeeFromMatch: removeAttendeeFromMatch,
+    onAddPlayerToMatch: addPlayerToMatch,
     onAddGuestToMatch: (matchId: string, guestName: string) =>
       void addGuestToMatch(matchId, guestName),
     onEditMatch: (match: MatchSlot) => {

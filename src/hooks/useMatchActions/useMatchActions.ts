@@ -1,7 +1,12 @@
 import type { FormEvent } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { Session } from "@supabase/supabase-js";
-import type { MatchGoal, MatchSlot, MatchStateAction } from "../../types";
+import type {
+  MatchGoal,
+  MatchSlot,
+  MatchStateAction,
+  OrganizationMember,
+} from "../../types";
 import { supabase } from "../../lib/supabase/supabase";
 import { notifyMatchEvent } from "../../lib/pushNotifications/notifyMatchEvent";
 
@@ -76,6 +81,7 @@ type UseMatchActionsOptions = {
   setMatches: Dispatch<SetStateAction<MatchSlot[]>>;
   session: Session | null;
   organizationId: string | null;
+  organizationMembers: OrganizationMember[];
   currentAttendeeId: string;
   matchRegistering: boolean;
   setMatchRegistering: Dispatch<SetStateAction<boolean>>;
@@ -98,6 +104,7 @@ export function useMatchActions({
   setMatches,
   session,
   organizationId,
+  organizationMembers,
   currentAttendeeId,
   matchRegistering,
   setMatchRegistering,
@@ -237,6 +244,101 @@ export function useMatchActions({
       return false;
     } finally {
       if (supabase) setMatchRegistering(false);
+    }
+  }
+
+  async function addPlayerToMatch(
+    matchId: string,
+    playerId: string,
+  ): Promise<boolean> {
+    const match = matches.find((item) => item.id === matchId);
+    if (matchRegistering) return false;
+    if (!match) {
+      setMatchNotice("Impossible d’inscrire ce joueur : match introuvable.");
+      return false;
+    }
+    if (match.status && match.status !== "scheduled") {
+      setMatchNotice("Les inscriptions sont fermées pour ce match.");
+      return false;
+    }
+    if (!organizationMembers.some((member) => member.user_id === playerId)) {
+      setMatchNotice("Ce joueur ne fait pas partie de l’effectif du club.");
+      return false;
+    }
+    if (match.attendees.includes(playerId)) {
+      setMatchNotice("Ce joueur est déjà inscrit à ce match.");
+      return false;
+    }
+    if (match.attendees.length >= match.maxPlayers) {
+      setMatchNotice("Ce match est complet.");
+      return false;
+    }
+
+    setMatchRegistering(true);
+    setMatchNotice("");
+    try {
+      let attendees: string[];
+      let attendeeNames: Record<string, string>;
+      if (supabase) {
+        if (!session) throw new Error("Votre session a expiré.");
+        const { data, error } = await supabase.rpc("add_player_to_match", {
+          p_match_id: matchId,
+          p_player_id: playerId,
+        });
+        if (error) {
+          const message = error.message.toLowerCase();
+          throw new Error(
+            message.includes("match is full")
+              ? "Ce match est complet."
+              : message.includes("player is already registered")
+                ? "Ce joueur est déjà inscrit à ce match."
+                : message.includes("player must belong to the club roster")
+                  ? "Ce joueur ne fait plus partie de l’effectif du club."
+                  : message.includes("match is not open")
+                    ? "Les inscriptions sont fermées pour ce match."
+                    : error.message,
+          );
+        }
+        const row = ((data ?? []) as MatchAttendeesRow[])[0];
+        if (
+          !row ||
+          !Array.isArray(row.attendees) ||
+          !row.attendees.includes(playerId) ||
+          !row.attendee_names ||
+          typeof row.attendee_names !== "object" ||
+          Array.isArray(row.attendee_names)
+        ) {
+          throw new Error("Supabase n’a pas confirmé l’inscription du joueur.");
+        }
+        attendees = row.attendees;
+        attendeeNames = row.attendee_names;
+      } else {
+        attendees = [...match.attendees, playerId];
+        attendeeNames = { ...(match.attendeeNames ?? {}) };
+      }
+
+      setMatches((current) =>
+        current.map((item) =>
+          item.id === matchId
+            ? { ...item, attendees, attendeeNames, teams: undefined }
+            : item,
+        ),
+      );
+      if (
+        supabase &&
+        match.attendees.length < match.maxPlayers &&
+        attendees.length >= match.maxPlayers
+      ) {
+        void notifyMatchEvent("match_confirmed", matchId);
+      }
+      return true;
+    } catch (error) {
+      setMatchNotice(
+        `Impossible d’inscrire ce joueur : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
+      return false;
+    } finally {
+      setMatchRegistering(false);
     }
   }
 
@@ -874,6 +976,7 @@ export function useMatchActions({
 
   return {
     registerForMatch,
+    addPlayerToMatch,
     addGuestToMatch,
     createMatch,
     updateMatch,

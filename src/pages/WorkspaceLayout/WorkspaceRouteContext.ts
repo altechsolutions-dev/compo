@@ -31,6 +31,7 @@ export type WorkspaceRouteContext = {
     matchId: string,
     attendeeId: string,
   ) => Promise<boolean>;
+  onAddPlayerToMatch: (matchId: string, playerId: string) => Promise<boolean>;
   onAddGuestToMatch: (matchId: string, guestName: string) => void;
   onEditMatch: (match: MatchSlot) => void;
   onCancelMatch: (matchId: string) => void;
