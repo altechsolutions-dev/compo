@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { FormEvent, MouseEvent } from "react";
-import type { MatchSlot } from "../../types";
+import type { MatchSlot, OrganizationMember } from "../../types";
 import "./MatchCard.css";
 
 export type MatchCardProps = {
@@ -21,9 +21,11 @@ export type MatchCardProps = {
   canManageAttendees?: boolean;
   matchRegistering: boolean;
   playerNames?: Record<string, string>;
+  members?: OrganizationMember[];
   onOpen: () => void;
   onOpenDiscussion?: () => void;
   onRegister: () => void;
+  onAddPlayer?: (playerId: string) => Promise<boolean>;
   onAddGuest?: (guestName: string) => void;
   onEdit?: () => void;
 };
@@ -35,15 +37,20 @@ export function MatchCard({
   canManageAttendees = false,
   matchRegistering,
   playerNames = {},
+  members = [],
   onOpen,
   onOpenDiscussion,
   onRegister,
+  onAddPlayer,
   onAddGuest,
   onEdit,
 }: MatchCardProps) {
-  const [isGuestFormOpen, setIsGuestFormOpen] = useState(false);
+  const [isAttendeeFormOpen, setIsAttendeeFormOpen] = useState(false);
   const isSignedUp = match.attendees.includes(currentAttendeeId);
   const isFull = match.attendees.length >= match.maxPlayers;
+  const availableMembers = members.filter(
+    (member) => !match.attendees.includes(member.user_id),
+  );
   const isLive = match.status === "in_progress";
   const isRegistrationOpen =
     !isFull && (!match.status || match.status === "scheduled");
@@ -88,7 +95,21 @@ export function MatchCard({
     if (typeof name !== "string" || !name.trim()) return;
     onAddGuest?.(name.trim());
     event.currentTarget.reset();
-    setIsGuestFormOpen(false);
+    setIsAttendeeFormOpen(false);
+  }
+
+  async function handleAddPlayer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    const form = event.currentTarget;
+    const playerId = new FormData(form).get("playerId");
+    const added = await onAddPlayer?.(
+      typeof playerId === "string" ? playerId : "",
+    );
+    if (added) {
+      form.reset();
+      setIsAttendeeFormOpen(false);
+    }
   }
 
   return (
@@ -189,16 +210,16 @@ export function MatchCard({
                 </span>
               </div>
             )}
-          {isRegistrationOpen && onAddGuest && (
+          {isRegistrationOpen && (onAddGuest || onAddPlayer) && (
             <div className="group relative shrink-0">
               <button
-                aria-controls={`guest-form-${match.id}`}
-                aria-expanded={isGuestFormOpen}
+                aria-controls={`attendee-form-${match.id}`}
+                aria-expanded={isAttendeeFormOpen}
                 aria-label="Inscrire un ami"
                 className="grid size-8 cursor-pointer place-items-center rounded-md border border-(--line) bg-(--bg-elevated) text-(--text-secondary) transition-colors hover:border-(--team-b-blue) hover:text-(--team-b-blue) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--team-b-blue)"
                 onClick={(event) => {
                   event.stopPropagation();
-                  setIsGuestFormOpen((open) => !open);
+                  setIsAttendeeFormOpen((open) => !open);
                 }}
                 title="Inscrire un ami"
                 type="button"
@@ -338,37 +359,85 @@ export function MatchCard({
             <ArrowRight size={14} />
           )}
         </button>
-        {isRegistrationOpen && onAddGuest && isGuestFormOpen && (
-          <form
-            className="mt-3 grid gap-1.5 border-t border-(--line) pt-3"
-            id={`guest-form-${match.id}`}
-            onSubmit={handleAddGuest}
+        {isRegistrationOpen &&
+          (onAddGuest || onAddPlayer) &&
+          isAttendeeFormOpen && (
+          <div
+            className="mt-3 grid gap-3 border-t border-(--line) pt-3"
+            id={`attendee-form-${match.id}`}
+            onClick={(event) => event.stopPropagation()}
           >
-            <label
-              className="text-[10px] font-semibold text-(--text-secondary)"
-              htmlFor={`guest-name-${match.id}`}
-            >
-              Inscrire un ami
-            </label>
-            <div className="flex min-w-0 gap-2">
-              <input
-                autoComplete="off"
-                className="min-h-9 min-w-0 flex-1 rounded-md border border-(--line) bg-(--bg-surface) px-2.5 text-xs text-(--ink)"
-                id={`guest-name-${match.id}`}
-                maxLength={40}
-                name="guestName"
-                placeholder="Pseudo du joueur"
-                required
-              />
-              <button
-                className="min-h-9 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-2.5 text-[10px] font-bold text-(--ink) disabled:cursor-default disabled:opacity-55"
-                disabled={matchRegistering}
-                type="submit"
-              >
-                Ajouter
-              </button>
-            </div>
-          </form>
+            {onAddPlayer &&
+              (availableMembers.length > 0 ? (
+                <form className="grid gap-1.5" onSubmit={handleAddPlayer}>
+                  <label
+                    className="text-[10px] font-semibold text-(--text-secondary)"
+                    htmlFor={`club-player-${match.id}`}
+                  >
+                    Joueur du club
+                  </label>
+                  <div className="flex min-w-0 gap-2">
+                    <select
+                      className="min-h-9 min-w-0 flex-1 rounded-md border border-(--line) bg-(--bg-surface) px-2.5 text-xs text-(--ink)"
+                      defaultValue=""
+                      disabled={matchRegistering}
+                      id={`club-player-${match.id}`}
+                      name="playerId"
+                      required
+                    >
+                      <option disabled value="">
+                        Choisir un joueur
+                      </option>
+                      {availableMembers.map((member) => (
+                        <option key={member.user_id} value={member.user_id}>
+                          {member.display_name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      aria-label="Ajouter le joueur du club"
+                      className="min-h-9 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-2.5 text-[10px] font-bold text-(--ink) disabled:cursor-default disabled:opacity-55"
+                      disabled={matchRegistering}
+                      type="submit"
+                    >
+                      Ajouter
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <p className="m-0 text-[10px] text-(--text-secondary)">
+                  Aucun joueur du club disponible.
+                </p>
+              ))}
+            {onAddGuest && (
+              <form className="grid gap-1.5" onSubmit={handleAddGuest}>
+                <label
+                  className="text-[10px] font-semibold text-(--text-secondary)"
+                  htmlFor={`guest-name-${match.id}`}
+                >
+                  Inscrire un ami
+                </label>
+                <div className="flex min-w-0 gap-2">
+                  <input
+                    autoComplete="off"
+                    className="min-h-9 min-w-0 flex-1 rounded-md border border-(--line) bg-(--bg-surface) px-2.5 text-xs text-(--ink)"
+                    id={`guest-name-${match.id}`}
+                    maxLength={40}
+                    name="guestName"
+                    placeholder="Pseudo du joueur"
+                    required
+                  />
+                  <button
+                    className="min-h-9 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-2.5 text-[10px] font-bold text-(--ink) disabled:cursor-default disabled:opacity-55"
+                    disabled={matchRegistering}
+                    type="submit"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         )}
       </div>
     </article>

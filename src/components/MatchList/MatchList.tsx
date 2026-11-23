@@ -1,6 +1,6 @@
 import { CalendarDays } from "lucide-react";
 import { MatchCard } from "../MatchCard/MatchCard";
-import type { MatchSlot } from "../../types";
+import type { MatchSlot, OrganizationMember } from "../../types";
 import "./MatchList.css";
 
 export type MatchFilter = "all" | "available" | "finished";
@@ -13,6 +13,7 @@ export type MatchListProps = {
   canManageAttendees?: boolean;
   matchRegistering: boolean;
   playerNames?: Record<string, string>;
+  members?: OrganizationMember[];
   filter: MatchFilter;
   notice: string;
   latestFinishedMatch?: MatchSlot;
@@ -20,6 +21,7 @@ export type MatchListProps = {
   onOpenMatch: (matchId: string) => void;
   onOpenDiscussion?: (matchId: string) => void;
   onRegister: (matchId: string) => void;
+  onAddPlayer?: (matchId: string, playerId: string) => Promise<boolean>;
   onAddGuest?: (matchId: string, guestName: string) => void;
   onEditMatch?: (match: MatchSlot) => void;
 };
@@ -32,6 +34,7 @@ export function MatchList({
   canManageAttendees = false,
   matchRegistering,
   playerNames = {},
+  members = [],
   filter,
   notice,
   latestFinishedMatch,
@@ -39,6 +42,7 @@ export function MatchList({
   onOpenMatch,
   onOpenDiscussion,
   onRegister,
+  onAddPlayer,
   onAddGuest,
   onEditMatch,
 }: MatchListProps) {
@@ -139,6 +143,7 @@ export function MatchList({
                 }
                 matchRegistering={matchRegistering}
                 playerNames={playerNames}
+                members={members}
                 onOpen={() => onOpenMatch(match.id)}
                 onOpenDiscussion={
                   onOpenDiscussion
@@ -146,6 +151,11 @@ export function MatchList({
                     : undefined
                 }
                 onRegister={() => onRegister(match.id)}
+                onAddPlayer={
+                  onAddPlayer
+                    ? (playerId) => onAddPlayer(match.id, playerId)
+                    : undefined
+                }
                 onAddGuest={
                   onAddGuest
                     ? (guestName) => onAddGuest(match.id, guestName)

@@ -41,6 +41,11 @@ function setup(
     setMatches,
     session: null,
     organizationId: null,
+    organizationMembers: [
+      { user_id: currentPlayerId, display_name: "Alex", role: "owner" as const },
+      { user_id: "player-2", display_name: "Sam", role: "member" as const },
+      { user_id: "player-3", display_name: "Lou", role: "member" as const },
+    ],
     currentAttendeeId: currentPlayerId,
     matchRegistering: false,
     setMatchRegistering: vi.fn(),

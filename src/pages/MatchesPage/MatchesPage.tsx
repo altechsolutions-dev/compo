@@ -28,6 +28,7 @@ export function MatchesPage() {
     onOpenDiscussion,
     onRegisterForMatch,
     onRemoveAttendeeFromMatch,
+    onAddPlayerToMatch,
     onAddGuestToMatch,
     onEditMatch,
     onCancelMatch,
@@ -48,6 +49,7 @@ export function MatchesPage() {
     drawerMounted,
     drawerOpen,
     playerNames,
+    members,
     composeTeams,
     onCloseDrawer,
     onJoinWithCode,
@@ -110,6 +112,7 @@ export function MatchesPage() {
           canManageAttendees={isOrganizationOwner}
           matchRegistering={matchRegistering}
           playerNames={playerNames}
+          members={members}
           filter={matchFilter}
           notice={matchNotice}
           latestFinishedMatch={latestFinishedMatch}
@@ -117,6 +120,7 @@ export function MatchesPage() {
           onOpenMatch={onOpenMatch}
           onOpenDiscussion={onOpenDiscussion}
           onRegister={onRegisterForMatch}
+          onAddPlayer={onAddPlayerToMatch}
           onAddGuest={onAddGuestToMatch}
           onEditMatch={onEditMatch}
         />

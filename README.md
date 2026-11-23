@@ -54,6 +54,8 @@ Un organisateur connecté peut créer une organisation et partager son lien ou s
 
 Les créneaux créés par un utilisateur connecté sont enregistrés dans Supabase et partagés avec les membres de son organisation. Leur capacité est configurable de 2 à 30 joueurs (10 par défaut). Les inscriptions des membres connectés sont également stockées dans Supabase et limitées à la capacité choisie. En mode démo, les matchs et inscriptions restent stockés localement. La PWA conserve son shell hors ligne, mais les opérations Supabase nécessitent une connexion.
 
+Depuis la carte d’un match planifié disposant de places, un membre peut inscrire un joueur de l’effectif du club ou ajouter un invité. Le joueur du club reste lié à son compte et à ses statistiques. Pour cette inscription, appliquez la migration [`20261123000100_add_existing_player_to_match.sql`](supabase/migrations/20261123000100_add_existing_player_to_match.sql) avant de déployer le client.
+
 ## Stats des joueurs
 
 Chaque joueur possède une fiche distincte par organisation. Elle est créée automatiquement lorsque l’adhésion est marquée comme joueur. Les fiches existantes sont créées lors de l’application de la migration `20261023000700_create_players.sql`.
