@@ -69,6 +69,78 @@ function renderLivePage(
 }
 
 describe("LiveMatchPage", () => {
+  it("joue un seul coup de corne au test et libère les nœuds sonores après sa fin", async () => {
+    const oscillators: {
+      frequency: { value: number };
+      type: string;
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      start: ReturnType<typeof vi.fn>;
+      stop: ReturnType<typeof vi.fn>;
+      onended: (() => void) | null;
+    }[] = [];
+    const gains: { disconnect: ReturnType<typeof vi.fn> }[] = [];
+    const filters: { disconnect: ReturnType<typeof vi.fn> }[] = [];
+    const audio = {
+      currentTime: 10,
+      state: "running",
+      destination: {},
+      resume: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+      createOscillator: () => {
+        const oscillator = {
+          frequency: { value: 0 }, type: "sine", connect: vi.fn(),
+          disconnect: vi.fn(), start: vi.fn(), stop: vi.fn(),
+          onended: null as (() => void) | null,
+        };
+        oscillators.push(oscillator);
+        return oscillator;
+      },
+      createGain: () => {
+        const gain = {
+          gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
+          connect: vi.fn(), disconnect: vi.fn(),
+        };
+        gains.push(gain);
+        return gain;
+      },
+      createBiquadFilter: () => {
+        const filter = {
+          type: "", frequency: { value: 0 }, Q: { value: 0 },
+          connect: vi.fn(), disconnect: vi.fn(),
+        };
+        filters.push(filter);
+        return filter;
+      },
+    };
+    vi.stubGlobal("AudioContext", vi.fn(function () { return audio; }));
+    const { unmount } = renderLivePage();
+    try {
+      fireEvent.click(screen.getByText("Réglages des gardiens"));
+      fireEvent.click(screen.getByRole("button", { name: "Activer et tester l’alarme" }));
+      await waitFor(() => expect(oscillators).toHaveLength(3));
+      expect(screen.getByRole("button", { name: "Tester l’alarme" })).toBeInTheDocument();
+      expect(gains).toHaveLength(1);
+      for (const oscillator of oscillators) {
+        expect(oscillator.start).toHaveBeenCalledExactlyOnceWith(10);
+        expect(oscillator.stop).toHaveBeenCalledExactlyOnceWith(11.2);
+      }
+      expect(gains[0].disconnect).not.toHaveBeenCalled();
+      oscillators[0].onended?.();
+      expect(oscillators[0].disconnect).toHaveBeenCalledOnce();
+      expect(gains[0].disconnect).not.toHaveBeenCalled();
+      expect(filters[0].disconnect).not.toHaveBeenCalled();
+      oscillators[1].onended?.();
+      oscillators[2].onended?.();
+      expect(filters[0].disconnect).toHaveBeenCalledOnce();
+      expect(gains[0].disconnect).toHaveBeenCalledOnce();
+    } finally {
+      unmount();
+      vi.unstubAllGlobals();
+    }
+    expect(audio.close).toHaveBeenCalledOnce();
+  });
+
   it("garde les réglages repliés et permet de modifier le délai en les ouvrant", async () => {
     const { context } = renderLivePage();
     const settings = screen.getByRole("region", { name: "Rotation des gardiens" });

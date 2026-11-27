@@ -6,22 +6,37 @@ import {
 } from "../../lib/goalkeeperRotation/goalkeeperRotation";
 
 function soundAlarm(context: AudioContext) {
-  for (const offset of [0, 0.3, 0.6]) {
+  const gain = context.createGain();
+  const filter = context.createBiquadFilter();
+  const start = context.currentTime;
+  const end = start + 1.2;
+  filter.type = "lowpass";
+  filter.frequency.value = 1800;
+  filter.Q.value = 0.7;
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(0.08, start + 0.06);
+  gain.gain.setValueAtTime(0.08, end - 0.18);
+  gain.gain.linearRampToValueAtTime(0, end);
+  filter.connect(gain);
+  gain.connect(context.destination);
+  // Slightly detuned reeds give the horn its rough stadium timbre.
+  const frequencies = [220, 223, 440];
+  let activeOscillators = frequencies.length;
+  for (const frequency of frequencies) {
     const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    const start = context.currentTime + offset;
-    oscillator.frequency.value = 880;
-    gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.25, start + 0.02);
-    gain.gain.linearRampToValueAtTime(0, start + 0.22);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
+    oscillator.type = frequency === 440 ? "triangle" : "sawtooth";
+    oscillator.frequency.value = frequency;
+    oscillator.connect(filter);
     oscillator.onended = () => {
       oscillator.disconnect();
-      gain.disconnect();
+      activeOscillators -= 1;
+      if (activeOscillators === 0) {
+        filter.disconnect();
+        gain.disconnect();
+      }
     };
     oscillator.start(start);
-    oscillator.stop(start + 0.25);
+    oscillator.stop(end);
   }
 }
 
