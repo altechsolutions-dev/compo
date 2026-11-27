@@ -9,13 +9,13 @@ function soundAlarm(context: AudioContext) {
   const gain = context.createGain();
   const filter = context.createBiquadFilter();
   const start = context.currentTime;
-  const end = start + 1.2;
+  const end = start + 1.5;
   filter.type = "lowpass";
   filter.frequency.value = 1800;
   filter.Q.value = 0.7;
   gain.gain.setValueAtTime(0, start);
-  gain.gain.linearRampToValueAtTime(0.08, start + 0.06);
-  gain.gain.setValueAtTime(0.08, end - 0.18);
+  gain.gain.linearRampToValueAtTime(0.25, start + 0.06);
+  gain.gain.setValueAtTime(0.25, end - 0.18);
   gain.gain.linearRampToValueAtTime(0, end);
   filter.connect(gain);
   gain.connect(context.destination);

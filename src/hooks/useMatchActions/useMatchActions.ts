@@ -671,7 +671,7 @@ export function useMatchActions({
           p_match_id: matchId,
           p_interval_seconds: minutes * 60,
         });
-        if (error) throw error;
+        if (error) throw new Error(error.message);
         const row = (data as {
           goalkeeper_interval_seconds: number;
           goalkeeper_anchor_elapsed_seconds: number;

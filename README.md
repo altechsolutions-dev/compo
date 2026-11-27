@@ -63,9 +63,9 @@ Les gardiens actuels apparaissent avec leur gant dans chaque côté de l’encar
 
 Le délai est modifiable pendant le match, y compris en pause, en minutes entières positives. Le nouveau délai s’applique depuis le dernier changement : s’il est déjà écoulé, la rotation est immédiatement rattrapée. Seul le temps de jeu compte ; les pauses arrêtent le compte à rebours. Le réglage est conservé après rechargement et partagé via Supabase. La réinitialisation du match remet les gardiens au premier joueur en conservant le délai.
 
-L’alarme joue un seul coup de corne de stade synthétisé de 1,2 seconde, sans fichier audio externe. Activez et testez l’alarme avec le bouton dans le direct (une interaction sur cette page permet aussi d’activer le son). Le direct doit rester ouvert ; les navigateurs peuvent suspendre le son et les minuteries en arrière-plan ou écran verrouillé. Au retour, les gardiens sont recalculés selon le chronomètre, sans rejouer toutes les alarmes manquées. Un avertissement visible signale un son bloqué.
+L’alarme joue un seul coup de corne de stade synthétisé de 1,5 seconde, sans fichier audio externe. Le volume dépend aussi du volume multimédia de l’appareil. Activez et testez l’alarme avec le bouton dans le direct (une interaction sur cette page permet aussi d’activer le son). Le direct doit rester ouvert ; les navigateurs peuvent suspendre le son et les minuteries en arrière-plan ou écran verrouillé. Au retour, les gardiens sont recalculés selon le chronomètre, sans rejouer toutes les alarmes manquées. Un avertissement visible signale un son bloqué.
 
-Pour Supabase, appliquez [`20261109000100_goalkeeper_rotation.sql`](supabase/migrations/20261109000100_goalkeeper_rotation.sql) avant d’utiliser ce réglage sur un projet existant. Le schéma initial inclut cette évolution.
+Pour Supabase, appliquez [`20261109000100_goalkeeper_rotation.sql`](supabase/migrations/20261109000100_goalkeeper_rotation.sql), puis [`20261127000100_repair_goalkeeper_rotation.sql`](supabase/migrations/20261127000100_repair_goalkeeper_rotation.sql) avant d’utiliser ce réglage. La seconde migration restaure les fonctions et recharge le cache API, même si l’historique indique déjà la première comme appliquée ; elle conserve les données existantes. Ces migrations sont également nécessaires après le schéma initial.
 
 ## Stats des joueurs
 

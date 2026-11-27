@@ -79,7 +79,13 @@ describe("LiveMatchPage", () => {
       stop: ReturnType<typeof vi.fn>;
       onended: (() => void) | null;
     }[] = [];
-    const gains: { disconnect: ReturnType<typeof vi.fn> }[] = [];
+    const gains: {
+      gain: {
+        setValueAtTime: ReturnType<typeof vi.fn>;
+        linearRampToValueAtTime: ReturnType<typeof vi.fn>;
+      };
+      disconnect: ReturnType<typeof vi.fn>;
+    }[] = [];
     const filters: { disconnect: ReturnType<typeof vi.fn> }[] = [];
     const audio = {
       currentTime: 10,
@@ -121,9 +127,12 @@ describe("LiveMatchPage", () => {
       await waitFor(() => expect(oscillators).toHaveLength(3));
       expect(screen.getByRole("button", { name: "Tester l’alarme" })).toBeInTheDocument();
       expect(gains).toHaveLength(1);
+      expect(gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.25, 10.06);
+      expect(gains[0].gain.setValueAtTime).toHaveBeenCalledWith(0.25, 11.32);
+      expect(gains[0].gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(0, 11.5);
       for (const oscillator of oscillators) {
         expect(oscillator.start).toHaveBeenCalledExactlyOnceWith(10);
-        expect(oscillator.stop).toHaveBeenCalledExactlyOnceWith(11.2);
+        expect(oscillator.stop).toHaveBeenCalledExactlyOnceWith(11.5);
       }
       expect(gains[0].disconnect).not.toHaveBeenCalled();
       oscillators[0].onended?.();

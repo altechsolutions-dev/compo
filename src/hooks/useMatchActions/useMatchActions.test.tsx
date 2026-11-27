@@ -76,6 +76,53 @@ describe("useMatchActions", () => {
     rpc.mockResolvedValue({ data: [], error: null });
   });
 
+  it("enregistre un délai de gardiens d’une minute avec la réponse Supabase", async () => {
+    supabaseState.current = { rpc };
+    const match: MatchSlot = {
+      id: "match-live", date: "2030-06-15", time: "19:30",
+      venue: "Terrain", maxPlayers: 2, attendees: ["alex", "sam"],
+      status: "paused", elapsedSeconds: 180, teams: [["alex"], ["sam"]],
+    };
+    rpc.mockResolvedValue({
+      data: [{
+        goalkeeper_interval_seconds: 60,
+        goalkeeper_anchor_elapsed_seconds: 0,
+        goalkeeper_anchor_turn: 0,
+      }],
+      error: null,
+    });
+    const { result, getMatches } = setup([match], { session: {} as Session });
+    const saved = await act(() => result.current.setGoalkeeperInterval(match.id, 1));
+    expect(saved).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("set_match_goalkeeper_interval", {
+      p_match_id: match.id, p_interval_seconds: 60,
+    });
+    expect(getMatches()[0].goalkeeperRotation).toEqual({
+      intervalSeconds: 60, anchorElapsedSeconds: 0, anchorTurn: 0,
+    });
+  });
+
+  it("affiche le message d’erreur Supabase du délai sans modifier le match", async () => {
+    supabaseState.current = { rpc };
+    const match: MatchSlot = {
+      id: "match-live", date: "2030-06-15", time: "19:30",
+      venue: "Terrain", maxPlayers: 2, attendees: ["alex", "sam"],
+      status: "paused", elapsedSeconds: 180,
+    };
+    rpc.mockResolvedValue({
+      data: null,
+      error: { message: "Active match attendee required", code: "P0001", details: "", hint: "" },
+    });
+    const { result, props, getMatches } = setup([match], { session: {} as Session });
+    const saved = await act(() => result.current.setGoalkeeperInterval(match.id, 1));
+    expect(saved).toBe(false);
+    expect(props.setMatchNotice).toHaveBeenCalledWith(
+      "Impossible de modifier le délai des gardiens : Active match attendee required",
+    );
+    expect(getMatches()[0]).toEqual(match);
+    expect(props.setMatches).not.toHaveBeenCalled();
+  });
+
   it("inscrit le joueur courant dans un match de démonstration", async () => {
     const match: MatchSlot = {
       id: "match-1",
