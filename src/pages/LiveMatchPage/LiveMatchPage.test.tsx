@@ -127,8 +127,8 @@ describe("LiveMatchPage", () => {
       await waitFor(() => expect(oscillators).toHaveLength(3));
       expect(screen.getByRole("button", { name: "Tester l’alarme" })).toBeInTheDocument();
       expect(gains).toHaveLength(1);
-      expect(gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.25, 10.06);
-      expect(gains[0].gain.setValueAtTime).toHaveBeenCalledWith(0.25, 11.32);
+      expect(gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.32, 10.06);
+      expect(gains[0].gain.setValueAtTime).toHaveBeenCalledWith(0.32, 11.32);
       expect(gains[0].gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(0, 11.5);
       for (const oscillator of oscillators) {
         expect(oscillator.start).toHaveBeenCalledExactlyOnceWith(10);

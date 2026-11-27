@@ -14,8 +14,8 @@ function soundAlarm(context: AudioContext) {
   filter.frequency.value = 1800;
   filter.Q.value = 0.7;
   gain.gain.setValueAtTime(0, start);
-  gain.gain.linearRampToValueAtTime(0.25, start + 0.06);
-  gain.gain.setValueAtTime(0.25, end - 0.18);
+  gain.gain.linearRampToValueAtTime(0.5, start + 0.06);
+  gain.gain.setValueAtTime(0.5, end - 0.18);
   gain.gain.linearRampToValueAtTime(0, end);
   filter.connect(gain);
   gain.connect(context.destination);
@@ -57,17 +57,26 @@ export function GoalkeeperRotationPanel({
   const [changed, setChanged] = useState(false);
   const audioRef = useRef<AudioContext | null>(null);
   const mountedRef = useRef(false);
-  const rotation = getGoalkeeperRotation(match.goalkeeperRotation, elapsedSeconds);
+  const rotation = getGoalkeeperRotation(
+    match.goalkeeperRotation,
+    elapsedSeconds,
+  );
   const previousTurn = useRef({
     matchId: match.id,
-    turn: getGoalkeeperRotation(match.goalkeeperRotation, getCurrentMatchSeconds(match)).turn,
+    turn: getGoalkeeperRotation(
+      match.goalkeeperRotation,
+      getCurrentMatchSeconds(match),
+    ).turn,
   });
 
   useEffect(() => setMinutes(String(intervalSeconds / 60)), [intervalSeconds]);
 
   const activateSound = useCallback(async (test = false) => {
     try {
-      if (!window.AudioContext) throw new Error("Ce navigateur ne prend pas en charge l’alarme sonore.");
+      if (!window.AudioContext)
+        throw new Error(
+          "Ce navigateur ne prend pas en charge l’alarme sonore.",
+        );
       const context = audioRef.current ?? new AudioContext();
       audioRef.current = context;
       context.onstatechange = () => {
@@ -75,13 +84,20 @@ export function GoalkeeperRotationPanel({
       };
       await context.resume();
       if (!mountedRef.current) return;
-      if (context.state !== "running") throw new Error("Le navigateur a bloqué le son. Réessayez avec le bouton.");
+      if (context.state !== "running")
+        throw new Error(
+          "Le navigateur a bloqué le son. Réessayez avec le bouton.",
+        );
       setSoundReady(true);
       setAudioNotice("");
       if (test) soundAlarm(context);
     } catch (error) {
       if (mountedRef.current) {
-        setAudioNotice(error instanceof Error ? error.message : "Impossible d’activer l’alarme sonore.");
+        setAudioNotice(
+          error instanceof Error
+            ? error.message
+            : "Impossible d’activer l’alarme sonore.",
+        );
       }
     }
   }, []);
@@ -99,7 +115,11 @@ export function GoalkeeperRotationPanel({
       audioRef.current = null;
       if (context) {
         context.onstatechange = null;
-        void context.close().catch((error: unknown) => console.error("Impossible de fermer l’alarme sonore.", error));
+        void context
+          .close()
+          .catch((error: unknown) =>
+            console.error("Impossible de fermer l’alarme sonore.", error),
+          );
       }
     };
   }, [activateSound]);
@@ -111,59 +131,99 @@ export function GoalkeeperRotationPanel({
       setChanged(false);
       return;
     }
-    if (rotation.turn <= previous.turn || match.status !== "in_progress") return;
+    if (rotation.turn <= previous.turn || match.status !== "in_progress")
+      return;
     setChanged(true);
     const context = audioRef.current;
     if (!context || context.state !== "running") {
-      setAudioNotice("Changement de gardiens : le son n’est pas actif. Activez l’alarme pour les prochains changements.");
+      setAudioNotice(
+        "Changement de gardiens : le son n’est pas actif. Activez l’alarme pour les prochains changements.",
+      );
       return;
     }
     try {
       soundAlarm(context);
     } catch (error) {
-      setAudioNotice(`Impossible de jouer l’alarme : ${error instanceof Error ? error.message : "erreur inconnue"}`);
+      setAudioNotice(
+        `Impossible de jouer l’alarme : ${error instanceof Error ? error.message : "erreur inconnue"}`,
+      );
     }
   }, [match.id, match.status, rotation.turn]);
 
   const remaining = rotation.remainingSeconds;
   return (
-    <section aria-label="Rotation des gardiens" className="live-match-goalkeeper-settings mt-3 rounded-xl border border-(--line) bg-(--bg-surface) p-4 text-xs">
+    <section
+      aria-label="Rotation des gardiens"
+      className="live-match-goalkeeper-settings mt-3 rounded-xl border border-(--line) bg-(--bg-surface) p-4 text-xs"
+    >
       <details>
-      <summary className="cursor-pointer">
-        <span className="font-bold">Réglages des gardiens</span>
-        <span className="ml-2 text-(--text-secondary)">
-          {match.status === "paused" ? "En pause · " : ""}Prochain changement dans{" "}
-          <span className="font-mono tabular-nums">{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</span>
-        </span>
-      </summary>
-      <form className="mt-3 flex flex-wrap items-center gap-2" onSubmit={async (event) => {
-        event.preventDefault();
-        if (isSaving) return;
-        setIsSaving(true);
-        try {
-          await onSetInterval(match.id, Number(minutes));
-        } finally {
-          setIsSaving(false);
-        }
-      }}>
-        <label htmlFor="goalkeeper-interval">Changer toutes les</label>
-        <input id="goalkeeper-interval" type="number" min="1" step="1" required value={minutes}
-          onChange={(event) => setMinutes(event.target.value)}
-          className="min-h-10 w-18 rounded-md border border-(--line) bg-(--bg-elevated) px-2 text-(--text-primary)" />
-        <span>minutes</span>
-        <button type="submit" disabled={isSaving} className="min-h-10 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-3 disabled:opacity-45">
-          {isSaving ? "Enregistrement…" : "Appliquer"}
-        </button>
-        <button type="button" onClick={() => void activateSound(true)} className="min-h-10 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-3">
-          {soundReady ? "Tester l’alarme" : "Activer et tester l’alarme"}
-        </button>
-      </form>
-      {!soundReady && !audioNotice && <p className="mb-0 text-(--text-secondary)">Activez le son et gardez le direct ouvert pour entendre l’alarme.</p>}
+        <summary className="cursor-pointer">
+          <span className="font-bold">Réglages des gardiens</span>
+          <span className="ml-2 text-(--text-secondary)">
+            {match.status === "paused" ? "En pause · " : ""}Prochain changement
+            dans{" "}
+            <span className="font-mono tabular-nums">
+              {Math.floor(remaining / 60)}:
+              {String(remaining % 60).padStart(2, "0")}
+            </span>
+          </span>
+        </summary>
+        <form
+          className="mt-3 flex flex-wrap items-center gap-2"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (isSaving) return;
+            setIsSaving(true);
+            try {
+              await onSetInterval(match.id, Number(minutes));
+            } finally {
+              setIsSaving(false);
+            }
+          }}
+        >
+          <label htmlFor="goalkeeper-interval">Changer toutes les</label>
+          <input
+            id="goalkeeper-interval"
+            type="number"
+            min="1"
+            step="1"
+            required
+            value={minutes}
+            onChange={(event) => setMinutes(event.target.value)}
+            className="min-h-10 w-18 rounded-md border border-(--line) bg-(--bg-elevated) px-2 text-(--text-primary)"
+          />
+          <span>minutes</span>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="min-h-10 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-3 disabled:opacity-45"
+          >
+            {isSaving ? "Enregistrement…" : "Appliquer"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void activateSound(true)}
+            className="min-h-10 cursor-pointer rounded-md border border-(--line) bg-(--bg-elevated) px-3"
+          >
+            {soundReady ? "Tester l’alarme" : "Activer et tester l’alarme"}
+          </button>
+        </form>
+        {!soundReady && !audioNotice && (
+          <p className="mb-0 text-(--text-secondary)">
+            Activez le son et gardez le direct ouvert pour entendre l’alarme.
+          </p>
+        )}
       </details>
       <div aria-live="polite" aria-atomic="true" role="status">
-        {changed && <p className="mb-0 font-semibold">Changement de gardiens !</p>}
+        {changed && (
+          <p className="mb-0 font-semibold">Changement de gardiens !</p>
+        )}
       </div>
-      {audioNotice && <p className="mb-0 text-(--team-a-red)" role="alert">{audioNotice}</p>}
+      {audioNotice && (
+        <p className="mb-0 text-(--team-a-red)" role="alert">
+          {audioNotice}
+        </p>
+      )}
     </section>
   );
 }
