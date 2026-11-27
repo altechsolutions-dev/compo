@@ -19,6 +19,9 @@ type MatchSlotRow = {
   status?: MatchSlot["status"];
   started_at?: string | null;
   elapsed_seconds?: number;
+  goalkeeper_interval_seconds?: number;
+  goalkeeper_anchor_elapsed_seconds?: number;
+  goalkeeper_anchor_turn?: number;
   team_a?: string[] | null;
   team_b?: string[] | null;
   goals?: {
@@ -89,6 +92,11 @@ export function useMatches({
               status: row.status ?? "scheduled",
               startedAt: row.started_at ?? undefined,
               elapsedSeconds: row.elapsed_seconds ?? 0,
+              goalkeeperRotation: {
+                intervalSeconds: row.goalkeeper_interval_seconds ?? 300,
+                anchorElapsedSeconds: row.goalkeeper_anchor_elapsed_seconds ?? 0,
+                anchorTurn: row.goalkeeper_anchor_turn ?? 0,
+              },
               teams:
                 row.team_a && row.team_b ? [row.team_a, row.team_b] : undefined,
               goals: (row.goals ?? []).map(
@@ -139,6 +147,11 @@ export function useMatches({
                 status: row.status ?? "scheduled",
                 startedAt: row.started_at ?? undefined,
                 elapsedSeconds: row.elapsed_seconds ?? 0,
+                goalkeeperRotation: {
+                  intervalSeconds: row.goalkeeper_interval_seconds ?? 300,
+                  anchorElapsedSeconds: row.goalkeeper_anchor_elapsed_seconds ?? 0,
+                  anchorTurn: row.goalkeeper_anchor_turn ?? 0,
+                },
                 teams:
                   row.team_a && row.team_b
                     ? [row.team_a, row.team_b]

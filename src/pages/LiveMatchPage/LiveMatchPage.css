@@ -455,6 +455,23 @@
   font-size: clamp(2.5rem, 6vh, 5rem);
 }
 
+.live-match-page--adaptive.live-match-page--landscape .live-match-score-goalkeeper {
+  font-size: clamp(0.875rem, 3vh, 1.5rem);
+}
+
+.live-match-page--adaptive.live-match-page--landscape .live-match-goalkeeper-settings {
+  position: absolute;
+  right: 1rem;
+  bottom: calc(5rem + env(safe-area-inset-bottom));
+  z-index: 1;
+  max-width: calc(100% - 2rem);
+  max-height: calc(100dvh - 7rem);
+  overflow-y: auto;
+  margin-top: 0;
+  padding: 0.75rem;
+  box-shadow: 0 4px 16px #0004;
+}
+
 .live-match-page--adaptive.live-match-page--landscape .live-match-panels {
   display: none;
 }

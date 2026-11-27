@@ -31,6 +31,9 @@ import { useDrawerTransition } from "../../hooks/useDrawerTransition/useDrawerTr
 import type { MatchGoal, MatchSlot } from "../../types";
 import type { WorkspaceRouteContext } from "../WorkspaceLayout/WorkspaceRouteContext";
 import "./LiveMatchPage.css";
+import { GoalkeeperRotationPanel } from "../../components/GoalkeeperRotationPanel/GoalkeeperRotationPanel";
+import { GoalkeeperBadge } from "../../components/GoalkeeperBadge/GoalkeeperBadge";
+import { getGoalkeeperIds, getGoalkeeperRotation } from "../../lib/goalkeeperRotation/goalkeeperRotation";
 
 function getElapsedSeconds(startedAt?: string) {
   return startedAt
@@ -362,6 +365,9 @@ export function LiveMatchPage({
   );
   const [isLandscape, setIsLandscape] = useState(
     () => window.matchMedia?.("(orientation: landscape)").matches ?? false,
+  );
+  const goalkeeperIds = getGoalkeeperIds(
+    teams, getGoalkeeperRotation(match?.goalkeeperRotation, elapsedSeconds).turn,
   );
   const [undoClock, setUndoClock] = useState(() => Date.now());
   const [goalPickerOpen, setGoalPickerOpen] = useState(false);
@@ -758,6 +764,7 @@ export function LiveMatchPage({
                             <span className="min-w-0 wrap-break-word max-[1023px]:whitespace-normal">
                               {playerName}
                             </span>
+                            {goalkeeperIds[team] === playerId && <GoalkeeperBadge />}
                             <Goal
                               aria-hidden="true"
                               className="shrink-0"
@@ -946,6 +953,7 @@ export function LiveMatchPage({
                           <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                             {playerName}
                           </span>
+                          {goalkeeperIds[team] === id && <GoalkeeperBadge />}
                           <span
                             aria-hidden="true"
                             className={`grid size-4.5 shrink-0 place-items-center rounded-[3px] border ${selected ? "border-current bg-current/15" : "border-current/60"}`}
@@ -975,6 +983,10 @@ export function LiveMatchPage({
           goals={goals}
           elapsedSeconds={elapsedSeconds}
           status={isLive ? "in_progress" : isPaused ? "paused" : "finished"}
+          goalkeeperNames={canRecordActions ? [
+            context.playerNames[goalkeeperIds[0] ?? ""] ?? "Joueur",
+            context.playerNames[goalkeeperIds[1] ?? ""] ?? "Joueur",
+          ] : undefined}
           onSelectTeam={
             canRecordActions
               ? (team) => {
@@ -983,6 +995,14 @@ export function LiveMatchPage({
                 }
               : undefined
           }
+        />
+      )}
+      {canRecordActions && (
+        <GoalkeeperRotationPanel
+          key={match.id}
+          match={match}
+          elapsedSeconds={elapsedSeconds}
+          onSetInterval={context.onSetGoalkeeperInterval}
         />
       )}
 
@@ -1094,6 +1114,7 @@ export function LiveMatchPage({
                                 <span className="min-w-0 truncate">
                                   {playerName}
                                 </span>
+                                {goalkeeperIds[team] === playerId && <GoalkeeperBadge />}
                                 <Goal aria-hidden="true" size={18} />
                               </button>
                               {latestGoal &&

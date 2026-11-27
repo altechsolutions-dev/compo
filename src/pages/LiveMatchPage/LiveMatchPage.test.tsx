@@ -45,9 +45,10 @@ function renderLivePage(
     organizationId: "org-1",
     onJoinWithCode: vi.fn(),
     composeTeams: vi.fn(() => [["lucas"], ["theo"]]),
-    playerNames: { lucas: "Lucas Martin", theo: "Théo Bernard" },
+    playerNames: { lucas: "Lucas Martin", theo: "Théo Bernard", sam: "Sam", alex: "Alex" },
     matchNotice,
     onResetMatch: vi.fn().mockResolvedValue(true),
+    onSetGoalkeeperInterval: vi.fn().mockResolvedValue(true),
     onRecordGoal: vi.fn(),
     onRemoveGoal: vi.fn(),
     onStartMatch: vi.fn(),
@@ -68,6 +69,130 @@ function renderLivePage(
 }
 
 describe("LiveMatchPage", () => {
+  it("joue un seul coup de corne au test et libère les nœuds sonores après sa fin", async () => {
+    const oscillators: {
+      frequency: { value: number };
+      type: string;
+      connect: ReturnType<typeof vi.fn>;
+      disconnect: ReturnType<typeof vi.fn>;
+      start: ReturnType<typeof vi.fn>;
+      stop: ReturnType<typeof vi.fn>;
+      onended: (() => void) | null;
+    }[] = [];
+    const gains: {
+      gain: {
+        setValueAtTime: ReturnType<typeof vi.fn>;
+        linearRampToValueAtTime: ReturnType<typeof vi.fn>;
+      };
+      disconnect: ReturnType<typeof vi.fn>;
+    }[] = [];
+    const filters: { disconnect: ReturnType<typeof vi.fn> }[] = [];
+    const audio = {
+      currentTime: 10,
+      state: "running",
+      destination: {},
+      resume: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+      createOscillator: () => {
+        const oscillator = {
+          frequency: { value: 0 }, type: "sine", connect: vi.fn(),
+          disconnect: vi.fn(), start: vi.fn(), stop: vi.fn(),
+          onended: null as (() => void) | null,
+        };
+        oscillators.push(oscillator);
+        return oscillator;
+      },
+      createGain: () => {
+        const gain = {
+          gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn() },
+          connect: vi.fn(), disconnect: vi.fn(),
+        };
+        gains.push(gain);
+        return gain;
+      },
+      createBiquadFilter: () => {
+        const filter = {
+          type: "", frequency: { value: 0 }, Q: { value: 0 },
+          connect: vi.fn(), disconnect: vi.fn(),
+        };
+        filters.push(filter);
+        return filter;
+      },
+    };
+    vi.stubGlobal("AudioContext", vi.fn(function () { return audio; }));
+    const { unmount } = renderLivePage();
+    try {
+      fireEvent.click(screen.getByText("Réglages des gardiens"));
+      fireEvent.click(screen.getByRole("button", { name: "Activer et tester l’alarme" }));
+      await waitFor(() => expect(oscillators).toHaveLength(3));
+      expect(screen.getByRole("button", { name: "Tester l’alarme" })).toBeInTheDocument();
+      expect(gains).toHaveLength(1);
+      expect(gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(0.25, 10.06);
+      expect(gains[0].gain.setValueAtTime).toHaveBeenCalledWith(0.25, 11.32);
+      expect(gains[0].gain.linearRampToValueAtTime).toHaveBeenLastCalledWith(0, 11.5);
+      for (const oscillator of oscillators) {
+        expect(oscillator.start).toHaveBeenCalledExactlyOnceWith(10);
+        expect(oscillator.stop).toHaveBeenCalledExactlyOnceWith(11.5);
+      }
+      expect(gains[0].disconnect).not.toHaveBeenCalled();
+      oscillators[0].onended?.();
+      expect(oscillators[0].disconnect).toHaveBeenCalledOnce();
+      expect(gains[0].disconnect).not.toHaveBeenCalled();
+      expect(filters[0].disconnect).not.toHaveBeenCalled();
+      oscillators[1].onended?.();
+      oscillators[2].onended?.();
+      expect(filters[0].disconnect).toHaveBeenCalledOnce();
+      expect(gains[0].disconnect).toHaveBeenCalledOnce();
+    } finally {
+      unmount();
+      vi.unstubAllGlobals();
+    }
+    expect(audio.close).toHaveBeenCalledOnce();
+  });
+
+  it("garde les réglages repliés et permet de modifier le délai en les ouvrant", async () => {
+    const { context } = renderLivePage();
+    const settings = screen.getByRole("region", { name: "Rotation des gardiens" });
+    const details = settings.querySelector("details");
+    expect(details).not.toHaveAttribute("open");
+    fireEvent.click(within(settings).getByText("Réglages des gardiens"));
+    expect(details).toHaveAttribute("open");
+    fireEvent.change(within(settings).getByLabelText("Changer toutes les"), {
+      target: { value: "3" },
+    });
+    fireEvent.click(within(settings).getByRole("button", { name: "Appliquer" }));
+    await waitFor(() =>
+      expect(context.onSetGoalkeeperInterval).toHaveBeenCalledWith("match-live", 3),
+    );
+  });
+
+  it("actualise les deux gardiens dans le score à chaque rotation", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2030-06-15T19:34:59.000Z"));
+    const { unmount } = renderLivePage({
+      ...liveMatch,
+      attendees: ["lucas", "sam", "theo", "alex"],
+      maxPlayers: 4,
+      teams: [["lucas", "sam"], ["theo", "alex"]],
+    });
+    try {
+      const score = within(screen.getByRole("region", { name: "Score du match" }));
+      expect(score.getByText("Lucas Martin")).toBeInTheDocument();
+      expect(score.getByText("Théo Bernard")).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(1000));
+      expect(score.getByText("Sam")).toBeInTheDocument();
+      expect(score.getByText("Alex")).toBeInTheDocument();
+      expect(score.queryByText("Lucas Martin")).not.toBeInTheDocument();
+      expect(score.queryByText("Théo Bernard")).not.toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(300_000));
+      expect(score.getByText("Lucas Martin")).toBeInTheDocument();
+      expect(score.getByText("Théo Bernard")).toBeInTheDocument();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
   it("adapte la disposition lorsque l’orientation change", () => {
     let isLandscape = false;
     const orientationQuery = new EventTarget();
@@ -180,8 +305,11 @@ describe("LiveMatchPage", () => {
     expect(scorePanels[0]).toHaveTextContent("ÉQUIPE BLEUE");
     expect(scorePanels[2]).toHaveTextContent("ÉQUIPE ROUGE");
     expect(
-      within(scoreRegion).queryByText("Lucas Martin"),
-    ).not.toBeInTheDocument();
+      within(scoreRegion).getByText("Lucas Martin"),
+    ).toBeInTheDocument();
+    expect(within(scorePanels[0] as HTMLElement).getByText("Théo Bernard")).toBeInTheDocument();
+    expect(within(scorePanels[2] as HTMLElement).getByText("Lucas Martin")).toBeInTheDocument();
+    expect(within(scoreRegion).getAllByRole("img", { name: "Gardien" })).toHaveLength(2);
     expect(
       within(
         screen.getByRole("list", { name: "Événements du match" }),
