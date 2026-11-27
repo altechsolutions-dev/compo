@@ -983,6 +983,10 @@ export function LiveMatchPage({
           goals={goals}
           elapsedSeconds={elapsedSeconds}
           status={isLive ? "in_progress" : isPaused ? "paused" : "finished"}
+          goalkeeperNames={canRecordActions ? [
+            context.playerNames[goalkeeperIds[0] ?? ""] ?? "Joueur",
+            context.playerNames[goalkeeperIds[1] ?? ""] ?? "Joueur",
+          ] : undefined}
           onSelectTeam={
             canRecordActions
               ? (team) => {
@@ -998,8 +1002,6 @@ export function LiveMatchPage({
           key={match.id}
           match={match}
           elapsedSeconds={elapsedSeconds}
-          teams={teams}
-          playerNames={context.playerNames}
           onSetInterval={context.onSetGoalkeeperInterval}
         />
       )}

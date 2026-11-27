@@ -45,9 +45,10 @@ function renderLivePage(
     organizationId: "org-1",
     onJoinWithCode: vi.fn(),
     composeTeams: vi.fn(() => [["lucas"], ["theo"]]),
-    playerNames: { lucas: "Lucas Martin", theo: "Théo Bernard" },
+    playerNames: { lucas: "Lucas Martin", theo: "Théo Bernard", sam: "Sam", alex: "Alex" },
     matchNotice,
     onResetMatch: vi.fn().mockResolvedValue(true),
+    onSetGoalkeeperInterval: vi.fn().mockResolvedValue(true),
     onRecordGoal: vi.fn(),
     onRemoveGoal: vi.fn(),
     onStartMatch: vi.fn(),
@@ -68,6 +69,49 @@ function renderLivePage(
 }
 
 describe("LiveMatchPage", () => {
+  it("garde les réglages repliés et permet de modifier le délai en les ouvrant", async () => {
+    const { context } = renderLivePage();
+    const settings = screen.getByRole("region", { name: "Rotation des gardiens" });
+    const details = settings.querySelector("details");
+    expect(details).not.toHaveAttribute("open");
+    fireEvent.click(within(settings).getByText("Réglages des gardiens"));
+    expect(details).toHaveAttribute("open");
+    fireEvent.change(within(settings).getByLabelText("Changer toutes les"), {
+      target: { value: "3" },
+    });
+    fireEvent.click(within(settings).getByRole("button", { name: "Appliquer" }));
+    await waitFor(() =>
+      expect(context.onSetGoalkeeperInterval).toHaveBeenCalledWith("match-live", 3),
+    );
+  });
+
+  it("actualise les deux gardiens dans le score à chaque rotation", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2030-06-15T19:34:59.000Z"));
+    const { unmount } = renderLivePage({
+      ...liveMatch,
+      attendees: ["lucas", "sam", "theo", "alex"],
+      maxPlayers: 4,
+      teams: [["lucas", "sam"], ["theo", "alex"]],
+    });
+    try {
+      const score = within(screen.getByRole("region", { name: "Score du match" }));
+      expect(score.getByText("Lucas Martin")).toBeInTheDocument();
+      expect(score.getByText("Théo Bernard")).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(1000));
+      expect(score.getByText("Sam")).toBeInTheDocument();
+      expect(score.getByText("Alex")).toBeInTheDocument();
+      expect(score.queryByText("Lucas Martin")).not.toBeInTheDocument();
+      expect(score.queryByText("Théo Bernard")).not.toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(300_000));
+      expect(score.getByText("Lucas Martin")).toBeInTheDocument();
+      expect(score.getByText("Théo Bernard")).toBeInTheDocument();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
   it("adapte la disposition lorsque l’orientation change", () => {
     let isLandscape = false;
     const orientationQuery = new EventTarget();
@@ -180,8 +224,11 @@ describe("LiveMatchPage", () => {
     expect(scorePanels[0]).toHaveTextContent("ÉQUIPE BLEUE");
     expect(scorePanels[2]).toHaveTextContent("ÉQUIPE ROUGE");
     expect(
-      within(scoreRegion).queryByText("Lucas Martin"),
-    ).not.toBeInTheDocument();
+      within(scoreRegion).getByText("Lucas Martin"),
+    ).toBeInTheDocument();
+    expect(within(scorePanels[0] as HTMLElement).getByText("Théo Bernard")).toBeInTheDocument();
+    expect(within(scorePanels[2] as HTMLElement).getByText("Lucas Martin")).toBeInTheDocument();
+    expect(within(scoreRegion).getAllByRole("img", { name: "Gardien" })).toHaveLength(2);
     expect(
       within(
         screen.getByRole("list", { name: "Événements du match" }),

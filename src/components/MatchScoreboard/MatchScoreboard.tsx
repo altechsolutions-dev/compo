@@ -1,4 +1,5 @@
 import type { MatchGoal } from "../../types";
+import { GoalkeeperBadge } from "../GoalkeeperBadge/GoalkeeperBadge";
 
 type MatchScoreboardProps = {
   goals: MatchGoal[];
@@ -6,7 +7,18 @@ type MatchScoreboardProps = {
   status: "in_progress" | "paused" | "finished";
   compact?: boolean;
   onSelectTeam?: (team: 0 | 1) => void;
+  goalkeeperNames?: [string | undefined, string | undefined];
 };
+
+function ScoreGoalkeeper({ name }: { name: string | undefined }) {
+  if (!name) return null;
+  return (
+    <span className="live-match-score-goalkeeper mt-3 flex max-w-full items-center gap-2 text-xs font-semibold">
+      <GoalkeeperBadge />
+      <span className="min-w-0 truncate" title={name}>{name}</span>
+    </span>
+  );
+}
 
 function formatClock(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60);
@@ -20,6 +32,7 @@ export function MatchScoreboard({
   status,
   compact = false,
   onSelectTeam,
+  goalkeeperNames,
 }: MatchScoreboardProps) {
   const blueScore = goals.filter((goal) => goal.team === 1).length;
   const redScore = goals.filter((goal) => goal.team === 0).length;
@@ -45,6 +58,7 @@ export function MatchScoreboard({
           >
             {blueScore}
           </strong>
+          <ScoreGoalkeeper name={goalkeeperNames?.[1]} />
         </button>
       ) : (
         <div className="live-match-score-team--blue flex min-w-0 flex-col justify-center bg-linear-to-r from-(--team-b-blue)/15 to-transparent px-10 py-5 max-[380px]:px-3">
@@ -57,6 +71,7 @@ export function MatchScoreboard({
           >
             {blueScore}
           </strong>
+          <ScoreGoalkeeper name={goalkeeperNames?.[1]} />
         </div>
       )}
       <div className="flex flex-col items-center justify-center border-x border-(--line) px-2 text-center">
@@ -96,6 +111,7 @@ export function MatchScoreboard({
           >
             {redScore}
           </strong>
+          <ScoreGoalkeeper name={goalkeeperNames?.[0]} />
         </button>
       ) : (
         <div className="live-match-score-team--red flex min-w-0 flex-col items-end justify-center bg-linear-to-l from-(--team-a-red)/15 to-transparent px-10 py-5 text-right max-[380px]:px-3">
@@ -108,6 +124,7 @@ export function MatchScoreboard({
           >
             {redScore}
           </strong>
+          <ScoreGoalkeeper name={goalkeeperNames?.[0]} />
         </div>
       )}
     </section>

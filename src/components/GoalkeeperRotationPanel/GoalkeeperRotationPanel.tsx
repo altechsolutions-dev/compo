@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MatchSlot } from "../../types";
-import { GoalkeeperBadge } from "../GoalkeeperBadge/GoalkeeperBadge";
 import {
-  getGoalkeeperIds,
   getGoalkeeperRotation,
   getCurrentMatchSeconds,
 } from "../../lib/goalkeeperRotation/goalkeeperRotation";
@@ -30,14 +28,10 @@ function soundAlarm(context: AudioContext) {
 export function GoalkeeperRotationPanel({
   match,
   elapsedSeconds,
-  teams,
-  playerNames,
   onSetInterval,
 }: {
   match: MatchSlot;
   elapsedSeconds: number;
-  teams: [string[], string[]];
-  playerNames: Record<string, string>;
   onSetInterval: (matchId: string, minutes: number) => Promise<boolean>;
 }) {
   const intervalSeconds = match.goalkeeperRotation?.intervalSeconds ?? 300;
@@ -49,7 +43,6 @@ export function GoalkeeperRotationPanel({
   const audioRef = useRef<AudioContext | null>(null);
   const mountedRef = useRef(false);
   const rotation = getGoalkeeperRotation(match.goalkeeperRotation, elapsedSeconds);
-  const goalkeeperIds = getGoalkeeperIds(teams, rotation.turn);
   const previousTurn = useRef({
     matchId: match.id,
     turn: getGoalkeeperRotation(match.goalkeeperRotation, getCurrentMatchSeconds(match)).turn,
@@ -119,24 +112,16 @@ export function GoalkeeperRotationPanel({
 
   const remaining = rotation.remainingSeconds;
   return (
-    <section aria-label="Rotation des gardiens" className="mt-3 rounded-xl border border-(--line) bg-(--bg-surface) p-4 text-xs">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="m-0 text-sm font-bold">Rotation des gardiens</h2>
-        <p className="m-0 text-(--text-secondary)">
+    <section aria-label="Rotation des gardiens" className="live-match-goalkeeper-settings mt-3 rounded-xl border border-(--line) bg-(--bg-surface) p-4 text-xs">
+      <details>
+      <summary className="cursor-pointer">
+        <span className="font-bold">Réglages des gardiens</span>
+        <span className="ml-2 text-(--text-secondary)">
           {match.status === "paused" ? "En pause · " : ""}Prochain changement dans{" "}
           <span className="font-mono tabular-nums">{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</span>
-        </p>
-      </div>
-      <div className="my-3 grid grid-cols-2 gap-3" aria-live="polite" aria-atomic="true" role="status">
-        {changed && <p className="col-span-2 m-0 font-semibold">Changement de gardiens !</p>}
-        {([1, 0] as const).map((team) => (
-          <p key={team} className={`m-0 flex min-w-0 items-center gap-2 ${team === 0 ? "text-(--team-a-red)" : "text-(--team-b-blue)"}`}>
-            <span className="min-w-0 truncate">{team === 0 ? "Rouge" : "Bleue"} : {playerNames[goalkeeperIds[team] ?? ""] ?? "Joueur"}</span>
-            <GoalkeeperBadge />
-          </p>
-        ))}
-      </div>
-      <form className="flex flex-wrap items-center gap-2" onSubmit={async (event) => {
+        </span>
+      </summary>
+      <form className="mt-3 flex flex-wrap items-center gap-2" onSubmit={async (event) => {
         event.preventDefault();
         if (isSaving) return;
         setIsSaving(true);
@@ -159,6 +144,10 @@ export function GoalkeeperRotationPanel({
         </button>
       </form>
       {!soundReady && !audioNotice && <p className="mb-0 text-(--text-secondary)">Activez le son et gardez le direct ouvert pour entendre l’alarme.</p>}
+      </details>
+      <div aria-live="polite" aria-atomic="true" role="status">
+        {changed && <p className="mb-0 font-semibold">Changement de gardiens !</p>}
+      </div>
       {audioNotice && <p className="mb-0 text-(--team-a-red)" role="alert">{audioNotice}</p>}
     </section>
   );
